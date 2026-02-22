@@ -38,6 +38,9 @@ function RootLayoutNav() {
       <Stack.Screen name="profile/edit" options={{ headerShown: false, animation: 'slide_from_bottom' }} />
       <Stack.Screen name="tickets/index" options={{ headerShown: false, animation: 'slide_from_right' }} />
       <Stack.Screen name="help/index" options={{ headerShown: false, animation: 'slide_from_right' }} />
+      <Stack.Screen name="legal/terms" options={{ headerShown: false, animation: 'slide_from_right' }} />
+      <Stack.Screen name="legal/privacy" options={{ headerShown: false, animation: 'slide_from_right' }} />
+      <Stack.Screen name="legal/cookies" options={{ headerShown: false, animation: 'slide_from_right' }} />
     </Stack>
   );
 }

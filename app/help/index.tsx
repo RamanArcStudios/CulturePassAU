@@ -89,25 +89,25 @@ export default function HelpScreen() {
         <Animated.View entering={FadeInDown.delay(400).duration(400)} style={styles.section}>
           <Text style={styles.sectionTitle}>Legal</Text>
           <View style={styles.contactCard}>
-            <Pressable style={styles.contactItem} onPress={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)}>
-              <View style={[styles.contactIcon, { backgroundColor: Colors.textTertiary + '15' }]}>
-                <Ionicons name="document-text-outline" size={20} color={Colors.textSecondary} />
+            <Pressable style={styles.contactItem} onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); router.push('/legal/terms'); }}>
+              <View style={[styles.contactIcon, { backgroundColor: '#3498DB15' }]}>
+                <Ionicons name="document-text-outline" size={20} color="#3498DB" />
               </View>
               <Text style={[styles.contactLabel, { flex: 1 }]}>Terms of Service</Text>
               <Ionicons name="chevron-forward" size={18} color={Colors.textTertiary} />
             </Pressable>
             <View style={styles.divider} />
-            <Pressable style={styles.contactItem} onPress={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)}>
-              <View style={[styles.contactIcon, { backgroundColor: Colors.textTertiary + '15' }]}>
-                <Ionicons name="shield-checkmark-outline" size={20} color={Colors.textSecondary} />
+            <Pressable style={styles.contactItem} onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); router.push('/legal/privacy'); }}>
+              <View style={[styles.contactIcon, { backgroundColor: '#2ECC7115' }]}>
+                <Ionicons name="shield-checkmark-outline" size={20} color="#2ECC71" />
               </View>
               <Text style={[styles.contactLabel, { flex: 1 }]}>Privacy Policy</Text>
               <Ionicons name="chevron-forward" size={18} color={Colors.textTertiary} />
             </Pressable>
             <View style={styles.divider} />
-            <Pressable style={styles.contactItem} onPress={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)}>
-              <View style={[styles.contactIcon, { backgroundColor: Colors.textTertiary + '15' }]}>
-                <Ionicons name="lock-closed-outline" size={20} color={Colors.textSecondary} />
+            <Pressable style={styles.contactItem} onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); router.push('/legal/cookies'); }}>
+              <View style={[styles.contactIcon, { backgroundColor: '#F2A93B15' }]}>
+                <Ionicons name="finger-print-outline" size={20} color="#F2A93B" />
               </View>
               <Text style={[styles.contactLabel, { flex: 1 }]}>Data & Cookie Policy</Text>
               <Ionicons name="chevron-forward" size={18} color={Colors.textTertiary} />
