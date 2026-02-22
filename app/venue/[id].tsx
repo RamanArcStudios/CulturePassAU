@@ -14,30 +14,24 @@ import {
 import { useLocalSearchParams, router, useNavigation } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Image } from "expo-image";
-import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
+import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useQuery } from "@tanstack/react-query";
 import Colors from "@/constants/colors";
 import SocialLinksBar from "@/components/SocialLinksBar";
-import type { Venue, Event } from "@/lib/data";
+import type { Profile } from "@shared/schema";
 
-const VENUE_TYPE_ICONS: Record<string, string> = {
-  "Community Hall": "home",
-  "Convention Centre": "business",
-  "Temple": "moon",
-  "Theatre": "film",
-  "Stadium": "football",
-  "Outdoor Park": "leaf",
-  "Function Centre": "wine",
-  "Church": "heart",
-  "Mosque": "moon",
+const getApiBase = () => {
+  if (Platform.OS === 'web') return '';
+  const domain = process.env.EXPO_PUBLIC_DOMAIN;
+  return domain ? `https://${domain}` : 'http://localhost:5000';
 };
 
 export default function VenueDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const insets = useSafeAreaInsets();
   const navigation = useNavigation();
-  const isWeb = Platform.OS === "web";
+  const webTopInset = Platform.OS === "web" ? 67 : 0;
 
   const goBack = useCallback(() => {
     if (navigation.canGoBack()) {
@@ -47,12 +41,9 @@ export default function VenueDetailScreen() {
     }
   }, [navigation]);
 
-  const { data: venue, isLoading } = useQuery<Venue>({
-    queryKey: ["/api/venues", id],
-  });
-
-  const { data: venueEvents } = useQuery<Event[]>({
-    queryKey: ["/api/venues", id, "events"],
+  const { data: profile, isLoading } = useQuery<Profile>({
+    queryKey: ['/api/profiles', id],
+    queryFn: () => fetch(`${getApiBase()}/api/profiles/${id}`).then(r => r.json()),
   });
 
   const handleShare = useCallback(async () => {
@@ -60,26 +51,28 @@ export default function VenueDetailScreen() {
       const url = `https://culturepass.replit.app/venue/${id}`;
       if (Platform.OS === "web") {
         if (typeof navigator !== "undefined" && navigator.share) {
-          await navigator.share({ title: venue?.name ?? "", url });
+          await navigator.share({ title: profile?.name ?? "", url });
         } else if (typeof navigator !== "undefined" && navigator.clipboard) {
           await navigator.clipboard.writeText(url);
           Alert.alert("Link Copied", "Link copied to clipboard");
         }
       } else {
-        await Share.share({ message: `Check out ${venue?.name} on CulturePass! ${url}` });
+        await Share.share({ message: `Check out ${profile?.name} on CulturePass! ${url}` });
       }
     } catch {}
-  }, [id, venue]);
+  }, [id, profile]);
 
   const openDirections = useCallback(() => {
-    if (!venue) return;
+    if (!profile) return;
+    const addr = profile.address || [profile.city, profile.country].filter(Boolean).join(", ");
+    if (!addr) return;
     const url = Platform.select({
-      ios: `maps:0,0?q=${encodeURIComponent(venue.address)}`,
-      android: `geo:0,0?q=${encodeURIComponent(venue.address)}`,
-      default: `https://maps.google.com/?q=${encodeURIComponent(venue.address)}`,
+      ios: `maps:0,0?q=${encodeURIComponent(addr)}`,
+      android: `geo:0,0?q=${encodeURIComponent(addr)}`,
+      default: `https://maps.google.com/?q=${encodeURIComponent(addr)}`,
     });
     Linking.openURL(url);
-  }, [venue]);
+  }, [profile]);
 
   if (isLoading) {
     return (
@@ -91,12 +84,13 @@ export default function VenueDetailScreen() {
     );
   }
 
-  if (!venue) {
+  if (!profile) {
     return (
       <View style={[styles.container, { paddingTop: insets.top }]}>
         <View style={styles.loadingContainer}>
+          <Ionicons name="alert-circle" size={48} color={Colors.light.textTertiary} />
           <Text style={styles.errorText}>Venue not found</Text>
-          <Pressable onPress={goBack} style={styles.backLink}>
+          <Pressable onPress={goBack} style={styles.backLinkBtn}>
             <Text style={styles.backLinkText}>Go Back</Text>
           </Pressable>
         </View>
@@ -104,9 +98,8 @@ export default function VenueDetailScreen() {
     );
   }
 
-  const heroImage = venue.images?.[0] || "https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=800";
-  const amenities: string[] = Array.isArray(venue.amenities) ? venue.amenities : [];
-  const venueIcon = VENUE_TYPE_ICONS[venue.venueType] || "location";
+  const heroImage = profile.coverImageUrl || (profile.images && profile.images.length > 0 ? profile.images[0] : null) || profile.avatarUrl;
+  const location = [profile.city, profile.country].filter(Boolean).join(", ");
 
   return (
     <View style={styles.container}>
@@ -115,13 +108,20 @@ export default function VenueDetailScreen() {
         contentContainerStyle={{ paddingBottom: insets.bottom + 100 }}
       >
         <View style={styles.heroContainer}>
-          <Image source={{ uri: heroImage }} style={styles.heroImage} contentFit="cover" />
+          {heroImage ? (
+            <Image source={{ uri: heroImage }} style={styles.heroImage} contentFit="cover" transition={300} />
+          ) : (
+            <LinearGradient
+              colors={[Colors.light.secondary, Colors.light.primary]}
+              style={styles.heroImage}
+            />
+          )}
           <LinearGradient
             colors={["rgba(0,0,0,0.5)", "transparent", "rgba(0,0,0,0.7)"]}
             locations={[0, 0.4, 1]}
             style={styles.heroGradient}
           />
-          <View style={[styles.heroTopBar, { top: insets.top + 8 }]}>
+          <View style={[styles.heroTopBar, { top: insets.top + webTopInset + 8 }]}>
             <Pressable onPress={goBack} style={styles.heroBtn}>
               <Ionicons name="arrow-back" size={22} color="#fff" />
             </Pressable>
@@ -129,148 +129,135 @@ export default function VenueDetailScreen() {
               <Pressable onPress={handleShare} style={styles.heroBtn}>
                 <Ionicons name="share-outline" size={22} color="#fff" />
               </Pressable>
-              <Pressable onPress={openDirections} style={styles.heroBtn}>
-                <Ionicons name="navigate" size={22} color="#fff" />
-              </Pressable>
+              {profile.address && (
+                <Pressable onPress={openDirections} style={styles.heroBtn}>
+                  <Ionicons name="navigate" size={22} color="#fff" />
+                </Pressable>
+              )}
             </View>
           </View>
           <View style={styles.heroInfo}>
-            <View style={styles.typeBadge}>
-              <Ionicons name={venueIcon as any} size={14} color="#fff" />
-              <Text style={styles.typeBadgeText}>{venue.venueType}</Text>
-            </View>
-            <Text style={styles.heroTitle}>{venue.name}</Text>
-            <View style={styles.heroLocationRow}>
-              <Ionicons name="location-outline" size={16} color="rgba(255,255,255,0.85)" />
-              <Text style={styles.heroLocation}>{venue.city}, {venue.state}</Text>
-            </View>
+            {profile.isVerified && (
+              <View style={styles.verifiedBadge}>
+                <Ionicons name="checkmark-circle" size={14} color={Colors.light.success} />
+                <Text style={styles.verifiedBadgeText}>Verified</Text>
+              </View>
+            )}
+            <Text style={styles.heroTitle}>{profile.name}</Text>
+            {location ? (
+              <View style={styles.heroLocationRow}>
+                <Ionicons name="location-outline" size={16} color="rgba(255,255,255,0.85)" />
+                <Text style={styles.heroLocation}>{location}</Text>
+              </View>
+            ) : null}
           </View>
         </View>
 
-        <View style={[styles.content, isWeb && { paddingTop: 0 }]}>
+        <View style={styles.content}>
           <View style={styles.statsRow}>
-            {venue.capacity && (
+            <View style={styles.statCard}>
+              <Ionicons name="people" size={22} color={Colors.light.secondary} />
+              <Text style={styles.statValue}>{profile.followersCount ?? 0}</Text>
+              <Text style={styles.statLabel}>Followers</Text>
+            </View>
+            <View style={styles.statCard}>
+              <Ionicons name="star" size={22} color={Colors.light.accent} />
+              <Text style={styles.statValue}>{profile.rating ? profile.rating.toFixed(1) : "—"}</Text>
+              <Text style={styles.statLabel}>Rating</Text>
+            </View>
+            {profile.membersCount != null && profile.membersCount > 0 && (
               <View style={styles.statCard}>
-                <Ionicons name="people" size={22} color={Colors.light.secondary} />
-                <Text style={styles.statValue}>{venue.capacity.toLocaleString()}</Text>
-                <Text style={styles.statLabel}>Capacity</Text>
+                <Ionicons name="person-add" size={22} color={Colors.light.primary} />
+                <Text style={styles.statValue}>{profile.membersCount}</Text>
+                <Text style={styles.statLabel}>Members</Text>
               </View>
             )}
-            <View style={styles.statCard}>
-              <Ionicons name="calendar" size={22} color={Colors.light.primary} />
-              <Text style={styles.statValue}>{venueEvents?.length || 0}</Text>
-              <Text style={styles.statLabel}>Events</Text>
-            </View>
-            <View style={styles.statCard}>
-              <Ionicons name="globe-outline" size={22} color={Colors.light.accent} />
-              <Text style={styles.statValue}>{venue.country === "New Zealand" ? "NZ" : "AU"}</Text>
-              <Text style={styles.statLabel}>Country</Text>
-            </View>
           </View>
 
-          <View style={styles.addressCard}>
-            <Ionicons name="location" size={20} color={Colors.light.primary} />
-            <View style={{ flex: 1 }}>
-              <Text style={styles.addressText}>{venue.address}</Text>
-            </View>
-            <Pressable onPress={openDirections} style={styles.directionsBtn}>
-              <Ionicons name="navigate" size={18} color="#fff" />
-              <Text style={styles.directionsBtnText}>Directions</Text>
-            </Pressable>
-          </View>
-
-          {venue.description && (
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>About</Text>
-              <Text style={styles.descriptionText}>{venue.description}</Text>
+          {profile.culturePassId && (
+            <View style={styles.cpidRow}>
+              <Ionicons name="finger-print" size={16} color={Colors.light.secondary} />
+              <Text style={styles.cpidText}>{profile.culturePassId}</Text>
             </View>
           )}
 
-          {amenities.length > 0 && (
+          {profile.address && (
+            <Pressable onPress={openDirections} style={styles.addressCard}>
+              <Ionicons name="location" size={20} color={Colors.light.primary} />
+              <View style={{ flex: 1 }}>
+                <Text style={styles.addressText}>{profile.address}</Text>
+              </View>
+              <View style={styles.directionsBtn}>
+                <Ionicons name="navigate" size={18} color="#fff" />
+                <Text style={styles.directionsBtnText}>Directions</Text>
+              </View>
+            </Pressable>
+          )}
+
+          {(profile.bio || profile.description) && (
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Amenities</Text>
-              <View style={styles.amenitiesGrid}>
-                {amenities.map((amenity, idx) => (
-                  <View key={idx} style={styles.amenityChip}>
-                    <Ionicons name="checkmark-circle" size={16} color={Colors.light.success} />
-                    <Text style={styles.amenityText}>{amenity}</Text>
+              <Text style={styles.sectionTitle}>About</Text>
+              <Text style={styles.descriptionText}>{profile.bio || profile.description}</Text>
+            </View>
+          )}
+
+          {profile.tags && profile.tags.length > 0 && (
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Tags</Text>
+              <View style={styles.tagsGrid}>
+                {profile.tags.map((tag, idx) => (
+                  <View key={idx} style={styles.tagChip}>
+                    <Text style={styles.tagText}>{tag}</Text>
                   </View>
                 ))}
               </View>
             </View>
           )}
 
-          {(venue.contact || venue.phone || venue.website) && (
+          {profile.openingHours && (
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Opening Hours</Text>
+              <Text style={styles.descriptionText}>{profile.openingHours}</Text>
+            </View>
+          )}
+
+          {(profile.email || profile.phone || profile.website) && (
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Contact</Text>
-              {venue.contact && (
+              {profile.email && (
                 <Pressable
                   style={styles.contactRow}
-                  onPress={() => Linking.openURL(`mailto:${venue.contact}`)}
+                  onPress={() => Linking.openURL(`mailto:${profile.email}`)}
                 >
                   <Ionicons name="mail-outline" size={20} color={Colors.light.secondary} />
-                  <Text style={styles.contactText}>{venue.contact}</Text>
+                  <Text style={styles.contactText}>{profile.email}</Text>
                 </Pressable>
               )}
-              {venue.phone && (
+              {profile.phone && (
                 <Pressable
                   style={styles.contactRow}
-                  onPress={() => Linking.openURL(`tel:${venue.phone}`)}
+                  onPress={() => Linking.openURL(`tel:${profile.phone}`)}
                 >
                   <Ionicons name="call-outline" size={20} color={Colors.light.secondary} />
-                  <Text style={styles.contactText}>{venue.phone}</Text>
+                  <Text style={styles.contactText}>{profile.phone}</Text>
                 </Pressable>
               )}
-              {venue.website && (
+              {profile.website && (
                 <Pressable
                   style={styles.contactRow}
-                  onPress={() => Linking.openURL(venue.website!)}
+                  onPress={() => Linking.openURL(profile.website!)}
                 >
                   <Ionicons name="globe-outline" size={20} color={Colors.light.secondary} />
-                  <Text style={styles.contactText}>{venue.website}</Text>
+                  <Text style={styles.contactText}>{profile.website}</Text>
                 </Pressable>
               )}
             </View>
           )}
 
-          {(venue.socialLinks && Object.values(venue.socialLinks).some(Boolean)) && (
+          {(profile.socialLinks && Object.values(profile.socialLinks).some(Boolean)) && (
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Follow Us</Text>
-              <SocialLinksBar socialLinks={venue.socialLinks} website={venue.website} />
-            </View>
-          )}
-
-          {venueEvents && venueEvents.length > 0 && (
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Upcoming Events</Text>
-              {venueEvents.map((event) => (
-                <Pressable
-                  key={event.id}
-                  style={styles.eventCard}
-                  onPress={() => router.push(`/event/${event.id}`)}
-                >
-                  <Image
-                    source={{ uri: event.imageUrl || "https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=400" }}
-                    style={styles.eventImage}
-                    contentFit="cover"
-                  />
-                  <View style={styles.eventInfo}>
-                    <Text style={styles.eventTitle} numberOfLines={2}>{event.title}</Text>
-                    <View style={styles.eventMeta}>
-                      <Ionicons name="calendar-outline" size={13} color={Colors.light.textSecondary} />
-                      <Text style={styles.eventMetaText}>{event.date}</Text>
-                    </View>
-                    <View style={styles.eventMeta}>
-                      <Ionicons name="time-outline" size={13} color={Colors.light.textSecondary} />
-                      <Text style={styles.eventMetaText}>{event.time}</Text>
-                    </View>
-                    <Text style={styles.eventPrice}>
-                      {event.price > 0 ? `$${event.price}` : "Free"}
-                    </Text>
-                  </View>
-                  <Ionicons name="chevron-forward" size={20} color={Colors.light.textTertiary} />
-                </Pressable>
-              ))}
+              <SocialLinksBar socialLinks={profile.socialLinks} website={profile.website} />
             </View>
           )}
         </View>
@@ -281,9 +268,9 @@ export default function VenueDetailScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.light.background },
-  loadingContainer: { flex: 1, justifyContent: "center", alignItems: "center" },
+  loadingContainer: { flex: 1, justifyContent: "center", alignItems: "center", gap: 12 },
   errorText: { fontFamily: "Poppins_500Medium", fontSize: 16, color: Colors.light.textSecondary },
-  backLink: { marginTop: 12, padding: 12 },
+  backLinkBtn: { marginTop: 12, padding: 12 },
   backLinkText: { fontFamily: "Poppins_600SemiBold", fontSize: 14, color: Colors.light.primary },
 
   heroContainer: { height: 320, position: "relative" },
@@ -310,10 +297,10 @@ const styles = StyleSheet.create({
     left: 16,
     right: 16,
   },
-  typeBadge: {
+  verifiedBadge: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "rgba(26,83,92,0.8)",
+    backgroundColor: "rgba(0,0,0,0.5)",
     paddingHorizontal: 12,
     paddingVertical: 5,
     borderRadius: 16,
@@ -321,10 +308,10 @@ const styles = StyleSheet.create({
     alignSelf: "flex-start",
     marginBottom: 8,
   },
-  typeBadgeText: {
+  verifiedBadgeText: {
     fontFamily: "Poppins_500Medium",
     fontSize: 12,
-    color: "#fff",
+    color: Colors.light.success,
   },
   heroTitle: {
     fontFamily: "Poppins_700Bold",
@@ -365,6 +352,23 @@ const styles = StyleSheet.create({
     fontFamily: "Poppins_400Regular",
     fontSize: 12,
     color: Colors.light.textSecondary,
+  },
+
+  cpidRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    backgroundColor: Colors.light.secondary + "10",
+    borderRadius: 12,
+    alignSelf: "flex-start",
+    marginBottom: 16,
+  },
+  cpidText: {
+    fontFamily: "Poppins_600SemiBold",
+    fontSize: 13,
+    color: Colors.light.secondary,
   },
 
   addressCard: {
@@ -413,21 +417,18 @@ const styles = StyleSheet.create({
     lineHeight: 24,
   },
 
-  amenitiesGrid: {
+  tagsGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
     gap: 8,
   },
-  amenityChip: {
-    flexDirection: "row",
-    alignItems: "center",
+  tagChip: {
     backgroundColor: Colors.light.surfaceElevated,
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 10,
-    gap: 6,
   },
-  amenityText: {
+  tagText: {
     fontFamily: "Poppins_500Medium",
     fontSize: 13,
     color: Colors.light.text,
@@ -445,46 +446,5 @@ const styles = StyleSheet.create({
     fontFamily: "Poppins_400Regular",
     fontSize: 14,
     color: Colors.light.secondary,
-  },
-
-  eventCard: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: Colors.light.surface,
-    borderRadius: 14,
-    padding: 12,
-    marginBottom: 10,
-    borderWidth: 1,
-    borderColor: Colors.light.borderLight,
-    gap: 12,
-  },
-  eventImage: {
-    width: 70,
-    height: 70,
-    borderRadius: 10,
-  },
-  eventInfo: { flex: 1 },
-  eventTitle: {
-    fontFamily: "Poppins_600SemiBold",
-    fontSize: 14,
-    color: Colors.light.text,
-    marginBottom: 4,
-  },
-  eventMeta: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    marginBottom: 2,
-  },
-  eventMetaText: {
-    fontFamily: "Poppins_400Regular",
-    fontSize: 12,
-    color: Colors.light.textSecondary,
-  },
-  eventPrice: {
-    fontFamily: "Poppins_600SemiBold",
-    fontSize: 13,
-    color: Colors.light.primary,
-    marginTop: 4,
   },
 });

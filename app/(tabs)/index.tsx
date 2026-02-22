@@ -493,7 +493,7 @@ export default function HomeScreen() {
         <Animated.View entering={FadeInDown.delay(700).duration(600)}>
           <Pressable
             style={styles.exploreCta}
-            onPress={() => router.push('/(tabs)/explore')}
+            onPress={() => router.push('/allevents')}
           >
             <View style={styles.exploreCtaIcon}>
               <Ionicons name="compass" size={26} color={Colors.primary} />
