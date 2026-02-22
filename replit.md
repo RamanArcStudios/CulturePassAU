@@ -47,6 +47,10 @@ Preferred communication style: Simple, everyday language.
   - Login: Simplified title, Remember me toggle
   - Signup: Password strength indicator (Weak/Medium/Strong), benefits text row
   - All 5 main tabs: Pull-to-refresh with RefreshControl
+- **Feb 2026**: Shared FilterChip component:
+  - Created reusable `FilterChipRow` and `FilterChip` components (`components/FilterChip.tsx`) with consistent pill styling, icon support, count badges, active/inactive states, haptic feedback, and press animations
+  - Updated Communities, Explore, Directory, and Perks tabs to use the shared component, removing ~100 lines of duplicated styling code
+  - Moved `typography.ts` from `app/` to `constants/` to fix Expo Router route warning
 - **Feb 2026**: Profile & Database improvements:
   - Refined color scheme: warmer primary (#D4552A), deeper secondary (#1B7F6F), better shadows with brown-tinted shadow colors, added primarySoft color
   - Redesigned Profile tab: hero card with accent strip, CPID/location chips, colored completeness bar with percentage, full-width Edit Profile button, card-based quick actions with icons
