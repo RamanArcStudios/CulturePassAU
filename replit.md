@@ -47,6 +47,14 @@ Preferred communication style: Simple, everyday language.
   - Login: Simplified title, Remember me toggle
   - Signup: Password strength indicator (Weak/Medium/Strong), benefits text row
   - All 5 main tabs: Pull-to-refresh with RefreshControl
+- **Feb 2026**: Profile & Database improvements:
+  - Refined color scheme: warmer primary (#D4552A), deeper secondary (#1B7F6F), better shadows with brown-tinted shadow colors, added primarySoft color
+  - Redesigned Profile tab: hero card with accent strip, CPID/location chips, colored completeness bar with percentage, full-width Edit Profile button, card-based quick actions with icons
+  - Built View Public Profile screen (`app/profile/public.tsx`): shows user's own profile as others see it, with hero header, stats, bio, social links, CulturePass ID card, member since date
+  - Built Digital ID / QR screen (`app/profile/qr.tsx`): CulturePass Digital ID card with fingerprint icon, unique visual pattern grid, CPID display, share and copy functionality
+  - Profile quick actions: View Public → /profile/public, My QR ID → /profile/qr, Share (native share)
+  - Enriched demo user data: followers (156), following (89), likes (342), phone, website, extended bio
+  - Fixed user ordering: getAllUsers now orders by createdAt ASC so demo user appears first
 
 ## System Architecture
 
