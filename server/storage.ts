@@ -4,7 +4,7 @@ import {
   users, profiles, follows, likes, reviews,
   paymentMethods, transactions, wallets,
   sponsors, eventSponsors, sponsorPlacements,
-  perks, perkRedemptions, memberships, notifications,
+  perks, perkRedemptions, memberships, notifications, tickets,
   type User, type InsertUser,
   type Profile, type InsertProfile,
   type Review, type InsertReview,
@@ -17,6 +17,7 @@ import {
   type PerkRedemption,
   type Membership, type InsertMembership,
   type Notification, type InsertNotification,
+  type Ticket, type InsertTicket,
 } from "@shared/schema";
 
 export class DatabaseStorage {
@@ -440,6 +441,34 @@ export class DatabaseStorage {
   async deleteNotification(id: string): Promise<boolean> {
     const result = await db.delete(notifications).where(eq(notifications.id, id)).returning();
     return result.length > 0;
+  }
+
+  // === Tickets ===
+  async getTickets(userId: string): Promise<Ticket[]> {
+    return db.select().from(tickets).where(eq(tickets.userId, userId)).orderBy(desc(tickets.createdAt));
+  }
+
+  async getTicket(id: string): Promise<Ticket | undefined> {
+    const [t] = await db.select().from(tickets).where(eq(tickets.id, id));
+    return t;
+  }
+
+  async createTicket(data: InsertTicket): Promise<Ticket> {
+    const code = `CP-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).substr(2, 4).toUpperCase()}`;
+    const [t] = await db.insert(tickets).values({ ...data, ticketCode: code }).returning();
+    return t;
+  }
+
+  async cancelTicket(id: string): Promise<Ticket | undefined> {
+    const [t] = await db.update(tickets).set({ status: "cancelled" }).where(eq(tickets.id, id)).returning();
+    return t;
+  }
+
+  async getTicketCount(userId: string): Promise<number> {
+    const result = await db.select().from(tickets).where(
+      and(eq(tickets.userId, userId), eq(tickets.status, "confirmed"))
+    );
+    return result.length;
   }
 }
 

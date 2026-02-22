@@ -216,6 +216,24 @@ export const notifications = pgTable("notifications", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+export const tickets = pgTable("tickets", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull(),
+  eventId: varchar("event_id").notNull(),
+  eventTitle: text("event_title").notNull(),
+  eventDate: text("event_date"),
+  eventTime: text("event_time"),
+  eventVenue: text("event_venue"),
+  tierName: text("tier_name"),
+  quantity: integer("quantity").default(1),
+  totalPrice: doublePrecision("total_price").default(0),
+  currency: text("currency").default("AUD"),
+  status: text("status").default("confirmed"),
+  ticketCode: text("ticket_code"),
+  imageColor: text("image_color"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 export interface SocialLinks {
   facebook?: string;
   instagram?: string;
@@ -286,6 +304,11 @@ export const insertNotificationSchema = createInsertSchema(notifications).omit({
   createdAt: true,
 });
 
+export const insertTicketSchema = createInsertSchema(tickets).omit({
+  id: true,
+  createdAt: true,
+});
+
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
 export type Profile = typeof profiles.$inferSelect;
@@ -310,3 +333,5 @@ export type Membership = typeof memberships.$inferSelect;
 export type InsertMembership = z.infer<typeof insertMembershipSchema>;
 export type Notification = typeof notifications.$inferSelect;
 export type InsertNotification = z.infer<typeof insertNotificationSchema>;
+export type Ticket = typeof tickets.$inferSelect;
+export type InsertTicket = z.infer<typeof insertTicketSchema>;

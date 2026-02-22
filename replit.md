@@ -19,6 +19,13 @@ Preferred communication style: Simple, everyday language.
 - **Feb 2026**: Added 3 artist profiles, 4 sponsors, 7 perks, sample notifications as seed data
 - **Feb 2026**: Home screen notification bell now links to `/notifications`, perks banner links to `/perks`
 - **Feb 2026**: Profile tab now has Perks & Notifications links in Payment & Billing section
+- **Feb 2026**: Added tickets table and full CRUD API (5 endpoints) with auto-generated ticket codes
+- **Feb 2026**: Built Edit Profile screen (`app/profile/edit.tsx`) with personal info, location, social links editing
+- **Feb 2026**: Built My Tickets screen (`app/tickets/index.tsx`) with upcoming/past tickets, ticket codes, cancel functionality
+- **Feb 2026**: Built Help & Support screen (`app/help/index.tsx`) with FAQ accordion, contact options, legal links
+- **Feb 2026**: Redesigned Profile tab with membership tier badge, ticket count, wallet balance, notifications badge, organized sections (Tickets & Wallet, Payment & Billing, Notifications, Help & Support)
+- **Feb 2026**: Added tickets section to Wallet page showing active tickets
+- **Feb 2026**: Seeded 4 sample tickets, Plus membership, and wallet balance for demo user
 
 ## System Architecture
 
@@ -32,7 +39,7 @@ Preferred communication style: Simple, everyday language.
   - Detail screens: `event/[id]`, `community/[id]`, `business/[id]`, `profile/[id]` as stack screens
   - Super-app modules: `movies/`, `restaurants/`, `activities/`, `shopping/`
   - Payment screens: `payment/methods`, `payment/transactions`, `payment/wallet`
-  - New screens: `perks/index`, `notifications/index`
+  - New screens: `perks/index`, `notifications/index`, `profile/edit`, `tickets/index`, `help/index`
 - **State Management**:
   - React Context for app state (`OnboardingContext`, `SavedContext`)
   - AsyncStorage for local persistence of onboarding state, saved events, and joined communities
@@ -53,7 +60,7 @@ Preferred communication style: Simple, everyday language.
 ### Data Layer
 
 - **Schema**: Drizzle ORM with PostgreSQL dialect, defined in `shared/schema.ts`
-- **Tables**: users, profiles, follows, likes, reviews, payment_methods, transactions, wallets, sponsors, event_sponsors, sponsor_placements, perks, perk_redemptions, memberships, notifications
+- **Tables**: users, profiles, follows, likes, reviews, payment_methods, transactions, wallets, sponsors, event_sponsors, sponsor_placements, perks, perk_redemptions, memberships, notifications, tickets
 - **Entity Types**: user, community, organisation, venue, business, council, government, artist, sponsor
 - **Storage**: `DatabaseStorage` class in `server/storage.ts` with Drizzle-based CRUD operations
 - **Mock Data**: Events, movies, restaurants, activities, shopping come from `data/mockData.ts`

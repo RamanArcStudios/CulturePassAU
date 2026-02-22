@@ -367,6 +367,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json({ success: true });
   });
 
+  // === Tickets ===
+  app.get("/api/tickets/:userId", async (req: Request, res: Response) => {
+    const tickets = await storage.getTickets(p(req.params.userId));
+    res.json(tickets);
+  });
+
+  app.get("/api/tickets/:userId/count", async (req: Request, res: Response) => {
+    const count = await storage.getTicketCount(p(req.params.userId));
+    res.json({ count });
+  });
+
+  app.get("/api/ticket/:id", async (req: Request, res: Response) => {
+    const ticket = await storage.getTicket(p(req.params.id));
+    if (!ticket) return res.status(404).json({ error: "Ticket not found" });
+    res.json(ticket);
+  });
+
+  app.post("/api/tickets", async (req: Request, res: Response) => {
+    try {
+      const ticket = await storage.createTicket(req.body);
+      res.status(201).json(ticket);
+    } catch (e: any) {
+      res.status(400).json({ error: e.message });
+    }
+  });
+
+  app.put("/api/tickets/:id/cancel", async (req: Request, res: Response) => {
+    const ticket = await storage.cancelTicket(p(req.params.id));
+    if (!ticket) return res.status(404).json({ error: "Ticket not found" });
+    res.json(ticket);
+  });
+
   // === Seed data endpoint ===
   app.post("/api/seed", async (_req: Request, res: Response) => {
     try {
@@ -453,7 +485,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
         await storage.createNotification(n as any);
       }
 
-      res.json({ message: "Seeded successfully", profiles: seedProfiles.length, sponsors: seedSponsors.length, perks: seedPerks.length, users: 1 });
+      // Seed sample tickets for demo user
+      const ticketData = [
+        { userId: demoUser.id, eventId: "evt-001", eventTitle: "Diwali Festival of Lights 2026", eventDate: "2026-10-25", eventTime: "6:00 PM", eventVenue: "Sydney Opera House Forecourt", tierName: "VIP", quantity: 2, totalPrice: 120.00, currency: "AUD", status: "confirmed", imageColor: "#FF6B35" },
+        { userId: demoUser.id, eventId: "evt-002", eventTitle: "Chinese New Year Gala", eventDate: "2026-02-17", eventTime: "7:30 PM", eventVenue: "Melbourne Convention Centre", tierName: "General", quantity: 1, totalPrice: 45.00, currency: "AUD", status: "used", imageColor: "#E74C3C" },
+        { userId: demoUser.id, eventId: "evt-003", eventTitle: "Bollywood Night Live", eventDate: "2026-03-15", eventTime: "8:00 PM", eventVenue: "Darling Harbour Theatre", tierName: "Premium", quantity: 3, totalPrice: 225.00, currency: "AUD", status: "confirmed", imageColor: "#9B59B6" },
+        { userId: demoUser.id, eventId: "evt-004", eventTitle: "Cultural Food Festival", eventDate: "2026-04-10", eventTime: "11:00 AM", eventVenue: "Centennial Park", tierName: "General", quantity: 2, totalPrice: 30.00, currency: "AUD", status: "confirmed", imageColor: "#2ECC71" },
+      ];
+      for (const t of ticketData) {
+        await storage.createTicket(t as any);
+      }
+
+      // Seed membership for demo user
+      await storage.createMembership({ userId: demoUser.id, tier: "plus" } as any);
+
+      // Add funds to demo user wallet
+      await storage.addFunds(demoUser.id, 45.50);
+
+      res.json({ message: "Seeded successfully", profiles: seedProfiles.length, sponsors: seedSponsors.length, perks: seedPerks.length, users: 1, tickets: ticketData.length });
     } catch (e: any) {
       res.status(500).json({ error: e.message });
     }

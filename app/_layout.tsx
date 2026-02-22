@@ -35,6 +35,9 @@ function RootLayoutNav() {
       <Stack.Screen name="payment/wallet" options={{ headerShown: false, animation: 'slide_from_right' }} />
       <Stack.Screen name="perks/index" options={{ headerShown: false, animation: 'slide_from_right' }} />
       <Stack.Screen name="notifications/index" options={{ headerShown: false, animation: 'slide_from_right' }} />
+      <Stack.Screen name="profile/edit" options={{ headerShown: false, animation: 'slide_from_bottom' }} />
+      <Stack.Screen name="tickets/index" options={{ headerShown: false, animation: 'slide_from_right' }} />
+      <Stack.Screen name="help/index" options={{ headerShown: false, animation: 'slide_from_right' }} />
     </Stack>
   );
 }

@@ -17,6 +17,17 @@ interface Wallet {
   updatedAt?: string | null;
 }
 
+interface Ticket {
+  id: string;
+  eventTitle: string;
+  eventDate: string | null;
+  eventVenue: string | null;
+  tierName: string | null;
+  quantity: number | null;
+  status: string | null;
+  imageColor: string | null;
+}
+
 interface Transaction {
   id: string;
   userId: string;
@@ -54,6 +65,12 @@ export default function WalletScreen() {
     queryKey: ['/api/transactions', userId],
     enabled: !!userId,
   });
+
+  const { data: ticketsData = [] } = useQuery<Ticket[]>({
+    queryKey: ['/api/tickets', userId],
+    enabled: !!userId,
+  });
+  const activeTickets = ticketsData.filter(t => t.status === 'confirmed').slice(0, 3);
 
   const topUpMutation = useMutation({
     mutationFn: async (amount: number) => {
@@ -110,6 +127,30 @@ export default function WalletScreen() {
           <Text style={styles.balanceAmount}>${balance.toFixed(2)}</Text>
           <Text style={styles.balanceCurrency}>{currency}</Text>
         </Animated.View>
+
+        {activeTickets.length > 0 && (
+          <Animated.View entering={FadeInDown.delay(150)} style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>My Tickets</Text>
+              <Pressable onPress={() => router.push('/tickets')}>
+                <Text style={styles.viewAllText}>View All</Text>
+              </Pressable>
+            </View>
+            <View style={styles.ticketsRow}>
+              {activeTickets.map(ticket => (
+                <Pressable key={ticket.id} style={[styles.ticketMini, { borderLeftColor: ticket.imageColor || Colors.primary }]}
+                  onPress={() => router.push('/tickets')}>
+                  <Text style={styles.ticketMiniTitle} numberOfLines={1}>{ticket.eventTitle}</Text>
+                  <View style={styles.ticketMiniMeta}>
+                    <Ionicons name="calendar-outline" size={11} color={Colors.textTertiary} />
+                    <Text style={styles.ticketMiniDate}>{ticket.eventDate ? new Date(ticket.eventDate).toLocaleDateString('en-AU', { day: 'numeric', month: 'short' }) : ''}</Text>
+                    {ticket.tierName && <Text style={styles.ticketMiniTier}>{ticket.tierName}</Text>}
+                  </View>
+                </Pressable>
+              ))}
+            </View>
+          </Animated.View>
+        )}
 
         <Animated.View entering={FadeInDown.delay(200)} style={styles.section}>
           <Text style={styles.sectionTitle}>Top Up Wallet</Text>
@@ -249,4 +290,10 @@ const styles = StyleSheet.create({
   activityDate: { fontSize: 11, fontFamily: 'Poppins_400Regular', color: Colors.textSecondary, marginTop: 2 },
   activityAmount: { fontSize: 15, fontFamily: 'Poppins_700Bold' },
   activityDivider: { height: 1, backgroundColor: Colors.divider, marginLeft: 60 },
+  ticketsRow: { gap: 8 },
+  ticketMini: { backgroundColor: Colors.card, borderRadius: 12, padding: 12, borderWidth: 1, borderColor: Colors.cardBorder, borderLeftWidth: 4 },
+  ticketMiniTitle: { fontSize: 13, fontFamily: 'Poppins_600SemiBold', color: Colors.text, marginBottom: 4 },
+  ticketMiniMeta: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  ticketMiniDate: { fontSize: 11, fontFamily: 'Poppins_400Regular', color: Colors.textTertiary },
+  ticketMiniTier: { fontSize: 10, fontFamily: 'Poppins_600SemiBold', color: Colors.accent, marginLeft: 8, backgroundColor: Colors.accent + '12', paddingHorizontal: 6, paddingVertical: 1, borderRadius: 4 },
 });
