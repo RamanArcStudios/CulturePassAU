@@ -1,4 +1,4 @@
-import { View, Text, Pressable, StyleSheet, ScrollView, Platform, Linking, ActivityIndicator } from 'react-native';
+import { View, Text, Pressable, StyleSheet, ScrollView, Platform, Linking, ActivityIndicator, Share, Dimensions } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -6,13 +6,17 @@ import { useQuery } from '@tanstack/react-query';
 import Colors from '@/constants/colors';
 import * as Haptics from 'expo-haptics';
 import Animated, { FadeInDown } from 'react-native-reanimated';
-import type { User } from '@shared/schema';
+import type { User, Membership } from '@shared/schema';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useMemo } from 'react';
 
-const SOCIAL_ICONS: { key: string; icon: keyof typeof Ionicons.glyphMap; label: string }[] = [
-  { key: 'instagram', icon: 'logo-instagram', label: 'Instagram' },
-  { key: 'twitter', icon: 'logo-twitter', label: 'Twitter' },
-  { key: 'linkedin', icon: 'logo-linkedin', label: 'LinkedIn' },
-  { key: 'facebook', icon: 'logo-facebook', label: 'Facebook' },
+const { width: SCREEN_W } = Dimensions.get('window');
+
+const SOCIAL_ICONS: { key: string; icon: keyof typeof Ionicons.glyphMap; label: string; color: string }[] = [
+  { key: 'instagram', icon: 'logo-instagram', label: 'Instagram', color: '#E1306C' },
+  { key: 'twitter', icon: 'logo-twitter', label: 'Twitter', color: '#1DA1F2' },
+  { key: 'linkedin', icon: 'logo-linkedin', label: 'LinkedIn', color: '#0077B5' },
+  { key: 'facebook', icon: 'logo-facebook', label: 'Facebook', color: '#1877F2' },
 ];
 
 function formatNumber(num: number) {
@@ -24,8 +28,20 @@ function formatNumber(num: number) {
 function formatMemberDate(dateStr: string | Date | null) {
   if (!dateStr) return '';
   const date = new Date(dateStr);
-  return date.toLocaleDateString('en-AU', { day: 'numeric', month: 'long', year: 'numeric' });
+  return date.toLocaleDateString('en-AU', { month: 'long', year: 'numeric' });
 }
+
+function getInitials(name: string): string {
+  return name.split(' ').map(w => w[0]).filter(Boolean).slice(0, 2).join('').toUpperCase();
+}
+
+const TIER_CONFIG: Record<string, { color: string; label: string; icon: string }> = {
+  free: { color: '#8E8E93', label: 'Standard', icon: 'shield-outline' },
+  plus: { color: '#3498DB', label: 'Plus', icon: 'star' },
+  pro: { color: '#3498DB', label: 'Pro', icon: 'star' },
+  premium: { color: '#F39C12', label: 'Premium', icon: 'diamond' },
+  vip: { color: '#F39C12', label: 'VIP', icon: 'diamond' },
+};
 
 export default function PublicProfileScreen() {
   const insets = useSafeAreaInsets();
@@ -34,6 +50,18 @@ export default function PublicProfileScreen() {
 
   const { data: usersData, isLoading } = useQuery<User[]>({ queryKey: ['/api/users'] });
   const user = usersData?.[0];
+  const userId = user?.id;
+
+  const { data: membership } = useQuery<Membership>({
+    queryKey: [`/api/membership/${userId}`],
+    enabled: !!userId,
+  });
+
+  const tier = membership?.tier ?? 'free';
+  const tierConf = TIER_CONFIG[tier] ?? TIER_CONFIG.free;
+
+  const socialLinks = useMemo(() => (user?.socialLinks || {}) as Record<string, string | undefined>, [user?.socialLinks]);
+  const activeSocials = useMemo(() => SOCIAL_ICONS.filter(s => socialLinks[s.key]), [socialLinks]);
 
   if (isLoading) {
     return (
@@ -54,152 +82,251 @@ export default function PublicProfileScreen() {
     );
   }
 
-  const socialLinks = (user.socialLinks || {}) as Record<string, string | undefined>;
-  const activeSocials = SOCIAL_ICONS.filter(s => socialLinks[s.key]);
   const locationText = [user.city, user.country].filter(Boolean).join(', ');
   const displayName = user.displayName ?? 'CulturePass User';
+  const initials = getInitials(displayName);
+  const memberSince = formatMemberDate(user.createdAt);
+
+  const handleShare = async () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    try {
+      await Share.share({
+        message: `Check out ${displayName}'s profile on CulturePass!\n\nCPID: ${user.culturePassId}\n@${user.username}`,
+      });
+    } catch {}
+  };
 
   return (
     <View style={styles.container}>
-      <View style={[styles.hero, { backgroundColor: Colors.primary, paddingTop: topInset }]}>
-        <View style={styles.heroOverlay}>
-          <View style={styles.heroTopRow}>
-            <Pressable style={styles.backButton} onPress={() => router.back()}>
-              <Ionicons name="arrow-back" size={22} color="#FFF" />
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: bottomInset + 40 }}>
+        <LinearGradient
+          colors={[Colors.primary, '#A33D1E', '#7A2E17']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 0.5, y: 1 }}
+          style={[styles.hero, { paddingTop: topInset + 8 }]}
+        >
+          <View style={styles.heroNav}>
+            <Pressable style={styles.navBtn} onPress={() => router.back()}>
+              <Ionicons name="chevron-back" size={22} color="#FFF" />
             </Pressable>
-            <Pressable
-              style={styles.shareButton}
-              onPress={() => {
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-              }}
-            >
+            <Text style={styles.navTitle}>Profile</Text>
+            <Pressable style={styles.navBtn} onPress={handleShare}>
               <Ionicons name="share-outline" size={20} color="#FFF" />
             </Pressable>
           </View>
-          <View style={styles.heroBottom}>
-            <View style={styles.heroIconWrap}>
-              <Ionicons name="person" size={36} color="#FFF" />
-            </View>
-            <View style={styles.heroNameRow}>
-              <Text style={styles.heroTitle} numberOfLines={2}>{displayName}</Text>
+
+          <View style={styles.heroCenter}>
+            <View style={styles.avatarOuter}>
+              <View style={styles.avatarRing}>
+                <View style={styles.avatar}>
+                  <Text style={styles.avatarText}>{initials}</Text>
+                </View>
+              </View>
               {user.isVerified && (
-                <View style={styles.verifiedBadge}>
-                  <Ionicons name="checkmark-circle" size={16} color="#FFF" />
-                  <Text style={styles.verifiedText}>Verified</Text>
+                <View style={styles.verifiedDot}>
+                  <Ionicons name="checkmark" size={12} color="#FFF" />
                 </View>
               )}
             </View>
-            {user.username && (
-              <View style={styles.heroPill}>
-                <Text style={styles.heroPillText}>@{user.username}</Text>
-              </View>
-            )}
-            {user.culturePassId && (
-              <View style={styles.cpidBadge}>
-                <Ionicons name="finger-print" size={13} color="rgba(255,255,255,0.9)" />
-                <Text style={styles.cpidBadgeText}>{user.culturePassId}</Text>
-              </View>
-            )}
-            {locationText ? (
-              <View style={styles.heroMetaRow}>
+
+            <Text style={styles.heroName}>{displayName}</Text>
+            {user.username && <Text style={styles.heroHandle}>@{user.username}</Text>}
+
+            <View style={styles.heroPills}>
+              {user.culturePassId && (
                 <View style={styles.heroPill}>
-                  <Ionicons name="location" size={12} color="rgba(255,255,255,0.9)" />
+                  <Ionicons name="finger-print" size={13} color="rgba(255,255,255,0.9)" />
+                  <Text style={styles.heroPillText}>{user.culturePassId}</Text>
+                </View>
+              )}
+              {locationText ? (
+                <View style={styles.heroPill}>
+                  <Ionicons name="location" size={13} color="rgba(255,255,255,0.9)" />
                   <Text style={styles.heroPillText}>{locationText}</Text>
                 </View>
-              </View>
-            ) : null}
+              ) : null}
+            </View>
           </View>
-        </View>
-      </View>
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: bottomInset + 40 }}>
-        <Animated.View entering={FadeInDown.delay(100).duration(500)} style={styles.statsRow}>
-          <View style={styles.statCard}>
-            <Text style={styles.statNum}>{formatNumber(user.followersCount ?? 0)}</Text>
-            <Text style={styles.statLabel}>Followers</Text>
+          <View style={styles.statsBar}>
+            <View style={styles.statItem}>
+              <Text style={styles.statNum}>{formatNumber(user.followersCount ?? 0)}</Text>
+              <Text style={styles.statLabel}>Followers</Text>
+            </View>
+            <View style={styles.statDivider} />
+            <View style={styles.statItem}>
+              <Text style={styles.statNum}>{formatNumber(user.followingCount ?? 0)}</Text>
+              <Text style={styles.statLabel}>Following</Text>
+            </View>
+            <View style={styles.statDivider} />
+            <View style={styles.statItem}>
+              <Text style={styles.statNum}>{formatNumber(user.likesCount ?? 0)}</Text>
+              <Text style={styles.statLabel}>Likes</Text>
+            </View>
           </View>
-          <View style={styles.statCard}>
-            <Text style={styles.statNum}>{formatNumber(user.followingCount ?? 0)}</Text>
-            <Text style={styles.statLabel}>Following</Text>
+        </LinearGradient>
+
+        <View style={styles.tierRow}>
+          <View style={[styles.tierBadge, { backgroundColor: tierConf.color + '12', borderColor: tierConf.color + '30' }]}>
+            <Ionicons name={tierConf.icon as any} size={16} color={tierConf.color} />
+            <Text style={[styles.tierText, { color: tierConf.color }]}>{tierConf.label} Member</Text>
           </View>
-          <View style={styles.statCard}>
-            <Text style={styles.statNum}>{formatNumber(user.likesCount ?? 0)}</Text>
-            <Text style={styles.statLabel}>Likes</Text>
-          </View>
-        </Animated.View>
+          {memberSince ? (
+            <View style={styles.memberSince}>
+              <Ionicons name="calendar-outline" size={14} color={Colors.textTertiary} />
+              <Text style={styles.memberSinceText}>Since {memberSince}</Text>
+            </View>
+          ) : null}
+        </View>
 
         {user.bio ? (
-          <Animated.View entering={FadeInDown.delay(200).duration(500)} style={styles.section}>
-            <Text style={styles.sectionTitle}>About</Text>
-            <Text style={styles.description}>{user.bio}</Text>
+          <Animated.View entering={FadeInDown.delay(100).duration(400)} style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <View style={styles.sectionAccent} />
+              <Text style={styles.sectionTitle}>About</Text>
+            </View>
+            <View style={styles.card}>
+              <Text style={styles.bioText}>{user.bio}</Text>
+            </View>
           </Animated.View>
         ) : null}
 
         {activeSocials.length > 0 && (
-          <Animated.View entering={FadeInDown.delay(250).duration(500)} style={styles.section}>
-            <Text style={styles.sectionTitle}>Social</Text>
-            <View style={styles.socialRow}>
+          <Animated.View entering={FadeInDown.delay(150).duration(400)} style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <View style={styles.sectionAccent} />
+              <Text style={styles.sectionTitle}>Social</Text>
+            </View>
+            <View style={styles.socialGrid}>
               {activeSocials.map(s => (
                 <Pressable
                   key={s.key}
-                  style={[styles.socialIcon, { backgroundColor: Colors.primary + '15' }]}
+                  style={styles.socialCard}
                   onPress={() => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                     const url = socialLinks[s.key];
                     if (url) Linking.openURL(url);
                   }}
                 >
-                  <Ionicons name={s.icon as any} size={22} color={Colors.primary} />
+                  <View style={[styles.socialIconWrap, { backgroundColor: s.color + '12' }]}>
+                    <Ionicons name={s.icon as any} size={22} color={s.color} />
+                  </View>
+                  <Text style={styles.socialLabel}>{s.label}</Text>
+                  <Ionicons name="open-outline" size={14} color={Colors.textTertiary} />
                 </Pressable>
               ))}
             </View>
           </Animated.View>
         )}
 
-        {locationText ? (
-          <Animated.View entering={FadeInDown.delay(300).duration(500)} style={styles.section}>
-            <Text style={styles.sectionTitle}>Location</Text>
-            <View style={styles.locationCard}>
-              <View style={[styles.locationIconWrap, { backgroundColor: Colors.primary + '15' }]}>
-                <Ionicons name="location" size={22} color={Colors.primary} />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.locationCity}>{user.city || ''}</Text>
-                <Text style={styles.locationCountry}>{user.country || ''}</Text>
-              </View>
+        {(locationText || user.website) ? (
+          <Animated.View entering={FadeInDown.delay(200).duration(400)} style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <View style={styles.sectionAccent} />
+              <Text style={styles.sectionTitle}>Details</Text>
+            </View>
+            <View style={styles.card}>
+              {locationText ? (
+                <View style={styles.detailRow}>
+                  <View style={[styles.detailIconWrap, { backgroundColor: Colors.primary + '10' }]}>
+                    <Ionicons name="location" size={18} color={Colors.primary} />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.detailLabel}>Location</Text>
+                    <Text style={styles.detailValue}>{locationText}</Text>
+                  </View>
+                </View>
+              ) : null}
+              {user.website ? (
+                <>
+                  {locationText && <View style={styles.detailDivider} />}
+                  <Pressable style={styles.detailRow} onPress={() => Linking.openURL(user.website!)}>
+                    <View style={[styles.detailIconWrap, { backgroundColor: Colors.secondary + '10' }]}>
+                      <Ionicons name="globe-outline" size={18} color={Colors.secondary} />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.detailLabel}>Website</Text>
+                      <Text style={[styles.detailValue, { color: Colors.primary }]}>{user.website}</Text>
+                    </View>
+                    <Ionicons name="open-outline" size={16} color={Colors.textTertiary} />
+                  </Pressable>
+                </>
+              ) : null}
+              {user.phone ? (
+                <>
+                  <View style={styles.detailDivider} />
+                  <View style={styles.detailRow}>
+                    <View style={[styles.detailIconWrap, { backgroundColor: Colors.accent + '10' }]}>
+                      <Ionicons name="call-outline" size={18} color={Colors.accent} />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.detailLabel}>Phone</Text>
+                      <Text style={styles.detailValue}>{user.phone}</Text>
+                    </View>
+                  </View>
+                </>
+              ) : null}
             </View>
           </Animated.View>
         ) : null}
 
-        {user.createdAt && (
-          <Animated.View entering={FadeInDown.delay(350).duration(500)} style={styles.section}>
-            <Text style={styles.sectionTitle}>Member Since</Text>
-            <View style={styles.memberCard}>
-              <View style={[styles.memberIconWrap, { backgroundColor: Colors.secondary + '15' }]}>
-                <Ionicons name="calendar" size={22} color={Colors.secondary} />
-              </View>
-              <Text style={styles.memberDate}>{formatMemberDate(user.createdAt)}</Text>
-            </View>
-          </Animated.View>
-        )}
-
         {user.culturePassId && (
-          <Animated.View entering={FadeInDown.delay(400).duration(500)} style={styles.section}>
-            <View style={styles.cpidCard}>
-              <View style={styles.cpidCardHeader}>
-                <View style={[styles.cpidCardIconWrap, { backgroundColor: Colors.primary + '15' }]}>
-                  <Ionicons name="finger-print" size={28} color={Colors.primary} />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.cpidCardLabel}>CulturePass ID</Text>
-                  <Text style={styles.cpidCardValue}>{user.culturePassId}</Text>
-                </View>
-              </View>
-              <View style={styles.cpidCardDivider} />
-              <View style={styles.cpidCardFooter}>
-                <Ionicons name="shield-checkmark" size={16} color={Colors.secondary} />
-                <Text style={styles.cpidCardFooterText}>Verified Digital Identity</Text>
-              </View>
+          <Animated.View entering={FadeInDown.delay(250).duration(400)} style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <View style={styles.sectionAccent} />
+              <Text style={styles.sectionTitle}>Digital Identity</Text>
             </View>
+            <LinearGradient
+              colors={[Colors.primary, '#A33D1E']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.cpidCard}
+            >
+              <View style={styles.cpidTop}>
+                <View style={styles.cpidLogoRow}>
+                  <View style={styles.cpidLogoIcon}>
+                    <Ionicons name="globe" size={14} color={Colors.primary} />
+                  </View>
+                  <Text style={styles.cpidLogoText}>CulturePass</Text>
+                </View>
+                <View style={styles.cpidVerified}>
+                  <Ionicons name="shield-checkmark" size={14} color="#FFF" />
+                </View>
+              </View>
+
+              <View style={styles.cpidCenter}>
+                <Text style={styles.cpidLabel}>CULTUREPASS ID</Text>
+                <Text style={styles.cpidValue}>{user.culturePassId}</Text>
+              </View>
+
+              <View style={styles.cpidBottom}>
+                <View style={styles.cpidMeta}>
+                  <Text style={styles.cpidMetaLabel}>Name</Text>
+                  <Text style={styles.cpidMetaValue}>{displayName}</Text>
+                </View>
+                <View style={styles.cpidMeta}>
+                  <Text style={styles.cpidMetaLabel}>Since</Text>
+                  <Text style={styles.cpidMetaValue}>{memberSince || 'N/A'}</Text>
+                </View>
+              </View>
+
+              <View style={styles.cpidFooter}>
+                <Text style={styles.cpidFooterText}>Verified Digital Identity</Text>
+                <Ionicons name="finger-print" size={16} color="rgba(255,255,255,0.35)" />
+              </View>
+            </LinearGradient>
+
+            <Pressable
+              style={styles.viewQrBtn}
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                router.push('/profile/qr');
+              }}
+            >
+              <Ionicons name="qr-code-outline" size={20} color={Colors.primary} />
+              <Text style={styles.viewQrText}>View QR Code</Text>
+              <Ionicons name="chevron-forward" size={18} color={Colors.textTertiary} />
+            </Pressable>
           </Animated.View>
         )}
       </ScrollView>
@@ -211,254 +338,377 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
   errorText: { fontSize: 16, fontFamily: 'Poppins_500Medium', color: Colors.textSecondary },
   backLink: { fontSize: 15, fontFamily: 'Poppins_600SemiBold', color: Colors.primary, marginTop: 12 },
-  hero: { height: 280 },
-  heroOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.25)',
-    padding: 16,
-    justifyContent: 'space-between',
+
+  hero: {
+    paddingBottom: 24,
   },
-  heroTopRow: {
+  heroNav: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingBottom: 12,
   },
-  backButton: {
+  navBtn: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: 'rgba(0,0,0,0.3)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  shareButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(0,0,0,0.3)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  heroBottom: { gap: 6 },
-  heroIconWrap: {
-    width: 60,
-    height: 60,
-    borderRadius: 18,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 4,
-  },
-  heroNameRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    flexWrap: 'wrap',
-  },
-  heroTitle: {
-    fontSize: 24,
-    fontFamily: 'Poppins_700Bold',
-    color: '#FFF',
-  },
-  verifiedBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  verifiedText: {
-    fontSize: 12,
-    fontFamily: 'Poppins_600SemiBold',
-    color: '#FFF',
-  },
-  cpidBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
     backgroundColor: 'rgba(255,255,255,0.15)',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
-    alignSelf: 'flex-start',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  cpidBadgeText: {
-    fontFamily: 'Poppins_500Medium',
-    fontSize: 12,
-    color: 'rgba(255,255,255,0.95)',
+  navTitle: {
+    fontFamily: 'Poppins_600SemiBold',
+    fontSize: 16,
+    color: '#FFF',
+  },
+
+  heroCenter: {
+    alignItems: 'center',
+    paddingHorizontal: 24,
+    marginBottom: 24,
+  },
+  avatarOuter: {
+    marginBottom: 16,
+    position: 'relative',
+  },
+  avatarRing: {
+    width: 96,
+    height: 96,
+    borderRadius: 48,
+    borderWidth: 3,
+    borderColor: 'rgba(255,255,255,0.35)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  avatar: {
+    width: 84,
+    height: 84,
+    borderRadius: 42,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  avatarText: {
+    fontFamily: 'Poppins_700Bold',
+    fontSize: 30,
+    color: '#FFF',
     letterSpacing: 1,
   },
-  heroMetaRow: {
-    flexDirection: 'row',
-    gap: 8,
-    flexWrap: 'wrap',
+  verifiedDot: {
+    position: 'absolute',
+    bottom: 2,
+    right: 2,
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: Colors.success,
+    borderWidth: 3,
+    borderColor: Colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  heroName: {
+    fontFamily: 'Poppins_700Bold',
+    fontSize: 24,
+    color: '#FFF',
+    textAlign: 'center',
+    letterSpacing: -0.3,
+  },
+  heroHandle: {
+    fontFamily: 'Poppins_400Regular',
+    fontSize: 15,
+    color: 'rgba(255,255,255,0.7)',
     marginTop: 2,
+    marginBottom: 12,
+  },
+  heroPills: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    gap: 8,
   },
   heroPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: 5,
     backgroundColor: 'rgba(255,255,255,0.15)',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 50,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
   },
   heroPillText: {
-    fontSize: 12,
     fontFamily: 'Poppins_500Medium',
+    fontSize: 12,
     color: 'rgba(255,255,255,0.9)',
+    letterSpacing: 0.3,
   },
-  statsRow: {
+
+  statsBar: {
     flexDirection: 'row',
-    paddingHorizontal: 20,
-    gap: 10,
-    marginTop: 20,
-    marginBottom: 8,
-  },
-  statCard: {
-    flex: 1,
-    backgroundColor: Colors.card,
-    borderRadius: 14,
-    padding: 14,
     alignItems: 'center',
+    justifyContent: 'center',
+    marginHorizontal: 24,
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    borderRadius: 18,
+    paddingVertical: 16,
+    paddingHorizontal: 8,
     borderWidth: 1,
-    borderColor: Colors.cardBorder,
+    borderColor: 'rgba(255,255,255,0.08)',
+  },
+  statItem: {
+    flex: 1,
+    alignItems: 'center',
   },
   statNum: {
-    fontSize: 20,
     fontFamily: 'Poppins_700Bold',
-    color: Colors.text,
+    fontSize: 20,
+    color: '#FFF',
+    letterSpacing: -0.5,
   },
   statLabel: {
-    fontSize: 11,
-    fontFamily: 'Poppins_500Medium',
-    color: Colors.textSecondary,
-  },
-  section: {
-    paddingHorizontal: 20,
-    marginTop: 24,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontFamily: 'Poppins_700Bold',
-    color: Colors.text,
-    marginBottom: 10,
-  },
-  description: {
-    fontSize: 15,
     fontFamily: 'Poppins_400Regular',
-    color: Colors.textSecondary,
-    lineHeight: 23,
-  },
-  socialRow: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  socialIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  locationCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: Colors.card,
-    borderRadius: 14,
-    padding: 16,
-    gap: 14,
-    borderWidth: 1,
-    borderColor: Colors.cardBorder,
-  },
-  locationIconWrap: {
-    width: 44,
-    height: 44,
-    borderRadius: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  locationCity: {
-    fontSize: 16,
-    fontFamily: 'Poppins_600SemiBold',
-    color: Colors.text,
-  },
-  locationCountry: {
-    fontSize: 13,
-    fontFamily: 'Poppins_400Regular',
-    color: Colors.textSecondary,
-  },
-  memberCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: Colors.card,
-    borderRadius: 14,
-    padding: 16,
-    gap: 14,
-    borderWidth: 1,
-    borderColor: Colors.cardBorder,
-  },
-  memberIconWrap: {
-    width: 44,
-    height: 44,
-    borderRadius: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  memberDate: {
-    fontSize: 15,
-    fontFamily: 'Poppins_500Medium',
-    color: Colors.text,
-  },
-  cpidCard: {
-    backgroundColor: Colors.card,
-    borderRadius: 16,
-    padding: 20,
-    borderWidth: 1,
-    borderColor: Colors.cardBorder,
-    ...Colors.shadow.medium,
-  },
-  cpidCardHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 14,
-  },
-  cpidCardIconWrap: {
-    width: 52,
-    height: 52,
-    borderRadius: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  cpidCardLabel: {
     fontSize: 12,
-    fontFamily: 'Poppins_500Medium',
-    color: Colors.textSecondary,
-    textTransform: 'uppercase' as const,
-    letterSpacing: 1,
-  },
-  cpidCardValue: {
-    fontSize: 18,
-    fontFamily: 'Poppins_700Bold',
-    color: Colors.text,
-    letterSpacing: 1.5,
+    color: 'rgba(255,255,255,0.7)',
     marginTop: 2,
   },
-  cpidCardDivider: {
-    height: 1,
-    backgroundColor: Colors.divider,
-    marginVertical: 14,
+  statDivider: {
+    width: 1,
+    height: 28,
+    backgroundColor: 'rgba(255,255,255,0.15)',
   },
-  cpidCardFooter: {
+
+  tierRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 4,
+    gap: 12,
+  },
+  tierBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    borderRadius: 50,
+    borderWidth: 1.5,
+  },
+  tierText: {
+    fontFamily: 'Poppins_600SemiBold',
+    fontSize: 13,
+  },
+  memberSince: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+  },
+  memberSinceText: {
+    fontFamily: 'Poppins_400Regular',
+    fontSize: 13,
+    color: Colors.textTertiary,
+  },
+
+  section: {
+    paddingHorizontal: 20,
+    marginTop: 28,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginBottom: 14,
+  },
+  sectionAccent: {
+    width: 4,
+    height: 20,
+    borderRadius: 2,
+    backgroundColor: Colors.primary,
+  },
+  sectionTitle: {
+    fontFamily: 'Poppins_700Bold',
+    fontSize: 18,
+    color: Colors.text,
+    letterSpacing: -0.3,
+  },
+
+  card: {
+    backgroundColor: Colors.surface,
+    borderRadius: 20,
+    padding: 20,
+    ...Colors.shadow.small,
+  },
+  bioText: {
+    fontFamily: 'Poppins_400Regular',
+    fontSize: 15,
+    color: Colors.textSecondary,
+    lineHeight: 24,
+  },
+
+  socialGrid: {
+    gap: 10,
+  },
+  socialCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    backgroundColor: Colors.surface,
+    borderRadius: 16,
+    padding: 16,
+    ...Colors.shadow.small,
+  },
+  socialIconWrap: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  socialLabel: {
+    flex: 1,
+    fontFamily: 'Poppins_600SemiBold',
+    fontSize: 15,
+    color: Colors.text,
+  },
+
+  detailRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+  },
+  detailIconWrap: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  detailLabel: {
+    fontFamily: 'Poppins_400Regular',
+    fontSize: 12,
+    color: Colors.textTertiary,
+  },
+  detailValue: {
+    fontFamily: 'Poppins_600SemiBold',
+    fontSize: 15,
+    color: Colors.text,
+    marginTop: 1,
+  },
+  detailDivider: {
+    height: 1,
+    backgroundColor: Colors.borderLight,
+    marginVertical: 14,
+    marginLeft: 58,
+  },
+
+  cpidCard: {
+    borderRadius: 20,
+    padding: 24,
+    overflow: 'hidden',
+  },
+  cpidTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 20,
+  },
+  cpidLogoRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
   },
-  cpidCardFooterText: {
-    fontSize: 13,
+  cpidLogoIcon: {
+    width: 26,
+    height: 26,
+    borderRadius: 8,
+    backgroundColor: '#FFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cpidLogoText: {
+    fontFamily: 'Poppins_700Bold',
+    fontSize: 15,
+    color: '#FFF',
+    letterSpacing: 0.5,
+  },
+  cpidVerified: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cpidCenter: {
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  cpidLabel: {
     fontFamily: 'Poppins_500Medium',
-    color: Colors.secondary,
+    fontSize: 10,
+    color: 'rgba(255,255,255,0.6)',
+    letterSpacing: 3,
+    marginBottom: 6,
+  },
+  cpidValue: {
+    fontFamily: 'Poppins_700Bold',
+    fontSize: 28,
+    color: '#FFF',
+    letterSpacing: 4,
+  },
+  cpidBottom: {
+    flexDirection: 'row',
+    gap: 20,
+    marginBottom: 16,
+  },
+  cpidMeta: {
+    flex: 1,
+  },
+  cpidMetaLabel: {
+    fontFamily: 'Poppins_400Regular',
+    fontSize: 10,
+    color: 'rgba(255,255,255,0.5)',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+    marginBottom: 3,
+  },
+  cpidMetaValue: {
+    fontFamily: 'Poppins_600SemiBold',
+    fontSize: 14,
+    color: '#FFF',
+  },
+  cpidFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255,255,255,0.15)',
+    paddingTop: 14,
+  },
+  cpidFooterText: {
+    fontFamily: 'Poppins_500Medium',
+    fontSize: 12,
+    color: 'rgba(255,255,255,0.6)',
+  },
+
+  viewQrBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    backgroundColor: Colors.surface,
+    borderRadius: 16,
+    padding: 16,
+    marginTop: 12,
+    ...Colors.shadow.small,
+  },
+  viewQrText: {
+    flex: 1,
+    fontFamily: 'Poppins_600SemiBold',
+    fontSize: 15,
+    color: Colors.text,
   },
 });

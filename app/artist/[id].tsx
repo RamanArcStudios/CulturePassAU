@@ -21,51 +21,66 @@ import Colors from "@/constants/colors";
 import SocialLinksBar from "@/components/SocialLinksBar";
 import type { Profile } from "@shared/schema";
 
+/* ---------------- API BASE ---------------- */
+
 const getApiBase = () => {
-  if (Platform.OS === 'web') return '';
+  if (Platform.OS === "web") return "";
   const domain = process.env.EXPO_PUBLIC_DOMAIN;
-  return domain ? `https://${domain}` : 'http://localhost:5000';
+  return domain ? `https://${domain}` : "http://localhost:5000";
 };
 
 export default function ArtistDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const insets = useSafeAreaInsets();
   const navigation = useNavigation();
-  const goBack = () => navigation.canGoBack() ? router.back() : router.replace("/");
+
+  const goBack = () =>
+    navigation.canGoBack() ? router.back() : router.replace("/");
 
   const { data: profile, isLoading } = useQuery<Profile>({
-    queryKey: ['/api/profiles', id],
-    queryFn: () => fetch(`${getApiBase()}/api/profiles/${id}`).then(r => r.json()),
+    queryKey: ["/api/profiles", id],
+    queryFn: () =>
+      fetch(`${getApiBase()}/api/profiles/${id}`).then((r) => r.json()),
   });
 
   const handleShare = useCallback(async () => {
     try {
-      const url = `https://culturepass.replit.app/artist/${id}`;
+      const url = `https://culturepass.app/artist/${id}`;
       if (Platform.OS === "web") {
-        if (typeof navigator !== "undefined" && navigator.share) {
+        if (navigator?.share) {
           await navigator.share({ title: profile?.name ?? "", url });
-        } else if (typeof navigator !== "undefined" && navigator.clipboard) {
+        } else if (navigator?.clipboard) {
           await navigator.clipboard.writeText(url);
           Alert.alert("Link Copied", "Link copied to clipboard");
         }
       } else {
-        await Share.share({ message: `Check out ${profile?.name} on CulturePass! ${url}` });
+        await Share.share({
+          message: `Check out ${profile?.name} on CulturePass! ${url}`,
+        });
       }
     } catch {}
   }, [id, profile]);
 
+  /* ---------------- Loading ---------------- */
+
   if (isLoading) {
     return (
-      <View style={{ flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: Colors.light.background }}>
-        <ActivityIndicator size="large" color={Colors.light.primary} />
+      <View style={styles.loading}>
+        <ActivityIndicator size="large" color={Colors.primary} />
       </View>
     );
   }
 
+  /* ---------------- Not Found ---------------- */
+
   if (!profile) {
     return (
       <View style={styles.notFound}>
-        <Ionicons name="alert-circle" size={48} color={Colors.light.textTertiary} />
+        <Ionicons
+          name="alert-circle-outline"
+          size={48}
+          color={Colors.textTertiary}
+        />
         <Text style={styles.notFoundText}>Artist not found</Text>
         <Pressable onPress={goBack}>
           <Text style={styles.backLink}>Go Back</Text>
@@ -74,271 +89,348 @@ export default function ArtistDetailScreen() {
     );
   }
 
-  const webTopInset = Platform.OS === "web" ? 67 : 0;
   const heroImage = profile.coverImageUrl || profile.avatarUrl;
-  const location = [profile.city, profile.country].filter(Boolean).join(", ");
+  const location = [profile.city, profile.country]
+    .filter(Boolean)
+    .join(", ");
+
+  const webTopInset = Platform.OS === "web" ? 67 : 0;
+
+  /* ---------------- UI ---------------- */
 
   return (
     <ScrollView
       style={styles.container}
-      contentContainerStyle={{ paddingBottom: 100 }}
+      contentContainerStyle={{ paddingBottom: 120 }}
       showsVerticalScrollIndicator={false}
     >
-      <View style={styles.imageContainer}>
+      {/* HERO */}
+      <View style={styles.heroContainer}>
         {heroImage ? (
-          <Image source={{ uri: heroImage }} style={styles.heroImage} contentFit="cover" transition={300} />
+          <Image
+            source={{ uri: heroImage }}
+            style={styles.heroImage}
+            contentFit="cover"
+          />
         ) : (
           <LinearGradient
-            colors={[Colors.light.secondary, Colors.light.primary]}
+            colors={[Colors.primary, Colors.secondary]}
             style={styles.heroImage}
           />
         )}
+
         <LinearGradient
-          colors={["rgba(0,0,0,0.3)", "transparent", "rgba(0,0,0,0.8)"]}
+          colors={["rgba(0,0,0,0.2)", "rgba(0,0,0,0.75)"]}
           style={StyleSheet.absoluteFill}
         />
+
+        {/* Top buttons */}
         <Pressable
           onPress={goBack}
-          style={[styles.backBtn, { top: insets.top + webTopInset + 8 }]}
+          style={[styles.iconBtn, { left: 16, top: insets.top + webTopInset + 8 }]}
         >
-          <Ionicons name="arrow-back" size={22} color="#fff" />
+          <Ionicons name="arrow-back" size={22} color="#FFF" />
         </Pressable>
+
         <Pressable
           onPress={handleShare}
-          style={[styles.shareBtn, { top: insets.top + webTopInset + 8 }]}
+          style={[styles.iconBtn, { right: 16, top: insets.top + webTopInset + 8 }]}
         >
-          <Ionicons name="share-outline" size={22} color="#fff" />
+          <Ionicons name="share-outline" size={22} color="#FFF" />
         </Pressable>
-        {profile.isVerified && (
-          <View style={styles.verifiedBadge}>
-            <Ionicons name="checkmark-circle" size={14} color={Colors.light.success} />
-            <Text style={styles.verifiedText}>Verified</Text>
-          </View>
-        )}
+
+        {/* Hero Content */}
         <View style={styles.heroContent}>
+          {profile.isVerified && (
+            <View style={styles.verifiedBadge}>
+              <Ionicons name="checkmark-circle" size={14} color="#FFF" />
+              <Text style={styles.verifiedText}>Verified Artist</Text>
+            </View>
+          )}
+
           <Text style={styles.artistName}>{profile.name}</Text>
+
           {profile.category && (
             <Text style={styles.artistGenre}>{profile.category}</Text>
           )}
         </View>
       </View>
 
+      {/* CONTENT */}
       <View style={styles.content}>
+        {/* Stats */}
         <View style={styles.statsRow}>
-          <View style={styles.statCard}>
-            <Ionicons name="people" size={20} color={Colors.light.primary} />
-            <Text style={styles.statValue}>{profile.followersCount ?? 0}</Text>
-            <Text style={styles.statLabel}>Followers</Text>
-          </View>
+          <StatCard
+            icon="people"
+            value={profile.followersCount ?? 0}
+            label="Followers"
+            color={Colors.primary}
+          />
           {location ? (
-            <Pressable
-              style={styles.statCard}
+            <StatCard
+              icon="location"
+              value={profile.city ?? "—"}
+              label={profile.country ?? "Location"}
+              color={Colors.secondary}
               onPress={() => {
                 const q = encodeURIComponent(location);
                 const url = Platform.select({
                   ios: `http://maps.apple.com/?q=${q}`,
                   default: `https://www.google.com/maps/search/?api=1&query=${q}`,
                 });
-                Linking.openURL(url);
+                Linking.openURL(url!);
               }}
-            >
-              <Ionicons name="location" size={20} color={Colors.light.secondary} />
-              <Text style={styles.statValue}>{profile.city || "—"}</Text>
-              <Text style={styles.statLabel}>{profile.country || "Location"}</Text>
-            </Pressable>
+            />
           ) : (
-            <View style={styles.statCard}>
-              <Ionicons name="star" size={20} color={Colors.light.accent} />
-              <Text style={styles.statValue}>{profile.rating ? profile.rating.toFixed(1) : "—"}</Text>
-              <Text style={styles.statLabel}>Rating</Text>
-            </View>
+            <StatCard
+              icon="star"
+              value={
+                profile.rating ? profile.rating.toFixed(1) : "—"
+              }
+              label="Rating"
+              color={Colors.accent}
+            />
           )}
         </View>
 
+        {/* CPID */}
         {profile.culturePassId && (
-          <View style={styles.cpidRow}>
-            <Ionicons name="finger-print" size={14} color={Colors.light.secondary} />
-            <Text style={styles.cpidText}>{profile.culturePassId}</Text>
+          <View style={styles.cpidChip}>
+            <Ionicons
+              name="finger-print"
+              size={14}
+              color={Colors.secondary}
+            />
+            <Text style={styles.cpidText}>
+              {profile.culturePassId}
+            </Text>
           </View>
         )}
 
+        {/* About */}
         {(profile.bio || profile.description) && (
           <>
             <Text style={styles.sectionTitle}>About</Text>
-            <Text style={styles.bio}>{profile.bio || profile.description}</Text>
+            <Text style={styles.bio}>
+              {profile.bio || profile.description}
+            </Text>
           </>
         )}
 
-        {profile.tags && profile.tags.length > 0 && (
+        {/* Tags */}
+        {profile.tags?.length > 0 && (
           <View style={styles.tagsRow}>
             {profile.tags.map((tag, idx) => (
-              <View key={idx} style={styles.tagChip}>
+              <View key={idx} style={styles.tag}>
                 <Text style={styles.tagText}>{tag}</Text>
               </View>
             ))}
           </View>
         )}
 
-        <SocialLinksBar socialLinks={profile.socialLinks} website={profile.website} style={{ marginTop: 16 }} />
+        {/* Social */}
+        <SocialLinksBar
+          socialLinks={profile.socialLinks}
+          website={profile.website}
+          style={{ marginTop: 20 }}
+        />
       </View>
     </ScrollView>
   );
 }
 
+/* ---------------- Components ---------------- */
+
+function StatCard({
+  icon,
+  value,
+  label,
+  color,
+  onPress,
+}: any) {
+  const Wrapper: any = onPress ? Pressable : View;
+  return (
+    <Wrapper style={styles.statCard} onPress={onPress}>
+      <Ionicons name={icon} size={20} color={color} />
+      <Text style={styles.statValue}>{value}</Text>
+      <Text style={styles.statLabel}>{label}</Text>
+    </Wrapper>
+  );
+}
+
+/* ---------------- Styles ---------------- */
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.light.background,
+    backgroundColor: Colors.background,
   },
-  imageContainer: {
-    height: 320,
+
+  loading: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: Colors.background,
   },
+
+  heroContainer: {
+    height: 360,
+  },
+
   heroImage: {
     width: "100%",
     height: "100%",
   },
-  backBtn: {
+
+  iconBtn: {
     position: "absolute",
-    left: 16,
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: "rgba(0,0,0,0.3)",
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: "rgba(0,0,0,0.35)",
     alignItems: "center",
     justifyContent: "center",
   },
-  shareBtn: {
-    position: "absolute",
-    right: 16,
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: "rgba(0,0,0,0.3)",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  verifiedBadge: {
-    position: "absolute",
-    top: 16,
-    right: 64,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    backgroundColor: "rgba(0,0,0,0.5)",
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 14,
-  },
-  verifiedText: {
-    color: Colors.light.success,
-    fontSize: 12,
-    fontFamily: "Poppins_600SemiBold",
-  },
+
   heroContent: {
     position: "absolute",
-    bottom: 20,
-    left: 20,
-    right: 20,
+    bottom: 28,
+    left: 24,
+    right: 24,
   },
+
+  verifiedBadge: {
+    alignSelf: "flex-start",
+    flexDirection: "row",
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    backgroundColor: "rgba(255,255,255,0.18)",
+    marginBottom: 10,
+  },
+
+  verifiedText: {
+    fontSize: 12,
+    fontFamily: "Poppins_600SemiBold",
+    color: "#FFF",
+  },
+
   artistName: {
-    fontSize: 28,
+    fontSize: 30,
     fontFamily: "Poppins_700Bold",
-    color: "#fff",
+    color: "#FFF",
   },
+
   artistGenre: {
     fontSize: 16,
     fontFamily: "Poppins_500Medium",
-    color: "rgba(255,255,255,0.8)",
+    color: "rgba(255,255,255,0.85)",
     marginTop: 4,
   },
+
   content: {
-    padding: 20,
+    padding: 24,
   },
+
   statsRow: {
     flexDirection: "row",
-    gap: 12,
+    gap: 14,
+    marginBottom: 24,
   },
+
   statCard: {
     flex: 1,
     alignItems: "center",
-    gap: 4,
-    backgroundColor: Colors.light.surface,
-    padding: 16,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: Colors.light.borderLight,
+    padding: 18,
+    borderRadius: 18,
+    backgroundColor: Colors.surface,
+    ...Colors.shadow.small,
   },
+
   statValue: {
     fontSize: 20,
     fontFamily: "Poppins_700Bold",
-    color: Colors.light.text,
+    color: Colors.text,
+    marginTop: 4,
   },
+
   statLabel: {
     fontSize: 12,
     fontFamily: "Poppins_400Regular",
-    color: Colors.light.textSecondary,
+    color: Colors.textSecondary,
   },
-  cpidRow: {
+
+  cpidChip: {
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
-    marginTop: 16,
+    paddingHorizontal: 14,
     paddingVertical: 8,
-    paddingHorizontal: 12,
-    backgroundColor: Colors.light.secondary + "10",
-    borderRadius: 10,
+    borderRadius: 12,
+    backgroundColor: Colors.secondary + "12",
     alignSelf: "flex-start",
+    marginBottom: 20,
   },
+
   cpidText: {
     fontSize: 12,
-    fontFamily: "Poppins_500Medium",
-    color: Colors.light.secondary,
+    fontFamily: "Poppins_600SemiBold",
+    color: Colors.secondary,
+    letterSpacing: 1,
   },
+
   sectionTitle: {
     fontSize: 18,
     fontFamily: "Poppins_700Bold",
-    color: Colors.light.text,
-    marginTop: 24,
-    marginBottom: 8,
+    color: Colors.text,
+    marginBottom: 10,
   },
+
   bio: {
-    fontSize: 14,
+    fontSize: 15,
     fontFamily: "Poppins_400Regular",
-    color: Colors.light.textSecondary,
+    color: Colors.textSecondary,
     lineHeight: 24,
   },
+
   tagsRow: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: 8,
-    marginTop: 16,
+    gap: 10,
+    marginTop: 18,
   },
-  tagChip: {
-    backgroundColor: Colors.light.surfaceElevated,
-    paddingHorizontal: 12,
+
+  tag: {
+    paddingHorizontal: 14,
     paddingVertical: 6,
-    borderRadius: 14,
+    borderRadius: 16,
+    backgroundColor: Colors.surfaceElevated,
   },
+
   tagText: {
     fontSize: 12,
     fontFamily: "Poppins_500Medium",
-    color: Colors.light.textSecondary,
+    color: Colors.textSecondary,
   },
+
   notFound: {
     flex: 1,
-    alignItems: "center",
     justifyContent: "center",
+    alignItems: "center",
     gap: 12,
-    backgroundColor: Colors.light.background,
+    backgroundColor: Colors.background,
   },
+
   notFoundText: {
     fontSize: 16,
     fontFamily: "Poppins_500Medium",
-    color: Colors.light.textSecondary,
+    color: Colors.textSecondary,
   },
+
   backLink: {
     fontSize: 14,
     fontFamily: "Poppins_600SemiBold",
-    color: Colors.light.primary,
+    color: Colors.primary,
   },
 });
