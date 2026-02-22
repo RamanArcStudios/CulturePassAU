@@ -12,6 +12,15 @@ import { useQuery } from '@tanstack/react-query';
 import type { Wallet, User, Membership } from '@shared/schema';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
+function SectionTitle({ title }: { title: string }) {
+  return (
+    <View style={styles.sectionTitleRow}>
+      <View style={styles.sectionAccent} />
+      <Text style={styles.sectionTitle}>{title}</Text>
+    </View>
+  );
+}
+
 function MenuItem({ icon, label, value, onPress, color, showDivider = true, badge }: {
   icon: string; label: string; value?: string; onPress?: () => void; color?: string; showDivider?: boolean; badge?: number;
 }) {
@@ -116,11 +125,14 @@ export default function ProfileScreen() {
             </Pressable>
           </View>
 
-          <View style={styles.avatarRow}>
-            <View style={styles.avatar}>
-              <Ionicons name="person" size={36} color={Colors.primary} />
-              <View style={[styles.tierIcon, { backgroundColor: tierStyle.bg, borderColor: tierStyle.text + '30' }]}>
-                <Ionicons name={tierStyle.icon as any} size={12} color={tierStyle.text} />
+          <View style={styles.avatarSection}>
+            <View style={styles.avatarGlow} />
+            <View style={styles.avatarRow}>
+              <View style={styles.avatar}>
+                <Ionicons name="person" size={40} color={Colors.primary} />
+                <View style={[styles.tierIcon, { backgroundColor: tierStyle.bg, borderColor: tierStyle.text + '30' }]}>
+                  <Ionicons name={tierStyle.icon as any} size={13} color={tierStyle.text} />
+                </View>
               </View>
             </View>
           </View>
@@ -135,6 +147,7 @@ export default function ProfileScreen() {
 
           <View style={styles.tierBadge}>
             <View style={[styles.tierBadgeInner, { backgroundColor: tierStyle.bg }]}>
+              <View style={[styles.tierGlass, { backgroundColor: tierStyle.text + '08' }]} />
               <Ionicons name={tierStyle.icon as any} size={14} color={tierStyle.text} />
               <Text style={[styles.tierBadgeText, { color: tierStyle.text }]}>{tier.charAt(0).toUpperCase() + tier.slice(1)} Member</Text>
             </View>
@@ -143,7 +156,7 @@ export default function ProfileScreen() {
           {user?.bio && <Text style={styles.bio} numberOfLines={2}>{user.bio}</Text>}
 
           <Pressable style={styles.editProfileBtn} onPress={() => router.push('/profile/edit')}>
-            <Ionicons name="create-outline" size={16} color={Colors.primary} />
+            <Ionicons name="create-outline" size={17} color={Colors.primary} />
             <Text style={styles.editProfileText}>Edit Profile</Text>
           </Pressable>
         </Animated.View>
@@ -169,7 +182,7 @@ export default function ProfileScreen() {
 
         {joinedCommunitiesList.length > 0 && (
           <Animated.View entering={FadeInDown.delay(200).duration(400)} style={styles.section}>
-            <Text style={styles.sectionTitle}>My Communities</Text>
+            <SectionTitle title="My Communities" />
             {joinedCommunitiesList.slice(0, 3).map(c => (
               <Pressable key={c.id} style={styles.miniCard}
                 onPress={() => router.push({ pathname: '/community/[id]', params: { id: c.id } })}>
@@ -188,7 +201,7 @@ export default function ProfileScreen() {
 
         {savedEventsList.length > 0 && (
           <Animated.View entering={FadeInDown.delay(250).duration(400)} style={styles.section}>
-            <Text style={styles.sectionTitle}>Saved Events</Text>
+            <SectionTitle title="Saved Events" />
             {savedEventsList.slice(0, 3).map(e => (
               <Pressable key={e.id} style={styles.miniCard}
                 onPress={() => router.push({ pathname: '/event/[id]', params: { id: e.id } })}>
@@ -201,7 +214,7 @@ export default function ProfileScreen() {
         )}
 
         <Animated.View entering={FadeInDown.delay(300).duration(400)} style={styles.section}>
-          <Text style={styles.sectionTitle}>Location & Preferences</Text>
+          <SectionTitle title="Location & Preferences" />
           <View style={styles.menuCard}>
             <MenuItem icon="location-outline" label="Location" value={displayLocation} color={Colors.primary}
               onPress={() => router.push('/profile/edit')} />
@@ -213,7 +226,7 @@ export default function ProfileScreen() {
         </Animated.View>
 
         <Animated.View entering={FadeInDown.delay(350).duration(400)} style={styles.section}>
-          <Text style={styles.sectionTitle}>Tickets & Wallet</Text>
+          <SectionTitle title="Tickets & Wallet" />
           <View style={styles.menuCard}>
             <MenuItem icon="ticket-outline" label="My Tickets" color="#E74C3C" badge={ticketCount?.count || 0}
               onPress={() => router.push('/tickets')} />
@@ -225,7 +238,7 @@ export default function ProfileScreen() {
         </Animated.View>
 
         <Animated.View entering={FadeInDown.delay(400).duration(400)} style={styles.section}>
-          <Text style={styles.sectionTitle}>Payment & Billing</Text>
+          <SectionTitle title="Payment & Billing" />
           <View style={styles.menuCard}>
             <MenuItem icon="card-outline" label="Payment Methods" color="#3498DB"
               onPress={() => router.push('/payment/methods')} />
@@ -235,7 +248,7 @@ export default function ProfileScreen() {
         </Animated.View>
 
         <Animated.View entering={FadeInDown.delay(450).duration(400)} style={styles.section}>
-          <Text style={styles.sectionTitle}>Notifications</Text>
+          <SectionTitle title="Notifications" />
           <View style={styles.menuCard}>
             <MenuItem icon="notifications-outline" label="View Notifications" color="#FF9F0A" badge={unreadNotifs?.count || 0}
               onPress={() => router.push('/notifications')} />
@@ -245,7 +258,7 @@ export default function ProfileScreen() {
         </Animated.View>
 
         <Animated.View entering={FadeInDown.delay(500).duration(400)} style={styles.section}>
-          <Text style={styles.sectionTitle}>Help & Support</Text>
+          <SectionTitle title="Help & Support" />
           <View style={styles.menuCard}>
             <MenuItem icon="help-buoy-outline" label="Help Centre" color="#34C759"
               onPress={() => router.push('/help')} />
@@ -258,7 +271,7 @@ export default function ProfileScreen() {
           </View>
         </Animated.View>
 
-        <Animated.View entering={FadeInDown.delay(550).duration(400)} style={styles.section}>
+        <Animated.View entering={FadeInDown.delay(550).duration(400)} style={styles.bottomActions}>
           <Pressable style={styles.logoutBtn}
             onPress={() => Alert.alert('Sign Out', 'Are you sure you want to sign out?', [{ text: 'Cancel' }, { text: 'Sign Out', style: 'destructive' }])}>
             <Ionicons name="log-out-outline" size={18} color={Colors.primary} />
@@ -284,47 +297,181 @@ function formatDate(dateStr: string) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
-  headerTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingTop: 8, paddingBottom: 4 },
+  headerTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingTop: 10,
+    paddingBottom: 6,
+    backgroundColor: Colors.backgroundSecondary + '80',
+    borderBottomWidth: 0.5,
+    borderBottomColor: Colors.divider,
+  },
   headerLabel: { fontSize: 18, fontFamily: 'Poppins_700Bold', color: Colors.text },
-  settingsBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: Colors.card, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: Colors.cardBorder },
-  notifDot: { position: 'absolute', top: 8, right: 8, width: 8, height: 8, borderRadius: 4, backgroundColor: Colors.error },
+  settingsBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: Colors.card,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...Colors.shadow.small,
+  },
+  notifDot: { position: 'absolute', top: 7, right: 7, width: 10, height: 10, borderRadius: 5, backgroundColor: Colors.error, borderWidth: 1.5, borderColor: Colors.card },
   profileHeader: { alignItems: 'center', paddingBottom: 20 },
-  avatarRow: { marginTop: 12 },
-  avatar: { width: 90, height: 90, borderRadius: 45, backgroundColor: Colors.primary + '12', alignItems: 'center', justifyContent: 'center', borderWidth: 3, borderColor: Colors.primary + '30', marginBottom: 12 },
-  tierIcon: { position: 'absolute', bottom: -2, right: -2, width: 26, height: 26, borderRadius: 13, alignItems: 'center', justifyContent: 'center', borderWidth: 2 },
+  avatarSection: { position: 'relative', alignItems: 'center', justifyContent: 'center', marginTop: 12 },
+  avatarGlow: {
+    position: 'absolute',
+    width: 140,
+    height: 140,
+    borderRadius: 70,
+    backgroundColor: Colors.primaryGlow,
+    top: -22,
+  },
+  avatarRow: { zIndex: 1 },
+  avatar: {
+    width: 96,
+    height: 96,
+    borderRadius: 48,
+    backgroundColor: Colors.primary + '10',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 3,
+    borderColor: Colors.primary + '25',
+    marginBottom: 12,
+    ...Colors.shadow.medium,
+  },
+  tierIcon: {
+    position: 'absolute',
+    bottom: -2,
+    right: -2,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    ...Colors.shadow.small,
+  },
   name: { fontSize: 22, fontFamily: 'Poppins_700Bold', color: Colors.text },
   username: { fontSize: 14, fontFamily: 'Poppins_400Regular', color: Colors.textSecondary, marginTop: 1 },
   locationRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 4 },
   location: { fontSize: 14, fontFamily: 'Poppins_500Medium', color: Colors.textSecondary },
-  tierBadge: { marginTop: 8 },
-  tierBadgeInner: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 12, paddingVertical: 5, borderRadius: 12 },
+  tierBadge: { marginTop: 10 },
+  tierBadgeInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    borderRadius: 14,
+    overflow: 'hidden',
+    borderWidth: 0.5,
+    borderColor: 'rgba(255,255,255,0.3)',
+  },
+  tierGlass: {
+    ...StyleSheet.absoluteFillObject,
+    borderRadius: 14,
+    opacity: 0.5,
+  },
   tierBadgeText: { fontSize: 12, fontFamily: 'Poppins_600SemiBold' },
   bio: { fontSize: 13, fontFamily: 'Poppins_400Regular', color: Colors.textSecondary, textAlign: 'center', paddingHorizontal: 40, marginTop: 8, lineHeight: 18 },
-  editProfileBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 12, backgroundColor: Colors.primary + '10', paddingHorizontal: 20, paddingVertical: 10, borderRadius: 20, borderWidth: 1, borderColor: Colors.primary + '20' },
+  editProfileBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+    marginTop: 14,
+    backgroundColor: Colors.primary + '10',
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 22,
+    borderWidth: 1,
+    borderColor: Colors.primary + '18',
+    ...Colors.shadow.small,
+  },
   editProfileText: { fontSize: 14, fontFamily: 'Poppins_600SemiBold', color: Colors.primary },
   statsRow: { flexDirection: 'row', paddingHorizontal: 20, gap: 8, marginBottom: 24 },
-  statCard: { flex: 1, backgroundColor: Colors.card, borderRadius: 14, padding: 12, alignItems: 'center', borderWidth: 1, borderColor: Colors.cardBorder },
+  statCard: {
+    flex: 1,
+    backgroundColor: Colors.card,
+    borderRadius: 14,
+    padding: 14,
+    alignItems: 'center',
+    ...Colors.shadow.small,
+  },
   statNum: { fontSize: 20, fontFamily: 'Poppins_700Bold', color: Colors.text },
   statLabel: { fontSize: 10, fontFamily: 'Poppins_500Medium', color: Colors.textSecondary, marginTop: 2 },
   section: { paddingHorizontal: 20, marginBottom: 24 },
-  sectionTitle: { fontSize: 17, fontFamily: 'Poppins_700Bold', color: Colors.text, marginBottom: 12 },
-  miniCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: Colors.card, borderRadius: 14, padding: 12, marginBottom: 8, borderWidth: 1, borderColor: Colors.cardBorder, gap: 12 },
+  sectionTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 },
+  sectionAccent: { width: 4, height: 18, borderRadius: 2, backgroundColor: Colors.primary },
+  sectionTitle: { fontSize: 17, fontFamily: 'Poppins_700Bold', color: Colors.text },
+  miniCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.card,
+    borderRadius: 14,
+    padding: 12,
+    marginBottom: 8,
+    gap: 12,
+    ...Colors.shadow.small,
+  },
   miniIcon: { width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
   miniTitle: { fontSize: 14, fontFamily: 'Poppins_600SemiBold', color: Colors.text },
   miniSub: { fontSize: 12, fontFamily: 'Poppins_400Regular', color: Colors.textSecondary },
   seeAllBtn: { alignItems: 'center', paddingVertical: 10 },
   seeAllText: { fontSize: 13, fontFamily: 'Poppins_600SemiBold', color: Colors.primary },
-  menuCard: { backgroundColor: Colors.card, borderRadius: 16, borderWidth: 1, borderColor: Colors.cardBorder, overflow: 'hidden' },
-  menuItem: { flexDirection: 'row', alignItems: 'center', padding: 14, gap: 12 },
-  menuIcon: { width: 36, height: 36, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
+  menuCard: {
+    backgroundColor: Colors.card,
+    borderRadius: 16,
+    borderWidth: 0.5,
+    borderColor: Colors.cardBorder,
+    overflow: 'hidden',
+    ...Colors.shadow.small,
+  },
+  menuItem: { flexDirection: 'row', alignItems: 'center', padding: 16, gap: 12 },
+  menuIcon: { width: 38, height: 38, borderRadius: 11, alignItems: 'center', justifyContent: 'center' },
   menuLabel: { flex: 1, fontSize: 15, fontFamily: 'Poppins_500Medium', color: Colors.text },
   menuValue: { fontSize: 13, fontFamily: 'Poppins_400Regular', color: Colors.textSecondary, marginRight: 4 },
-  badge: { minWidth: 20, height: 20, borderRadius: 10, backgroundColor: Colors.error, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 5, marginRight: 4 },
-  badgeText: { fontSize: 10, fontFamily: 'Poppins_700Bold', color: '#FFF' },
-  divider: { height: 1, backgroundColor: Colors.divider, marginLeft: 62 },
-  logoutBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: Colors.primary + '10', borderRadius: 14, paddingVertical: 14, marginBottom: 10, borderWidth: 1, borderColor: Colors.primary + '20' },
+  badge: {
+    minWidth: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: Colors.error,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 6,
+    marginRight: 4,
+    ...Colors.shadow.small,
+  },
+  badgeText: { fontSize: 11, fontFamily: 'Poppins_700Bold', color: '#FFF' },
+  divider: { height: 1, backgroundColor: Colors.divider, marginLeft: 66 },
+  bottomActions: { paddingHorizontal: 20, marginBottom: 24, gap: 10 },
+  logoutBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: Colors.card,
+    borderRadius: 14,
+    paddingVertical: 15,
+    borderWidth: 0.5,
+    borderColor: Colors.primary + '20',
+    ...Colors.shadow.small,
+  },
   logoutText: { fontSize: 15, fontFamily: 'Poppins_600SemiBold', color: Colors.primary },
-  resetButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: Colors.error + '10', borderRadius: 14, paddingVertical: 14, borderWidth: 1, borderColor: Colors.error + '20' },
+  resetButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: Colors.card,
+    borderRadius: 14,
+    paddingVertical: 15,
+    borderWidth: 0.5,
+    borderColor: Colors.error + '20',
+    ...Colors.shadow.small,
+  },
   resetText: { fontSize: 15, fontFamily: 'Poppins_600SemiBold', color: Colors.error },
   version: { fontSize: 12, fontFamily: 'Poppins_400Regular', color: Colors.textTertiary, textAlign: 'center', marginBottom: 20 },
 });

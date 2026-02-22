@@ -91,10 +91,10 @@ function DirectoryCard({ profile, index }: { profile: Profile; index: number }) 
           </View>
         </View>
 
-        <View style={styles.cardAction}>
-          <Ionicons name="arrow-forward-circle" size={22} color={Colors.primary} />
+        <Pressable style={styles.cardAction}>
           <Text style={styles.cardActionText}>View Details</Text>
-        </View>
+          <Ionicons name="arrow-forward-circle" size={20} color={Colors.primary} />
+        </Pressable>
       </Pressable>
     </Animated.View>
   );
@@ -167,7 +167,7 @@ export default function DirectoryScreen() {
               key={filter.label}
               style={[
                 styles.categoryChip,
-                selectedType === filter.label && { backgroundColor: filter.color, borderColor: filter.color },
+                selectedType === filter.label && { backgroundColor: filter.color, borderColor: filter.color, ...styles.categoryChipActive },
               ]}
               onPress={() => {
                 Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -220,39 +220,40 @@ const styles = StyleSheet.create({
   title: { fontSize: 28, fontFamily: 'Poppins_700Bold', color: Colors.text },
   subtitle: { fontSize: 14, fontFamily: 'Poppins_400Regular', color: Colors.textSecondary, marginTop: 2, marginBottom: 4 },
   loadingWrap: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  searchContainer: { flexDirection: 'row', alignItems: 'center', backgroundColor: Colors.card, borderRadius: 14, marginHorizontal: 20, paddingHorizontal: 14, paddingVertical: 12, gap: 10, borderWidth: 1, borderColor: Colors.cardBorder, marginBottom: 6 },
+  searchContainer: { flexDirection: 'row', alignItems: 'center', backgroundColor: Colors.card, borderRadius: 16, marginHorizontal: 20, paddingHorizontal: 14, paddingVertical: 12, gap: 10, borderWidth: 0.5, borderColor: Colors.cardBorder, marginBottom: 6, ...Colors.shadow.small },
   searchInput: { flex: 1, fontSize: 15, fontFamily: 'Poppins_400Regular', color: Colors.text, padding: 0 },
   categorySection: { paddingTop: 8, paddingBottom: 4 },
-  categoryRow: { paddingHorizontal: 20, gap: 10, paddingBottom: 14 },
-  categoryChip: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 16, paddingVertical: 12, borderRadius: 16, backgroundColor: Colors.card, borderWidth: 1.5, borderColor: Colors.cardBorder },
-  categoryIconWrap: { width: 32, height: 32, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
-  categoryText: { fontSize: 14, fontFamily: 'Poppins_600SemiBold', color: Colors.text },
+  categoryRow: { paddingHorizontal: 20, gap: 8, paddingBottom: 14 },
+  categoryChip: { flexDirection: 'row', alignItems: 'center', gap: 7, paddingHorizontal: 14, paddingVertical: 10, borderRadius: 24, backgroundColor: Colors.card, borderWidth: 1, borderColor: Colors.cardBorder },
+  categoryChipActive: { ...Colors.shadow.small },
+  categoryIconWrap: { width: 28, height: 28, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
+  categoryText: { fontSize: 13, fontFamily: 'Poppins_600SemiBold', color: Colors.text },
   categoryTextActive: { color: '#FFF' },
   resultCount: { fontSize: 13, fontFamily: 'Poppins_500Medium', color: Colors.textSecondary, marginBottom: 10 },
   list: { paddingHorizontal: 20, paddingTop: 4 },
-  card: { backgroundColor: Colors.card, borderRadius: 18, padding: 16, borderWidth: 1, borderColor: Colors.cardBorder, gap: 10, marginBottom: 12 },
+  card: { backgroundColor: Colors.card, borderRadius: 18, padding: 18, borderWidth: 0.5, borderColor: Colors.cardBorder, gap: 10, marginBottom: 14, ...Colors.shadow.medium },
   cardHeader: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   businessIcon: { width: 52, height: 52, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
   cardInfo: { flex: 1, gap: 2 },
   nameRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   cardName: { fontSize: 17, fontFamily: 'Poppins_700Bold', color: Colors.text, flexShrink: 1 },
   cardCategory: { fontSize: 13, fontFamily: 'Poppins_500Medium', color: Colors.textSecondary },
-  ratingBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: Colors.accent + '15', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 12 },
+  ratingBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: Colors.accent + '18', paddingHorizontal: 12, paddingVertical: 7, borderRadius: 14 },
   ratingText: { fontSize: 14, fontFamily: 'Poppins_700Bold', color: Colors.accent },
   cardDesc: { fontSize: 14, fontFamily: 'Poppins_400Regular', color: Colors.textSecondary, lineHeight: 21 },
   serviceRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, alignItems: 'center' },
-  servicePill: { backgroundColor: Colors.backgroundSecondary, paddingHorizontal: 12, paddingVertical: 5, borderRadius: 10 },
+  servicePill: { backgroundColor: Colors.backgroundSecondary, paddingHorizontal: 14, paddingVertical: 6, borderRadius: 10 },
   serviceText: { fontSize: 12, fontFamily: 'Poppins_500Medium', color: Colors.textSecondary },
   moreServices: { fontSize: 12, fontFamily: 'Poppins_600SemiBold', color: Colors.primary },
-  cardFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  cardFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingTop: 2 },
   locationRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   locationText: { fontSize: 13, fontFamily: 'Poppins_400Regular', color: Colors.textSecondary },
-  statsRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  statsRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   followersText: { fontSize: 12, fontFamily: 'Poppins_600SemiBold', color: Colors.secondary },
   reviewCount: { fontSize: 12, fontFamily: 'Poppins_400Regular', color: Colors.textTertiary },
-  cardAction: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 6, paddingTop: 4, borderTopWidth: 1, borderTopColor: Colors.divider },
+  cardAction: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 10, marginTop: 4, borderRadius: 12, backgroundColor: Colors.primaryGlow },
   cardActionText: { fontSize: 13, fontFamily: 'Poppins_600SemiBold', color: Colors.primary },
-  emptyState: { alignItems: 'center', paddingVertical: 60, gap: 10 },
-  emptyTitle: { fontSize: 18, fontFamily: 'Poppins_600SemiBold', color: Colors.text },
-  emptySubtext: { fontSize: 14, fontFamily: 'Poppins_400Regular', color: Colors.textSecondary },
+  emptyState: { alignItems: 'center', paddingVertical: 80, gap: 14 },
+  emptyTitle: { fontSize: 18, fontFamily: 'Poppins_600SemiBold', color: Colors.text, marginTop: 4 },
+  emptySubtext: { fontSize: 14, fontFamily: 'Poppins_400Regular', color: Colors.textSecondary, textAlign: 'center', paddingHorizontal: 40 },
 });

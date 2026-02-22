@@ -140,7 +140,7 @@ export default function ExploreScreen() {
                 <Ionicons name="calendar" size={28} color="rgba(255,255,255,0.9)" />
                 {event.isCouncil && (
                   <View style={styles.councilBadge}>
-                    <Ionicons name="shield-checkmark" size={12} color="#FFF" />
+                    <Ionicons name="shield-checkmark" size={14} color="#FFF" />
                   </View>
                 )}
               </View>
@@ -195,7 +195,9 @@ export default function ExploreScreen() {
 
         {filteredEvents.length === 0 && (
           <View style={styles.empty}>
-            <Ionicons name="search" size={48} color={Colors.textTertiary} />
+            <View style={styles.emptyIconWrap}>
+              <Ionicons name="search" size={56} color={Colors.textTertiary} />
+            </View>
             <Text style={styles.emptyTitle}>No events found</Text>
             <Text style={styles.emptySubtext}>Try adjusting your search or filters</Text>
           </View>
@@ -217,22 +219,22 @@ const styles = StyleSheet.create({
   header: { paddingHorizontal: 20, paddingTop: 8, paddingBottom: 4 },
   title: { fontSize: 28, fontFamily: 'Poppins_700Bold', color: Colors.text },
   subtitle: { fontSize: 14, fontFamily: 'Poppins_400Regular', color: Colors.textSecondary, marginTop: 2 },
-  searchContainer: { flexDirection: 'row', alignItems: 'center', backgroundColor: Colors.card, borderRadius: 14, marginHorizontal: 20, paddingHorizontal: 14, paddingVertical: 12, gap: 10, borderWidth: 1, borderColor: Colors.cardBorder, marginBottom: 12, marginTop: 8 },
+  searchContainer: { flexDirection: 'row', alignItems: 'center', backgroundColor: Colors.card, borderRadius: 16, marginHorizontal: 20, paddingHorizontal: 14, paddingVertical: 12, gap: 10, borderWidth: 0.5, borderColor: Colors.cardBorder, marginBottom: 12, marginTop: 8, ...Colors.shadow.small },
   searchInput: { flex: 1, fontSize: 15, fontFamily: 'Poppins_400Regular', color: Colors.text, padding: 0 },
   categoryRow: { paddingHorizontal: 20, gap: 10, paddingBottom: 14 },
-  categoryChip: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 16, paddingVertical: 12, borderRadius: 16, backgroundColor: Colors.card, borderWidth: 1.5, borderColor: Colors.cardBorder, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.04, shadowRadius: 8, elevation: 2 },
-  categoryChipActive: { backgroundColor: Colors.primary, borderColor: Colors.primary, shadowColor: Colors.primary, shadowOpacity: 0.3 },
-  catIconWrap: { width: 32, height: 32, borderRadius: 10, backgroundColor: Colors.primary + '12', alignItems: 'center', justifyContent: 'center' },
+  categoryChip: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 14, paddingVertical: 10, borderRadius: 24, backgroundColor: Colors.card, borderWidth: 1, borderColor: Colors.cardBorder, ...Colors.shadow.small },
+  categoryChipActive: { backgroundColor: Colors.primary, borderColor: Colors.primary, shadowColor: Colors.primary, shadowOpacity: 0.25, shadowRadius: 8, shadowOffset: { width: 0, height: 3 }, elevation: 3 },
+  catIconWrap: { width: 28, height: 28, borderRadius: 8, backgroundColor: Colors.primaryGlow, alignItems: 'center', justifyContent: 'center' },
   categoryLabel: { fontSize: 14, fontFamily: 'Poppins_600SemiBold', color: Colors.text },
   categoryLabelActive: { color: '#FFF' },
   results: { paddingHorizontal: 20, paddingTop: 4 },
-  resultCount: { fontSize: 13, fontFamily: 'Poppins_500Medium', color: Colors.textSecondary, marginBottom: 12 },
-  resultCard: { flexDirection: 'row', backgroundColor: Colors.card, borderRadius: 16, overflow: 'hidden', marginBottom: 12, borderWidth: 1, borderColor: Colors.cardBorder },
-  resultImage: { width: 90, alignItems: 'center', justifyContent: 'center', position: 'relative' },
-  councilBadge: { position: 'absolute', top: 8, left: 8, width: 22, height: 22, borderRadius: 11, backgroundColor: Colors.secondary, alignItems: 'center', justifyContent: 'center' },
+  resultCount: { fontSize: 14, fontFamily: 'Poppins_600SemiBold', color: Colors.textSecondary, marginBottom: 12 },
+  resultCard: { flexDirection: 'row', backgroundColor: Colors.card, borderRadius: 16, overflow: 'hidden', marginBottom: 12, borderWidth: 0.5, borderColor: Colors.cardBorder, ...Colors.shadow.small },
+  resultImage: { width: 100, alignItems: 'center', justifyContent: 'center', position: 'relative' },
+  councilBadge: { position: 'absolute', top: 8, left: 8, width: 24, height: 24, borderRadius: 12, backgroundColor: Colors.secondary, alignItems: 'center', justifyContent: 'center' },
   resultContent: { flex: 1, padding: 12, gap: 4 },
   resultTags: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  tag: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 8 },
+  tag: { paddingHorizontal: 10, paddingVertical: 3, borderRadius: 10 },
   tagText: { fontSize: 11, fontFamily: 'Poppins_600SemiBold' },
   resultCategory: { fontSize: 11, fontFamily: 'Poppins_400Regular', color: Colors.textTertiary },
   resultTitle: { fontSize: 15, fontFamily: 'Poppins_600SemiBold', color: Colors.text, lineHeight: 20 },
@@ -242,8 +244,9 @@ const styles = StyleSheet.create({
   resultPrice: { fontSize: 14, fontFamily: 'Poppins_700Bold', color: Colors.text },
   resultAttending: { fontSize: 12, fontFamily: 'Poppins_400Regular', color: Colors.textSecondary },
   cardActions: { paddingHorizontal: 8, paddingVertical: 8, justifyContent: 'space-between' },
-  actionBtn: { width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
-  empty: { alignItems: 'center', paddingVertical: 60, gap: 8 },
-  emptyTitle: { fontSize: 18, fontFamily: 'Poppins_600SemiBold', color: Colors.text },
-  emptySubtext: { fontSize: 14, fontFamily: 'Poppins_400Regular', color: Colors.textSecondary },
+  actionBtn: { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center', backgroundColor: Colors.backgroundSecondary },
+  empty: { alignItems: 'center', paddingVertical: 80, gap: 12 },
+  emptyIconWrap: { width: 80, height: 80, borderRadius: 40, backgroundColor: Colors.backgroundSecondary, alignItems: 'center', justifyContent: 'center', marginBottom: 4 },
+  emptyTitle: { fontSize: 20, fontFamily: 'Poppins_600SemiBold', color: Colors.text },
+  emptySubtext: { fontSize: 15, fontFamily: 'Poppins_400Regular', color: Colors.textSecondary },
 });
