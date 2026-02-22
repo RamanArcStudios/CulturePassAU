@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
   TextInput,
   Share,
+  RefreshControl,
 } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -16,6 +17,7 @@ import { useSaved } from '@/contexts/SavedContext';
 import Colors from '@/constants/colors';
 import * as Haptics from 'expo-haptics';
 import { useQuery } from '@tanstack/react-query';
+import { queryClient } from '@/lib/query-client';
 import { useState, useMemo, useCallback } from 'react';
 import type { Profile } from '@shared/schema';
 import Animated, { FadeInDown } from 'react-native-reanimated';
@@ -272,6 +274,13 @@ export default function CommunitiesScreen() {
     return counts;
   }, [allProfilesData]);
 
+  const [refreshing, setRefreshing] = useState(false);
+  const handleRefresh = useCallback(() => {
+    setRefreshing(true);
+    queryClient.invalidateQueries();
+    setTimeout(() => setRefreshing(false), 1000);
+  }, []);
+
   const handleTypeSelect = useCallback((id: string) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setSelectedType(id);
@@ -350,6 +359,7 @@ export default function CommunitiesScreen() {
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.grid}
           keyboardShouldPersistTaps="handled"
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={Colors.primary} colors={[Colors.primary]} />}
         >
           <Text style={styles.resultCount}>{filteredProfiles.length} results</Text>
 

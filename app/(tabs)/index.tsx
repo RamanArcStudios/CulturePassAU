@@ -8,6 +8,7 @@ import {
   Platform,
   FlatList,
   Share,
+  RefreshControl,
 } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -28,7 +29,7 @@ import * as Haptics from 'expo-haptics';
 import { useQuery } from '@tanstack/react-query';
 import { User } from '@shared/schema';
 import { getQueryFn } from '@/lib/query-client';
-import { useMemo, useCallback } from 'react';
+import { useMemo, useCallback, useState } from 'react';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -195,6 +196,12 @@ export default function HomeScreen() {
   );
 
   // Stable keyExtractor for FlatList
+  const [refreshing, setRefreshing] = useState(false);
+  const handleRefresh = useCallback(() => {
+    setRefreshing(true);
+    setTimeout(() => setRefreshing(false), 1000);
+  }, []);
+
   const keyExtractor = useCallback((item: SampleEvent) => item.id, []);
   const renderFeaturedEvent = useCallback(
     ({ item }: { item: SampleEvent }) => <FeaturedEventCard event={item} />,
@@ -235,6 +242,7 @@ export default function HomeScreen() {
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 100 }}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={Colors.primary} colors={[Colors.primary]} />}
       >
         {/* Greeting */}
         <Animated.View entering={FadeInDown.delay(100).duration(600)} style={styles.greetSection}>

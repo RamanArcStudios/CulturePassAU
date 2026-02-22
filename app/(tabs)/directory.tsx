@@ -7,6 +7,7 @@ import {
   Platform,
   TextInput,
   ActivityIndicator,
+  RefreshControl,
 } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -16,6 +17,7 @@ import { useState, useMemo, useCallback } from 'react';
 import * as Haptics from 'expo-haptics';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useQuery } from '@tanstack/react-query';
+import { queryClient } from '@/lib/query-client';
 import type { Profile } from '@shared/schema';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -224,6 +226,13 @@ export default function DirectoryScreen() {
     return counts;
   }, [nonCommunityProfiles]);
 
+  const [refreshing, setRefreshing] = useState(false);
+  const handleRefresh = useCallback(() => {
+    setRefreshing(true);
+    queryClient.invalidateQueries();
+    setTimeout(() => setRefreshing(false), 1000);
+  }, []);
+
   const handleFilterSelect = useCallback((label: string) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setSelectedType(label);
@@ -319,6 +328,7 @@ export default function DirectoryScreen() {
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.list}
           keyboardShouldPersistTaps="handled"
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={Colors.primary} colors={[Colors.primary]} />}
         >
           <Text style={styles.resultCount}>
             {filtered.length} {filtered.length === 1 ? 'listing' : 'listings'} found

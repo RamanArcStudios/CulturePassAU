@@ -8,6 +8,7 @@ import {
   Alert,
   Switch,
   Share,
+  RefreshControl,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -19,6 +20,7 @@ import { router } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { useState, useMemo, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { queryClient } from '@/lib/query-client';
 import type { Wallet, User, Membership } from '@shared/schema';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
@@ -139,6 +141,12 @@ export default function ProfileScreen() {
   const { savedEvents, joinedCommunities } = useSaved();
   const [pushNotifs, setPushNotifs] = useState(true);
   const [emailNotifs, setEmailNotifs] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const handleRefresh = useCallback(() => {
+    setRefreshing(true);
+    queryClient.invalidateQueries();
+    setTimeout(() => setRefreshing(false), 1000);
+  }, []);
 
   // ── API queries ──────────────────────────────────────────────────────────────
   const { data: usersData } = useQuery<User[]>({ queryKey: ['/api/users'] });
@@ -255,6 +263,7 @@ export default function ProfileScreen() {
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 100 }}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={Colors.primary} colors={[Colors.primary]} />}
       >
         {/* Profile header */}
         <Animated.View entering={FadeInDown.duration(400)} style={styles.profileHeader}>

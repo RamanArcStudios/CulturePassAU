@@ -7,6 +7,7 @@ import {
   TextInput,
   Platform,
   Share,
+  RefreshControl,
 } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -133,6 +134,12 @@ export default function ExploreScreen() {
     }
   }, []);
 
+  const [refreshing, setRefreshing] = useState(false);
+  const handleRefresh = useCallback(() => {
+    setRefreshing(true);
+    setTimeout(() => setRefreshing(false), 1000);
+  }, []);
+
   const handleCategorySelect = useCallback((label: string) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setSelectedCategory(label);
@@ -243,6 +250,7 @@ export default function ExploreScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.results}
         keyboardShouldPersistTaps="handled"
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={Colors.primary} colors={[Colors.primary]} />}
       >
         <Text style={styles.resultCount}>
           {filteredEvents.length}
