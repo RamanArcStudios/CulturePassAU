@@ -1,15 +1,30 @@
-import { View, Text, Pressable, StyleSheet, ScrollView, Platform } from 'react-native';
-import { router, useLocalSearchParams } from 'expo-router';
+import React from 'react';
+import {
+  StyleSheet, Text, View, ScrollView, Pressable, Platform, Image,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { router, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useSaved } from '@/contexts/SavedContext';
-import { sampleCommunities, sampleEvents } from '@/data/mockData';
-import Colors from '@/constants/colors';
 import * as Haptics from 'expo-haptics';
 import Animated, { FadeInDown } from 'react-native-reanimated';
+import Colors from '@/constants/colors';
+import { useSaved } from '@/contexts/SavedContext';
+import { sampleCommunities, sampleEvents } from '@/data/mockData';
+
+function formatNumber(num: number): string {
+  if (num >= 1000) return (num / 1000).toFixed(1) + 'k';
+  return num.toString();
+}
+
+function formatDate(dateStr: string): string {
+  const [year, month, day] = dateStr.split('-').map(Number);
+  if (!year || !month || !day) return dateStr;
+  const d = new Date(year, month - 1, day);
+  return d.toLocaleDateString('en-AU', { day: 'numeric', month: 'short' });
+}
 
 export default function CommunityDetailScreen() {
-  const { id } = useLocalSearchParams();
+  const { id } = useLocalSearchParams<{ id: string }>();
   const insets = useSafeAreaInsets();
   const topInset = Platform.OS === 'web' ? 67 : insets.top;
   const bottomInset = Platform.OS === 'web' ? 34 : insets.bottom;
@@ -19,7 +34,7 @@ export default function CommunityDetailScreen() {
 
   if (!community) {
     return (
-      <View style={[styles.container, { paddingTop: topInset, justifyContent: 'center', alignItems: 'center' }]}>
+      <View style={[styles.container, { paddingTop: topInset + 20, alignItems: 'center', justifyContent: 'center' }]}>
         <Text style={styles.errorText}>Community not found</Text>
         <Pressable onPress={() => router.back()}>
           <Text style={styles.backLink}>Go Back</Text>
@@ -29,31 +44,19 @@ export default function CommunityDetailScreen() {
   }
 
   const joined = isCommunityJoined(community.id);
-
-  // Deduplicate events in case both filter conditions match the same event
-  const communityEvents = [...new Map(
-    sampleEvents
-      .filter(e =>
-        e.communityTag === community.name
-          .replace(' Community', '')
-          .replace(' Cultural Forum', '')
-          .replace(' Association', '')
-        || e.organizerId === community.id
-      )
-      .map(e => [e.id, e])
-  ).values()];
+  const communityEvents = sampleEvents.filter(e => e.organizerId === community.id);
 
   return (
     <View style={styles.container}>
-      {/* Hero — height accounts for dynamic safe area inset */}
-      <View style={[styles.hero, { backgroundColor: community.color, height: 240 + topInset }]}>
-        <View style={[styles.heroOverlay, { paddingTop: topInset }]}>
+      <View style={[styles.hero, { height: 240 + topInset }]}>
+        <Image source={{ uri: community.imageUrl }} style={{ position: 'absolute', width: '100%', height: '100%' }} />
+        <View style={[styles.heroOverlay, { paddingTop: topInset + 8 }]}>
           <Pressable style={styles.backButton} onPress={() => router.back()}>
             <Ionicons name="arrow-back" size={22} color="#FFF" />
           </Pressable>
           <View style={styles.heroBottom}>
-            <View style={styles.heroIconWrap}>
-              <Ionicons name={community.icon as any} size={40} color="#FFF" />
+            <View style={[styles.heroIconWrap, { backgroundColor: community.color + '40' }]}>
+              <Ionicons name={community.icon as any} size={28} color="#FFF" />
             </View>
             <Text style={styles.heroTitle}>{community.name}</Text>
             <Text style={styles.heroCategory}>{community.category}</Text>
@@ -106,9 +109,7 @@ export default function CommunityDetailScreen() {
                 style={styles.eventCard}
                 onPress={() => router.push({ pathname: '/event/[id]', params: { id: event.id } })}
               >
-                <View style={[styles.eventColor, { backgroundColor: event.imageColor }]}>
-                  <Ionicons name="calendar" size={20} color="#FFF" />
-                </View>
+                <Image source={{ uri: event.imageUrl }} style={styles.eventImage} />
                 <View style={styles.eventInfo}>
                   <Text style={styles.eventTitle} numberOfLines={1}>{event.title}</Text>
                   <Text style={styles.eventDate}>{formatDate(event.date)} - {event.time}</Text>
@@ -155,28 +156,14 @@ export default function CommunityDetailScreen() {
   );
 }
 
-function formatNumber(num: number): string {
-  if (num >= 1000) return (num / 1000).toFixed(1) + 'k';
-  return num.toString();
-}
-
-function formatDate(dateStr: string): string {
-  // Parse manually to avoid timezone shifting from new Date(string)
-  const [year, month, day] = dateStr.split('-').map(Number);
-  if (!year || !month || !day) return dateStr;
-  const d = new Date(year, month - 1, day);
-  return d.toLocaleDateString('en-AU', { day: 'numeric', month: 'short' });
-}
-
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
   errorText: { fontSize: 16, fontFamily: 'Poppins_500Medium', color: Colors.textSecondary },
   backLink: { fontSize: 15, fontFamily: 'Poppins_600SemiBold', color: Colors.primary, marginTop: 12 },
-  // height is set dynamically via inline style to account for safe area inset
-  hero: {},
+  hero: { overflow: 'hidden' },
   heroOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.25)',
+    backgroundColor: 'rgba(0,0,0,0.35)',
     padding: 16,
     justifyContent: 'space-between',
   },
@@ -188,28 +175,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  heroBottom: {
-    gap: 4,
-  },
+  heroBottom: { gap: 4 },
   heroIconWrap: {
-    width: 64,
-    height: 64,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.2)',
+    width: 56,
+    height: 56,
+    borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 4,
   },
-  heroTitle: {
-    fontSize: 24,
-    fontFamily: 'Poppins_700Bold',
-    color: '#FFF',
-  },
-  heroCategory: {
-    fontSize: 14,
-    fontFamily: 'Poppins_500Medium',
-    color: 'rgba(255,255,255,0.8)',
-  },
+  heroTitle: { fontSize: 24, fontFamily: 'Poppins_700Bold', color: '#FFF' },
+  heroCategory: { fontSize: 14, fontFamily: 'Poppins_500Medium', color: 'rgba(255,255,255,0.8)' },
   statsRow: {
     flexDirection: 'row',
     paddingHorizontal: 20,
@@ -226,32 +202,11 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Colors.cardBorder,
   },
-  statNum: {
-    fontSize: 20,
-    fontFamily: 'Poppins_700Bold',
-    color: Colors.text,
-  },
-  statLabel: {
-    fontSize: 11,
-    fontFamily: 'Poppins_500Medium',
-    color: Colors.textSecondary,
-  },
-  section: {
-    paddingHorizontal: 20,
-    marginTop: 24,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontFamily: 'Poppins_700Bold',
-    color: Colors.text,
-    marginBottom: 10,
-  },
-  description: {
-    fontSize: 14,
-    fontFamily: 'Poppins_400Regular',
-    color: Colors.textSecondary,
-    lineHeight: 22,
-  },
+  statNum: { fontSize: 20, fontFamily: 'Poppins_700Bold', color: Colors.text },
+  statLabel: { fontSize: 11, fontFamily: 'Poppins_500Medium', color: Colors.textSecondary },
+  section: { paddingHorizontal: 20, marginTop: 24 },
+  sectionTitle: { fontSize: 18, fontFamily: 'Poppins_700Bold', color: Colors.text, marginBottom: 10 },
+  description: { fontSize: 14, fontFamily: 'Poppins_400Regular', color: Colors.textSecondary, lineHeight: 22 },
   leaderRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -263,30 +218,10 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Colors.cardBorder,
   },
-  leaderAvatar: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  leaderName: {
-    flex: 1,
-    fontSize: 15,
-    fontFamily: 'Poppins_600SemiBold',
-    color: Colors.text,
-  },
-  leaderBadge: {
-    backgroundColor: Colors.secondary + '15',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 8,
-  },
-  leaderRole: {
-    fontSize: 11,
-    fontFamily: 'Poppins_600SemiBold',
-    color: Colors.secondary,
-  },
+  leaderAvatar: { width: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center' },
+  leaderName: { flex: 1, fontSize: 15, fontFamily: 'Poppins_600SemiBold', color: Colors.text },
+  leaderBadge: { backgroundColor: Colors.secondary + '15', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 },
+  leaderRole: { fontSize: 11, fontFamily: 'Poppins_600SemiBold', color: Colors.secondary },
   eventCard: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -298,27 +233,10 @@ const styles = StyleSheet.create({
     borderColor: Colors.cardBorder,
     gap: 12,
   },
-  eventColor: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  eventInfo: {
-    flex: 1,
-    gap: 2,
-  },
-  eventTitle: {
-    fontSize: 14,
-    fontFamily: 'Poppins_600SemiBold',
-    color: Colors.text,
-  },
-  eventDate: {
-    fontSize: 12,
-    fontFamily: 'Poppins_400Regular',
-    color: Colors.textSecondary,
-  },
+  eventImage: { width: 44, height: 44, borderRadius: 12 },
+  eventInfo: { flex: 1, gap: 2 },
+  eventTitle: { fontSize: 14, fontFamily: 'Poppins_600SemiBold', color: Colors.text },
+  eventDate: { fontSize: 12, fontFamily: 'Poppins_400Regular', color: Colors.textSecondary },
   wellbeingCard: {
     flexDirection: 'row',
     alignItems: 'flex-start',
@@ -329,18 +247,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Colors.secondary + '20',
   },
-  wellbeingTitle: {
-    fontSize: 15,
-    fontFamily: 'Poppins_600SemiBold',
-    color: Colors.text,
-    marginBottom: 4,
-  },
-  wellbeingDesc: {
-    fontSize: 13,
-    fontFamily: 'Poppins_400Regular',
-    color: Colors.textSecondary,
-    lineHeight: 20,
-  },
+  wellbeingTitle: { fontSize: 15, fontFamily: 'Poppins_600SemiBold', color: Colors.text, marginBottom: 4 },
+  wellbeingDesc: { fontSize: 13, fontFamily: 'Poppins_400Regular', color: Colors.textSecondary, lineHeight: 20 },
   bottomBar: {
     position: 'absolute',
     bottom: 0,
@@ -366,12 +274,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Colors.secondary + '30',
   },
-  joinText: {
-    fontSize: 16,
-    fontFamily: 'Poppins_600SemiBold',
-    color: '#FFF',
-  },
-  joinedText: {
-    color: Colors.secondary,
-  },
+  joinText: { fontSize: 16, fontFamily: 'Poppins_600SemiBold', color: '#FFF' },
+  joinedText: { color: Colors.secondary },
 });

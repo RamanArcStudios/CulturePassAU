@@ -48,6 +48,7 @@ const Colors = {
 
   surface: '#FFFFFF',
   surfaceElevated: '#F2F0EB',
+  surfaceSecondary: '#F2F0EB',
   borderLight: '#E5E3DE',
 
   light: {
