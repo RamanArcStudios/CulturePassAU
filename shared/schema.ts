@@ -455,6 +455,19 @@ export const tickets = pgTable(
   }
 );
 
+export const cpidRegistry = pgTable(
+  "cpid_registry",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    culturePassId: text("culture_pass_id").notNull().unique(),
+    targetId: text("target_id").notNull(),
+    entityType: text("entity_type").notNull(),
+    createdAt: timestamp("created_at").defaultNow(),
+  }
+);
+
 /* ======================================================
    TYPES
 ====================================================== */
@@ -475,6 +488,7 @@ export type Perk = typeof perks.$inferSelect;
 export type PerkRedemption = typeof perkRedemptions.$inferSelect;
 export type Notification = typeof notifications.$inferSelect;
 export type Ticket = typeof tickets.$inferSelect;
+export type CpidRegistry = typeof cpidRegistry.$inferSelect;
 
 /* ======================================================
    INSERT SCHEMAS
