@@ -53,6 +53,14 @@ Preferred communication style: Simple, everyday language.
   - Built View Public Profile screen (`app/profile/public.tsx`): shows user's own profile as others see it, with hero header, stats, bio, social links, CulturePass ID card, member since date
   - Built Digital ID / QR screen (`app/profile/qr.tsx`): CulturePass Digital ID card with fingerprint icon, unique visual pattern grid, CPID display, share and copy functionality
   - Profile quick actions: View Public → /profile/public, My QR ID → /profile/qr, Share (native share)
+- **Feb 2026**: Navigation & Creation improvements:
+  - Added Perks tab to bottom navigation (5 tabs: Discover, Calendar, Community, Perks, Profile) with gift icon
+  - Perks tab screen (`app/(tabs)/perks.tsx`) with hero banner, category filters, perk cards, redeem functionality
+  - Expanded Submit/Create page to support 5 entity types: Event, Organisation, Business, Artist, Perk
+  - Event creation form: title, description, date, time, venue, address, price, capacity, city, country, category
+  - Perk creation form: title, description, perk type selector, discount value, provider name, perk category
+  - Fixed artist detail page (`app/artist/[id].tsx`) and venue detail page (`app/venue/[id].tsx`) to use API data
+  - Fixed All Events page (`app/allevents.tsx`) to use mock data correctly
   - Enriched demo user data: followers (156), following (89), likes (342), phone, website, extended bio
   - Fixed user ordering: getAllUsers now orders by createdAt ASC so demo user appears first
 
@@ -64,7 +72,7 @@ Preferred communication style: Simple, everyday language.
 - **Routing**: expo-router v6 with file-based routing and typed routes enabled
 - **Navigation Structure**:
   - `(onboarding)/` - 4-step onboarding flow (welcome → location → communities → interests)
-  - `(tabs)/` - Main tab navigation with 5 tabs: Home, Explore, Communities, Directory, Profile
+  - `(tabs)/` - Main tab navigation with 5 tabs: Discover, Calendar, Community, Perks, Profile (Explore/Directory hidden)
   - Detail screens: `event/[id]`, `community/[id]`, `business/[id]`, `profile/[id]` as stack screens
   - Super-app modules: `movies/`, `restaurants/`, `activities/`, `shopping/`
   - Payment screens: `payment/methods`, `payment/transactions`, `payment/wallet`
