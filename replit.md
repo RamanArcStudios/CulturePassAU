@@ -34,6 +34,19 @@ Preferred communication style: Simple, everyday language.
   - Explore: Compact category chips with glow on active, shadow event cards, wider image area (100px), styled action buttons
   - Directory: Shadow-depth listing cards, refined category chips, prominent View Details button with background
   - Profile: Decorative avatar glow, accent lines on section titles, shadow stat cards, glass-like tier badge, refined menu items
+- **Feb 2026**: Comprehensive app-wide improvements:
+  - Fixed backend schema (restored 10 missing table definitions: profiles, likes, paymentMethods, sponsors, eventSponsors, sponsorPlacements, perks, perkRedemptions, notifications, tickets)
+  - Fixed wallet balance type handling (numeric/string consistency)
+  - Home: Time-based greeting ("Good morning/afternoon/evening, {name}"), "Happening This Week" events section, Explore CTA banner
+  - Explore: Event count badges on category chips, Relevance/Date sort toggle, enhanced empty state with quick-search pills, category-aware results summary
+  - Event Detail: Live countdown timer (days/hrs/mins), "Who's Going" avatar preview, "You Might Also Like" related events, visual section dividers
+  - Communities: Member avatar preview circles on cards, share button, count badges on filter pills
+  - Directory: Quick contact action buttons, count badges on filter chips
+  - Profile: Profile completeness indicator with progress bar, quick action chips (Share/View Public/Scan QR), upgrade membership CTA, recent activity summary card
+  - Onboarding Welcome: Feature highlights (Discover Events, Join Communities, Exclusive Perks), trust indicators bar
+  - Login: Simplified title, Remember me toggle
+  - Signup: Password strength indicator (Weak/Medium/Strong), benefits text row
+  - All 5 main tabs: Pull-to-refresh with RefreshControl
 
 ## System Architecture
 
