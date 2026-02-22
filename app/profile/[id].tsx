@@ -8,6 +8,7 @@ import * as Haptics from 'expo-haptics';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useState } from 'react';
 import type { Profile, Review } from '@/shared/schema';
+import { sampleEvents } from '@/data/mockData';
 
 const ENTITY_COLORS: Record<string, string> = {
   community: '#E85D3A',
@@ -99,6 +100,23 @@ export default function ProfileDetailScreen() {
   const tags = (profile.tags || []) as string[];
   const locationText = [profile.address, profile.city, profile.country].filter(Boolean).join(', ');
   const hasCoordinates = profile.latitude && profile.longitude;
+
+  const profileName = (profile.name || '').toLowerCase();
+  const profileCategory = (profile.category || '').toLowerCase();
+  const profileTags = (profile.tags || []) as string[];
+  const profileLocation = (profile.city || profile.location || '').toLowerCase();
+  const matchedEvents = sampleEvents.filter(ev => {
+    const tag = ev.communityTag.toLowerCase();
+    const organizer = ev.organizer.toLowerCase();
+    const venue = ev.venue.toLowerCase();
+    const nameWords = profileName.split(/\s+/).filter(w => w.length > 2);
+    return nameWords.some(w => tag.includes(w) || organizer.includes(w)) ||
+      profileTags.some(t => tag.includes(t.toLowerCase()) || ev.category.toLowerCase().includes(t.toLowerCase())) ||
+      (profileLocation && venue.includes(profileLocation));
+  });
+  const upcomingEvents = matchedEvents.length > 0
+    ? matchedEvents.slice(0, 4)
+    : sampleEvents.filter(ev => ev.isFeatured || ev.price === 0).slice(0, 4);
 
   const stats = [
     profile.followersCount ? { label: 'Followers', value: profile.followersCount } : null,
@@ -265,8 +283,60 @@ export default function ProfileDetailScreen() {
           </Animated.View>
         )}
 
-        {hasCoordinates && (
+        {upcomingEvents.length > 0 && (
           <Animated.View entering={FadeInDown.delay(450).duration(500)} style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Text style={[styles.sectionTitle, { marginBottom: 0 }]}>Upcoming Events</Text>
+              <Pressable onPress={() => router.push('/(tabs)/explore')}>
+                <Text style={[styles.seeAllText, { color: entityColor }]}>See All</Text>
+              </Pressable>
+            </View>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 12 }}>
+              {upcomingEvents.map((ev) => (
+                <Pressable
+                  key={ev.id}
+                  style={styles.eventCard}
+                  onPress={() => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    router.push({ pathname: '/event/[id]', params: { id: ev.id } });
+                  }}
+                >
+                  <View style={[styles.eventImagePlaceholder, { backgroundColor: ev.imageColor }]}>
+                    <Ionicons name="calendar" size={24} color="rgba(255,255,255,0.8)" />
+                    {ev.isFeatured && (
+                      <View style={styles.eventFeaturedBadge}>
+                        <Ionicons name="star" size={10} color={Colors.accent} />
+                      </View>
+                    )}
+                  </View>
+                  <View style={styles.eventInfo}>
+                    <Text style={styles.eventTitle} numberOfLines={2}>{ev.title}</Text>
+                    <View style={styles.eventMetaRow}>
+                      <Ionicons name="calendar-outline" size={12} color={Colors.textSecondary} />
+                      <Text style={styles.eventMetaText}>{ev.date}</Text>
+                    </View>
+                    <View style={styles.eventMetaRow}>
+                      <Ionicons name="location-outline" size={12} color={Colors.textSecondary} />
+                      <Text style={styles.eventMetaText} numberOfLines={1}>{ev.venue}</Text>
+                    </View>
+                    <View style={styles.eventBottomRow}>
+                      <Text style={[styles.eventPrice, { color: ev.price === 0 ? '#2ECC71' : entityColor }]}>
+                        {ev.priceLabel}
+                      </Text>
+                      <View style={styles.eventAttendeesRow}>
+                        <Ionicons name="people-outline" size={11} color={Colors.textTertiary} />
+                        <Text style={styles.eventAttendeesText}>{ev.attending}</Text>
+                      </View>
+                    </View>
+                  </View>
+                </Pressable>
+              ))}
+            </ScrollView>
+          </Animated.View>
+        )}
+
+        {hasCoordinates && (
+          <Animated.View entering={FadeInDown.delay(500).duration(500)} style={styles.section}>
             <Text style={styles.sectionTitle}>Location</Text>
             <Pressable
               style={styles.mapCard}
@@ -641,6 +711,80 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontFamily: 'Poppins_400Regular',
     color: Colors.textSecondary,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  seeAllText: {
+    fontSize: 14,
+    fontFamily: 'Poppins_600SemiBold',
+  },
+  eventCard: {
+    width: 200,
+    backgroundColor: Colors.card,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: Colors.cardBorder,
+    overflow: 'hidden',
+  },
+  eventImagePlaceholder: {
+    height: 100,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  eventFeaturedBadge: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: 'rgba(0,0,0,0.35)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  eventInfo: {
+    padding: 10,
+    gap: 4,
+  },
+  eventTitle: {
+    fontSize: 14,
+    fontFamily: 'Poppins_600SemiBold',
+    color: Colors.text,
+    lineHeight: 18,
+  },
+  eventMetaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  eventMetaText: {
+    fontSize: 11,
+    fontFamily: 'Poppins_400Regular',
+    color: Colors.textSecondary,
+  },
+  eventBottomRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 4,
+  },
+  eventPrice: {
+    fontSize: 13,
+    fontFamily: 'Poppins_700Bold',
+  },
+  eventAttendeesRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+  },
+  eventAttendeesText: {
+    fontSize: 10,
+    fontFamily: 'Poppins_400Regular',
+    color: Colors.textTertiary,
   },
   bottomBar: {
     position: 'absolute',
