@@ -51,6 +51,19 @@ Preferred communication style: Simple, everyday language.
   - Created reusable `FilterChipRow` and `FilterChip` components (`components/FilterChip.tsx`) with consistent pill styling, icon support, count badges, active/inactive states, haptic feedback, and press animations
   - Updated Communities, Explore, Directory, and Perks tabs to use the shared component, removing ~100 lines of duplicated styling code
   - Moved `typography.ts` from `app/` to `constants/` to fix Expo Router route warning
+- **Feb 2026**: Location Picker & App-Wide Redesign:
+  - Built `LocationPicker` component (`components/LocationPicker.tsx`): modal-based location changer with country → city selection flow, emoji flags, current location highlighting, animated card transitions
+  - Integrated LocationPicker into Home screen top bar, replacing static location display
+  - Location changes persist via OnboardingContext's `updateLocation` method (AsyncStorage-backed)
+  - Comprehensive visual redesign across all main screens:
+    - Home: Premium greeting card (primary bg, white text), taller featured event cards (260px), accent bar section headers, larger activity cards (180px), deeper perks banner
+    - Calendar: Accent-colored left stripes on event cards, improved day selection, background-tinted day header section, better empty state
+    - Communities: Card accent strips, stat chips with backgrounds, glow shadow on join buttons, 22px card radius
+    - Perks: Premium hero banner (64px icon, glassy stats), accent-striped perk cards (20px radius), thicker progress bars, refined meta tags
+    - Profile: 90px avatar with glow, 26px display name, 24px stat numbers, 56px menu items, 20px card radius, accent bar section titles
+    - Explore: Larger search bar with shadow, 110px result images, pill-shaped sort toggle, improved empty state
+    - Directory: Matching search bar, 22px listing cards, 40px contact buttons, full-width details button
+    - Event/Community/Business detail: 320/280px hero images with LinearGradient overlays, 20px card radius, accent bar dividers, improved buttons
 - **Feb 2026**: Profile & Database improvements:
   - Refined color scheme: warmer primary (#D4552A), deeper secondary (#1B7F6F), better shadows with brown-tinted shadow colors, added primarySoft color
   - Redesigned Profile tab: hero card with accent strip, CPID/location chips, colored completeness bar with percentage, full-width Edit Profile button, card-based quick actions with icons
