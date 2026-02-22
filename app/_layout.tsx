@@ -7,6 +7,8 @@ import { KeyboardProvider } from "react-native-keyboard-controller";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { queryClient } from "@/lib/query-client";
 import { AuthProvider } from "@/lib/auth";
+import { OnboardingProvider } from "@/contexts/OnboardingContext";
+import { SavedProvider } from "@/contexts/SavedContext";
 import {
   useFonts,
   Poppins_400Regular,
@@ -20,69 +22,30 @@ SplashScreen.preventAutoHideAsync();
 function RootLayoutNav() {
   return (
     <Stack screenOptions={{ headerBackTitle: "Back" }}>
+      <Stack.Screen name="(onboarding)" options={{ headerShown: false }} />
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-      <Stack.Screen
-        name="event/[id]"
-        options={{ headerShown: false }}
-      />
-      <Stack.Screen
-        name="community/[id]"
-        options={{ headerShown: false }}
-      />
-      <Stack.Screen
-        name="artist/[id]"
-        options={{ headerShown: false }}
-      />
-      <Stack.Screen
-        name="business/[id]"
-        options={{ headerShown: false }}
-      />
-      <Stack.Screen
-        name="allevents"
-        options={{
-          title: "All Events",
-          headerTintColor: "#E2725B",
-        }}
-      />
-      <Stack.Screen
-        name="submit"
-        options={{ headerShown: false }}
-      />
-      <Stack.Screen
-        name="auth"
-        options={{
-          presentation: "modal",
-          headerShown: false,
-        }}
-      />
-      <Stack.Screen
-        name="settings/notifications"
-        options={{ headerShown: false }}
-      />
-      <Stack.Screen
-        name="settings/privacy"
-        options={{ headerShown: false }}
-      />
-      <Stack.Screen
-        name="settings/help"
-        options={{ headerShown: false }}
-      />
-      <Stack.Screen
-        name="settings/about"
-        options={{ headerShown: false }}
-      />
-      <Stack.Screen
-        name="admin"
-        options={{ headerShown: false }}
-      />
-      <Stack.Screen
-        name="map"
-        options={{ headerShown: false }}
-      />
-      <Stack.Screen
-        name="venue/[id]"
-        options={{ headerShown: false }}
-      />
+      <Stack.Screen name="event/[id]" options={{ headerShown: false }} />
+      <Stack.Screen name="community/[id]" options={{ headerShown: false }} />
+      <Stack.Screen name="business/[id]" options={{ headerShown: false }} />
+      <Stack.Screen name="profile/[id]" options={{ headerShown: false }} />
+      <Stack.Screen name="profile/edit" options={{ headerShown: false }} />
+      <Stack.Screen name="profile/public" options={{ headerShown: false }} />
+      <Stack.Screen name="profile/qr" options={{ headerShown: false }} />
+      <Stack.Screen name="movies/index" options={{ headerShown: false }} />
+      <Stack.Screen name="movies/[id]" options={{ headerShown: false }} />
+      <Stack.Screen name="restaurants/index" options={{ headerShown: false }} />
+      <Stack.Screen name="restaurants/[id]" options={{ headerShown: false }} />
+      <Stack.Screen name="activities/index" options={{ headerShown: false }} />
+      <Stack.Screen name="activities/[id]" options={{ headerShown: false }} />
+      <Stack.Screen name="shopping/index" options={{ headerShown: false }} />
+      <Stack.Screen name="shopping/[id]" options={{ headerShown: false }} />
+      <Stack.Screen name="payment/methods" options={{ headerShown: false }} />
+      <Stack.Screen name="payment/transactions" options={{ headerShown: false }} />
+      <Stack.Screen name="payment/wallet" options={{ headerShown: false }} />
+      <Stack.Screen name="tickets/index" options={{ headerShown: false }} />
+      <Stack.Screen name="perks/index" options={{ headerShown: false }} />
+      <Stack.Screen name="notifications/index" options={{ headerShown: false }} />
+      <Stack.Screen name="help/index" options={{ headerShown: false }} />
     </Stack>
   );
 }
@@ -109,7 +72,11 @@ export default function RootLayout() {
         <AuthProvider>
           <GestureHandlerRootView>
             <KeyboardProvider>
-              <RootLayoutNav />
+              <OnboardingProvider>
+                <SavedProvider>
+                  <RootLayoutNav />
+                </SavedProvider>
+              </OnboardingProvider>
             </KeyboardProvider>
           </GestureHandlerRootView>
         </AuthProvider>
@@ -117,4 +84,3 @@ export default function RootLayout() {
     </ErrorBoundary>
   );
 }
-
