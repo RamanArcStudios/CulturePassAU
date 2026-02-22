@@ -3,6 +3,7 @@
     "name": "CulturePass",
     "slug": "culturepass",
     "version": "1.0.0",
+    "description": "CulturePass - Your one-stop lifestyle platform for cultural diaspora communities. Discover events, connect with communities, and celebrate diversity across Australia, New Zealand, UAE, UK & Canada.",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "culturepass",
@@ -27,7 +28,13 @@
       }
     },
     "web": {
-      "favicon": "./assets/images/favicon.png"
+      "favicon": "./assets/images/favicon.png",
+      "name": "CulturePass - Cultural Events & Communities",
+      "shortName": "CulturePass",
+      "description": "Discover cultural events, connect with diaspora communities, and celebrate diversity. Available in Australia, NZ, UAE, UK & Canada.",
+      "lang": "en",
+      "themeColor": "#6B4C3B",
+      "backgroundColor": "#FBF8F4"
     },
     "plugins": [
       [

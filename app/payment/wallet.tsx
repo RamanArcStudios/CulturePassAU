@@ -114,7 +114,7 @@ export default function WalletScreen() {
         <Pressable onPress={() => router.back()} style={styles.backBtn}>
           <Ionicons name="arrow-back" size={24} color={Colors.text} />
         </Pressable>
-        <Text style={styles.headerTitle}>CulturePass Wallet</Text>
+        <Text style={styles.headerTitle}>Ticket Wallet</Text>
         <View style={{ width: 40 }} />
       </View>
 

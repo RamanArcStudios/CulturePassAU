@@ -474,6 +474,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         longitude: 151.2093,
       });
 
+      // Seed Super Admin user
+      const adminUser = await storage.createUser({ username: "superadmin", password: "admin2026" });
+      await storage.updateUser(adminUser.id, {
+        displayName: "Super Admin",
+        email: "jiobaba369@gmail.com",
+        bio: "CulturePass Super Administrator",
+        city: "Sydney",
+        country: "Australia",
+        location: "Sydney, Australia",
+        role: "super_admin",
+        isVerified: true,
+      } as any);
+
       // Seed notifications for demo user
       const notifData = [
         { userId: demoUser.id, title: "Welcome to CulturePass!", message: "Start exploring cultural events and communities near you.", type: "system" },

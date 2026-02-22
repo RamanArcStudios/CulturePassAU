@@ -9,7 +9,7 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 
 const FAQ_ITEMS = [
   { q: 'How do I purchase event tickets?', a: 'Browse events from the Home or Explore tab. Tap on an event to view details, select your ticket tier, and complete the purchase using your wallet or saved payment method.' },
-  { q: 'How does CulturePass Wallet work?', a: 'Your CulturePass Wallet is a digital balance you can top up using any saved payment method. Use it for quick event purchases, and earn cashback on eligible transactions.' },
+  { q: 'How does the Ticket Wallet work?', a: 'Your Ticket Wallet is a digital balance you can top up using any saved payment method. Use it for quick event ticket purchases, and earn cashback on eligible transactions.' },
   { q: 'What are Perks & Benefits?', a: 'Perks are exclusive discounts, free tickets, early access, and VIP upgrades offered by CulturePass and our sponsor partners. Visit the Perks page to browse and redeem available offers.' },
   { q: 'How do I join a community?', a: 'Visit the Communities tab to browse cultural communities. Tap on any community to see its details, then tap "Join" to become a member and receive updates on their events.' },
   { q: 'Can I get a refund for a cancelled event?', a: 'Yes! If an event is cancelled by the organiser, you will receive a full refund to your CulturePass Wallet within 3-5 business days. For self-cancellations, refund policies vary by event.' },

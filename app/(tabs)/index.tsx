@@ -1,4 +1,4 @@
-import { View, Text, Pressable, StyleSheet, ScrollView, Dimensions, Platform, FlatList } from 'react-native';
+import { View, Text, Pressable, StyleSheet, ScrollView, Dimensions, Platform, FlatList, Share } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -22,6 +22,9 @@ function FeaturedEventCard({ event }: { event: typeof sampleEvents[0] }) {
       <View style={styles.featuredOverlay}>
         <View style={styles.featuredTop}>
           <View style={styles.featuredBadge}><Ionicons name="star" size={12} color={Colors.accent} /><Text style={styles.featuredBadgeText}>Featured</Text></View>
+          <Pressable onPress={async (e) => { e.stopPropagation?.(); try { await Share.share({ message: `Check out ${event.title} on CulturePass! ${event.venue}` }); } catch {} }} hitSlop={8}>
+            <Ionicons name="share-outline" size={20} color="#FFF" />
+          </Pressable>
           <Pressable onPress={(e) => { e.stopPropagation?.(); Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); toggleSaveEvent(event.id); }} hitSlop={8}>
             <Ionicons name={saved ? "bookmark" : "bookmark-outline"} size={22} color="#FFF" />
           </Pressable>
@@ -76,14 +79,14 @@ export default function HomeScreen() {
           <Ionicons name="chevron-down" size={16} color={Colors.textSecondary} />
         </Pressable>
         <View style={styles.topBarRight}>
-          <Pressable style={styles.iconButton} hitSlop={8}><Ionicons name="search-outline" size={22} color={Colors.text} /></Pressable>
+          <Pressable style={styles.iconButton} hitSlop={8} onPress={() => router.push('/(tabs)/explore')}><Ionicons name="search-outline" size={22} color={Colors.text} /></Pressable>
           <Pressable style={styles.iconButton} hitSlop={8} onPress={() => router.push('/notifications')}><Ionicons name="notifications-outline" size={22} color={Colors.text} /><View style={styles.notifDot} /></Pressable>
         </View>
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
         <Animated.View entering={FadeInDown.delay(100).duration(600)} style={styles.greetSection}>
-          <Text style={styles.greeting}>Welcome back</Text>
+          <Text style={styles.greeting}>Welcome back CulturePass</Text>
           <Text style={styles.heroTitle}>Your Lifestyle Hub</Text>
         </Animated.View>
 

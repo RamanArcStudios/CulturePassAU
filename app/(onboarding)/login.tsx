@@ -32,8 +32,8 @@ export default function LoginScreen() {
             <View style={styles.logoCircle}><Ionicons name="globe-outline" size={36} color={Colors.primary} /></View>
           </View>
 
-          <Text style={styles.title}>Welcome Back</Text>
-          <Text style={styles.subtitle}>Sign in to continue to CulturePass.</Text>
+          <Text style={styles.title}>Welcome back CulturePass</Text>
+          <Text style={styles.subtitle}>Sign in to continue your cultural journey.</Text>
 
           <View style={styles.form}>
             <View style={styles.inputGroup}>

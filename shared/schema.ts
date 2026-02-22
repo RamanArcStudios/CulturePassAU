@@ -22,6 +22,7 @@ export const users = pgTable("users", {
   latitude: doublePrecision("latitude"),
   longitude: doublePrecision("longitude"),
   website: text("website"),
+  role: text("role").default("user"),
   isVerified: boolean("is_verified").default(false),
   followersCount: integer("followers_count").default(0),
   followingCount: integer("following_count").default(0),

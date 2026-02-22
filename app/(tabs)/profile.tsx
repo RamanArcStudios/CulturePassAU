@@ -1,4 +1,4 @@
-import { View, Text, Pressable, StyleSheet, ScrollView, Platform, Alert, Switch } from 'react-native';
+import { View, Text, Pressable, StyleSheet, ScrollView, Platform, Alert, Switch, Share } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useOnboarding } from '@/contexts/OnboardingContext';
@@ -106,7 +106,9 @@ export default function ProfileScreen() {
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
         <Animated.View entering={FadeInDown.duration(400)} style={styles.profileHeader}>
           <View style={styles.headerTop}>
-            <View style={{ width: 40 }} />
+            <Pressable style={styles.settingsBtn} onPress={async () => { try { await Share.share({ message: `Check out my CulturePass profile! ${displayName} from ${displayLocation}. Download CulturePass to connect with cultural communities!` }); } catch {} }}>
+              <Ionicons name="share-outline" size={20} color={Colors.text} />
+            </Pressable>
             <Text style={styles.headerLabel}>Profile</Text>
             <Pressable style={styles.settingsBtn} onPress={() => router.push('/notifications')}>
               <Ionicons name="notifications-outline" size={22} color={Colors.text} />
@@ -161,7 +163,7 @@ export default function ProfileScreen() {
           </Pressable>
           <Pressable style={styles.statCard} onPress={() => router.push('/payment/wallet')}>
             <Text style={styles.statNum}>${(wallet?.balance || 0).toFixed(0)}</Text>
-            <Text style={styles.statLabel}>Wallet</Text>
+            <Text style={styles.statLabel}>T. Wallet</Text>
           </Pressable>
         </Animated.View>
 
@@ -215,7 +217,7 @@ export default function ProfileScreen() {
           <View style={styles.menuCard}>
             <MenuItem icon="ticket-outline" label="My Tickets" color="#E74C3C" badge={ticketCount?.count || 0}
               onPress={() => router.push('/tickets')} />
-            <MenuItem icon="wallet-outline" label="CulturePass Wallet" value={`$${(wallet?.balance || 0).toFixed(2)}`} color="#2ECC71"
+            <MenuItem icon="wallet-outline" label="Ticket Wallet" value={`$${(wallet?.balance || 0).toFixed(2)}`} color="#2ECC71"
               onPress={() => router.push('/payment/wallet')} />
             <MenuItem icon="gift-outline" label="Perks & Benefits" color={Colors.accent}
               onPress={() => router.push('/perks')} showDivider={false} />
