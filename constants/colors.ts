@@ -46,6 +46,9 @@ export type ColorTheme = {
   overlay: string;
   tabIconDefault: string;
   tabIconSelected: string;
+  card: string;
+  cardBorder: string;
+
   tabBar: string;
   tabBarBorder: string;
 
@@ -93,6 +96,9 @@ export const light: ColorTheme = {
   textTertiary: '#94A3B8',
   textInverse: '#FFFFFF',
 
+  card: '#FFFFFF',
+  cardBorder: '#E2E8F0',
+
   tabBar: '#FFFFFF',
   tabBarBorder: '#E2E8F0',
   tabIconDefault: '#94A3B8',
@@ -119,6 +125,9 @@ export const dark: ColorTheme = {
   textSecondary: '#94A3B8',
   textTertiary: '#475569',
   textInverse: '#0D0F14',
+
+  card: '#1E2535',
+  cardBorder: '#2D3748',
 
   tabBar: '#161B27',
   tabBarBorder: '#2D3748',
