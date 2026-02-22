@@ -1,0 +1,440 @@
+Excellent. Now we structure this properly before scope explodes.
+
+You are building:
+
+* Multi-tenant
+* Multi-sided marketplace
+* Social network
+* Payment infrastructure
+* Admin control system
+
+We must control complexity.
+
+Below is the **complete page architecture**, grouped by user type, with:
+
+* Page Name
+* Core Functions
+* Connected Systems
+
+This is lean but infrastructure-grade.
+
+---
+
+# 🟢 1️⃣ PUBLIC / USER MOBILE APP (React Native)
+
+### Total: ~18 Core Screens
+
+---
+
+## 🏠 1. Home
+
+Functions:
+
+* Featured events
+* Trending events
+* Followed communities feed
+* Promotion slots
+
+Connected to:
+
+* events
+* follows
+* featured_payments
+* likes
+
+---
+
+## 📅 2. Calendar
+
+Functions:
+
+* Month / Week / List view
+* Filters (date, category, free/paid, distance)
+* Save event
+
+Connected to:
+
+* events
+* categories
+* likes
+
+---
+
+## 🗺 3. Map Discovery
+
+Functions:
+
+* Geo-based event pins
+* Business pins
+* Venue pins
+* Radius filtering
+* Bottom sheet preview
+
+Connected to:
+
+* events (PostGIS)
+* businesses
+* venues
+
+---
+
+## 🎫 4. Event Details
+
+Functions:
+
+* Event info
+* Organizer profile link
+* Venue link
+* Reviews
+* Buy ticket
+* Like
+* Share
+
+Connected to:
+
+* events
+* organizations
+* venues
+* reviews
+* ticket_types
+
+---
+
+## 💳 5. Ticket Checkout
+
+Functions:
+
+* Select ticket type
+* Add payment method
+* Stripe payment
+* Wallet apply
+
+Connected to:
+
+* ticket_types
+* transactions
+* wallet_accounts
+* Stripe API
+
+---
+
+## 🎟 6. My Tickets
+
+Functions:
+
+* QR display
+* Event link
+* Refund request
+
+Connected to:
+
+* tickets
+
+---
+
+## 👤 7. User Profile (Public)
+
+Functions:
+
+* Bio
+* Joined communities
+* Follow count
+* Events attended
+* Edit profile
+
+Connected to:
+
+* users
+* memberships
+* follows
+
+---
+
+## ❤️ 8. Following
+
+Functions:
+
+* List followed:
+
+  * Communities
+  * Orgs
+  * Businesses
+  * Venues
+
+Connected to:
+
+* follows
+
+---
+
+## ⭐ 9. Reviews
+
+Functions:
+
+* Write review
+* View ratings
+
+Connected to:
+
+* reviews
+
+---
+
+## 💼 10. Wallet
+
+Functions:
+
+* Balance
+* Credit history
+* Apply credit
+
+Connected to:
+
+* wallet_accounts
+* wallet_transactions
+
+---
+
+## 💳 11. Payment Methods
+
+Functions:
+
+* Add card
+* Remove card
+* Default method
+
+Connected to:
+
+* payment_methods
+* Stripe
+
+---
+
+## 📜 12. Transaction History
+
+Functions:
+
+* Ticket purchases
+* Refunds
+* Featured payments (if applicable)
+
+Connected to:
+
+* transactions
+
+---
+
+## 🔔 13. Notifications
+
+Functions:
+
+* Push history
+* Mark read
+
+Connected to:
+
+* notifications
+
+---
+
+## 🏛 14. Community Profile Page
+
+Functions:
+
+* Description
+* Events
+* Members count
+* Follow
+* Reviews
+* Social links
+* Gallery
+
+Connected to:
+
+* communities
+* media
+* reviews
+* follows
+
+---
+
+## 🏢 15. Organization Profile
+
+Similar to community profile
+Connected to:
+
+* organizations
+* events
+* reviews
+* media
+
+---
+
+## 🧑‍💼 16. Business Profile
+
+Functions:
+
+* Services
+* Reviews
+* Quote request
+
+Connected to:
+
+* businesses
+* service_requests
+* reviews
+
+---
+
+## 🏟 17. Venue Profile
+
+Functions:
+
+* Capacity
+* Location map
+* Upcoming events
+* Reviews
+
+Connected to:
+
+* venues
+* events
+
+---
+
+## 🏛 18. Institution Profile (Council/Gov)
+
+Functions:
+
+* Official badge
+* Owned venues
+* Announcements
+
+Connected to:
+
+* institutions
+* venues
+
+---
+
+# 🟡 2️⃣ ORGANIZER WEB DASHBOARD (Next.js)
+
+### Total: ~10 Pages
+
+1. Dashboard (Revenue overview)
+2. Events (CRUD)
+3. Create/Edit Event
+4. Tickets (manage types)
+5. Attendees (QR export)
+6. Analytics
+7. Service Requests
+8. Reviews Management
+9. Profile Settings
+10. Stripe Payout Settings
+
+Connected to:
+
+* events
+* tickets
+* payments
+* service_requests
+* Stripe Connect
+
+---
+
+# 🔵 3️⃣ BUSINESS DASHBOARD
+
+~6 Pages
+
+1. Leads
+2. Quotes
+3. Subscription Billing
+4. Reviews
+5. Profile
+6. Media
+
+Connected to:
+
+* service_requests
+* service_quotes
+* transactions
+
+---
+
+# 🔴 4️⃣ CITY ADMIN DASHBOARD
+
+~8 Pages
+
+1. Overview
+2. Events Approval
+3. Organizations Approval
+4. Businesses Approval
+5. Venues
+6. Service Leads
+7. Revenue Share
+8. Promotions
+
+Connected to:
+
+* events
+* organizations
+* businesses
+* payments
+
+---
+
+# ⚫ 5️⃣ PLATFORM ADMIN DASHBOARD
+
+~10 Pages
+
+1. Global Overview
+2. Countries
+3. Cities
+4. Communities
+5. Institutions
+6. Commission Settings
+7. Payments Audit
+8. Featured Engine
+9. Users
+10. System Logs
+
+Connected to:
+Everything.
+
+---
+
+# 📊 TOTAL PAGE COUNT
+
+User App: 18
+Organizer: 10
+Business: 6
+City Admin: 8
+Platform Admin: 10
+
+≈ 52–55 pages total
+
+---
+
+# ⚠️ Important Reality
+
+You should NOT build all 55 in 12 weeks.
+
+Phase 1 must launch with:
+
+* 10–12 mobile screens
+* 6 organizer pages
+* 4 admin pages
+
+Everything else feature-flagged.
+
+---
+
+Now critical question:
+
+Do you want:
+
+A) Strict MVP (12-week lean launch)
+B) Aggressive Full Build (higher burn, bigger team)
+C) Phased Modular Release (recommended for VC optics)
+
+Choose carefully.
