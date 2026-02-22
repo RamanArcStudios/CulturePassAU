@@ -31,6 +31,7 @@ import { useQuery } from '@tanstack/react-query';
 import { User } from '@shared/schema';
 import { getQueryFn } from '@/lib/query-client';
 import { useMemo, useCallback, useState } from 'react';
+import { LocationPicker } from '@/components/LocationPicker';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -214,14 +215,7 @@ export default function HomeScreen() {
     <View style={[styles.container, { paddingTop: topInset }]}>
       {/* Top bar */}
       <View style={styles.topBar}>
-        <Pressable style={styles.locationButton}>
-          <Ionicons name="location" size={18} color={Colors.primary} />
-          <Text style={styles.locationText}>
-            {state.city}
-            {state.country ? `, ${state.country}` : ''}
-          </Text>
-          <Ionicons name="chevron-down" size={16} color={Colors.textSecondary} />
-        </Pressable>
+        <LocationPicker />
         <View style={styles.topBarRight}>
           <Pressable
             style={styles.iconButton}
@@ -524,16 +518,7 @@ const styles = StyleSheet.create({
     borderBottomColor: Colors.border,
     backgroundColor: Colors.background,
   },
-  locationButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: Colors.backgroundSecondary,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 20,
-  },
-  locationText: { fontSize: 15, fontFamily: 'Poppins_600SemiBold', color: Colors.text },
+  
   topBarRight: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   iconButton: {
     width: 40,
