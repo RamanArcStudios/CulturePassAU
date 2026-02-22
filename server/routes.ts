@@ -1,6 +1,7 @@
 import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "node:http";
 import { storage } from "./storage";
+import { generateCpid, lookupCpid, getAllRegistryEntries } from "./cpid";
 
 function p(val: string | string[]): string { return Array.isArray(val) ? val[0] : val; }
 
@@ -399,6 +400,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json(ticket);
   });
 
+  // === CulturePass ID (CPID) ===
+  app.get("/api/cpid/registry", async (_req: Request, res: Response) => {
+    const entries = await getAllRegistryEntries();
+    res.json(entries);
+  });
+
+  app.get("/api/cpid/lookup/:cpid", async (req: Request, res: Response) => {
+    const result = await lookupCpid(p(req.params.cpid));
+    if (!result) return res.status(404).json({ error: "CPID not found" });
+    res.json(result);
+  });
+
+  app.post("/api/cpid/generate", async (req: Request, res: Response) => {
+    try {
+      const { targetId, entityType } = req.body;
+      if (!targetId || !entityType) return res.status(400).json({ error: "targetId and entityType are required" });
+      const cpid = await generateCpid(targetId, entityType);
+      res.json({ culturePassId: cpid, targetId, entityType });
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
   // === Seed data endpoint ===
   app.post("/api/seed", async (_req: Request, res: Response) => {
     try {
@@ -428,8 +452,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         { name: "Ravi Patel", slug: "ravi-patel", entityType: "artist", description: "Stand-up comedian known for hilarious cross-cultural comedy about the immigrant experience.", category: "Comedian", city: "Auckland", country: "New Zealand", bio: "Netflix special 'Between Two Cultures' streamed in 12 countries.", socialLinks: { instagram: "https://instagram.com/ravipatel", youtube: "https://youtube.com/ravipatel", twitter: "https://twitter.com/ravipatel" }, images: [], tags: ["comedy", "stand-up", "indian"], followersCount: 12000, rating: 4.7, isVerified: true },
       ];
 
+      const createdProfiles = [];
       for (const p of seedProfiles) {
-        await storage.createProfile(p as any);
+        const created = await storage.createProfile(p as any);
+        createdProfiles.push(created);
+      }
+
+      for (const cp of createdProfiles) {
+        await generateCpid(cp.id, cp.entityType);
       }
 
       // Seed sponsors
@@ -440,8 +470,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         { name: "Auckland Foundation", description: "Community trust supporting cultural initiatives and events in Auckland.", logoUrl: "", websiteUrl: "https://aucklandfoundation.org.nz", sponsorType: "local", city: "Auckland", country: "New Zealand", socialLinks: { facebook: "https://facebook.com/aucklandfoundation" }, contactEmail: "grants@aucklandfoundation.org.nz" },
       ];
 
+      const createdSponsors = [];
       for (const s of seedSponsors) {
-        await storage.createSponsor(s as any);
+        const created = await storage.createSponsor(s as any);
+        createdSponsors.push(created);
+      }
+
+      for (const cs of createdSponsors) {
+        await generateCpid(cs.id, "sponsor");
       }
 
       // Seed perks
@@ -473,6 +509,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         latitude: -33.8688,
         longitude: 151.2093,
       });
+      await generateCpid(demoUser.id, "user");
 
       // Seed Super Admin user
       const adminUser = await storage.createUser({ username: "superadmin", password: "admin2026" });
@@ -486,6 +523,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         role: "super_admin",
         isVerified: true,
       } as any);
+      await generateCpid(adminUser.id, "user");
 
       // Seed notifications for demo user
       const notifData = [
