@@ -461,8 +461,8 @@ export const cpidRegistry = pgTable(
     id: text("id")
       .primaryKey()
       .$defaultFn(() => crypto.randomUUID()),
-    culturePassId: text("culture_pass_id").notNull().unique(),
-    targetId: text("target_id").notNull(),
+    culturePassId: varchar("culture_pass_id").unique().notNull(),
+    targetId: varchar("target_id").unique().notNull(),
     entityType: text("entity_type").notNull(),
     createdAt: timestamp("created_at").defaultNow(),
   }
