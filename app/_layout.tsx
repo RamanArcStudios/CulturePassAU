@@ -1,14 +1,17 @@
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
-import React, { useEffect } from "react";
+import React, { useCallback } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { KeyboardProvider } from "react-native-keyboard-controller";
+import { SafeAreaProvider } from "react-native-safe-area-context";
+
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { queryClient } from "@/lib/query-client";
 import { AuthProvider } from "@/lib/auth";
 import { OnboardingProvider } from "@/contexts/OnboardingContext";
 import { SavedProvider } from "@/contexts/SavedContext";
+
 import {
   useFonts,
   Poppins_400Regular,
@@ -17,40 +20,60 @@ import {
   Poppins_700Bold,
 } from "@expo-google-fonts/poppins";
 
-SplashScreen.preventAutoHideAsync();
+// Prevent splash auto-hide safely
+SplashScreen.preventAutoHideAsync().catch(() => {});
 
 function RootLayoutNav() {
   return (
-    <Stack screenOptions={{ headerBackTitle: "Back" }}>
-      <Stack.Screen name="(onboarding)" options={{ headerShown: false }} />
-      <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-      <Stack.Screen name="event/[id]" options={{ headerShown: false }} />
-      <Stack.Screen name="community/[id]" options={{ headerShown: false }} />
-      <Stack.Screen name="business/[id]" options={{ headerShown: false }} />
-      <Stack.Screen name="profile/[id]" options={{ headerShown: false }} />
-      <Stack.Screen name="profile/edit" options={{ headerShown: false }} />
-      <Stack.Screen name="profile/public" options={{ headerShown: false }} />
-      <Stack.Screen name="profile/qr" options={{ headerShown: false }} />
-      <Stack.Screen name="movies/index" options={{ headerShown: false }} />
-      <Stack.Screen name="movies/[id]" options={{ headerShown: false }} />
-      <Stack.Screen name="restaurants/index" options={{ headerShown: false }} />
-      <Stack.Screen name="restaurants/[id]" options={{ headerShown: false }} />
-      <Stack.Screen name="activities/index" options={{ headerShown: false }} />
-      <Stack.Screen name="activities/[id]" options={{ headerShown: false }} />
-      <Stack.Screen name="shopping/index" options={{ headerShown: false }} />
-      <Stack.Screen name="shopping/[id]" options={{ headerShown: false }} />
-      <Stack.Screen name="payment/methods" options={{ headerShown: false }} />
-      <Stack.Screen name="payment/transactions" options={{ headerShown: false }} />
-      <Stack.Screen name="payment/wallet" options={{ headerShown: false }} />
-      <Stack.Screen name="tickets/index" options={{ headerShown: false }} />
-      <Stack.Screen name="perks/index" options={{ headerShown: false }} />
-      <Stack.Screen name="notifications/index" options={{ headerShown: false }} />
-      <Stack.Screen name="help/index" options={{ headerShown: false }} />
-      <Stack.Screen name="artist/[id]" options={{ headerShown: false }} />
-      <Stack.Screen name="venue/[id]" options={{ headerShown: false }} />
-      <Stack.Screen name="legal/terms" options={{ headerShown: false }} />
-      <Stack.Screen name="legal/privacy" options={{ headerShown: false }} />
-      <Stack.Screen name="legal/cookies" options={{ headerShown: false }} />
+    <Stack
+      screenOptions={{
+        headerShown: false,
+        headerBackTitle: "Back",
+        headerShadowVisible: false,
+      }}
+    >
+      {/* Core Navigation Groups */}
+      <Stack.Screen name="(onboarding)" />
+      <Stack.Screen name="(tabs)" />
+
+      {/* Core Entity Screens */}
+      <Stack.Screen name="event/[id]" />
+      <Stack.Screen name="community/[id]" />
+      <Stack.Screen name="business/[id]" />
+      <Stack.Screen name="artist/[id]" />
+      <Stack.Screen name="venue/[id]" />
+
+      {/* Profile */}
+      <Stack.Screen name="profile/[id]" />
+      <Stack.Screen name="profile/edit" />
+      <Stack.Screen name="profile/public" />
+      <Stack.Screen name="profile/qr" />
+
+      {/* Super App Modules */}
+      <Stack.Screen name="movies/index" />
+      <Stack.Screen name="movies/[id]" />
+      <Stack.Screen name="restaurants/index" />
+      <Stack.Screen name="restaurants/[id]" />
+      <Stack.Screen name="activities/index" />
+      <Stack.Screen name="activities/[id]" />
+      <Stack.Screen name="shopping/index" />
+      <Stack.Screen name="shopping/[id]" />
+
+      {/* Payments */}
+      <Stack.Screen name="payment/methods" />
+      <Stack.Screen name="payment/transactions" />
+      <Stack.Screen name="payment/wallet" />
+
+      {/* Tickets / Perks / Notifications */}
+      <Stack.Screen name="tickets/index" />
+      <Stack.Screen name="perks/index" />
+      <Stack.Screen name="notifications/index" />
+
+      {/* Help & Legal */}
+      <Stack.Screen name="help/index" />
+      <Stack.Screen name="legal/terms" />
+      <Stack.Screen name="legal/privacy" />
+      <Stack.Screen name="legal/cookies" />
     </Stack>
   );
 }
@@ -63,29 +86,36 @@ export default function RootLayout() {
     Poppins_700Bold,
   });
 
-  useEffect(() => {
+  const onLayoutRootView = useCallback(async () => {
     if (fontsLoaded) {
-      SplashScreen.hideAsync();
+      await SplashScreen.hideAsync();
     }
   }, [fontsLoaded]);
 
-  if (!fontsLoaded) return null;
+  if (!fontsLoaded) {
+    return null;
+  }
 
   return (
     <ErrorBoundary>
-      <QueryClientProvider client={queryClient}>
-        <AuthProvider>
-          <GestureHandlerRootView>
-            <KeyboardProvider>
-              <OnboardingProvider>
-                <SavedProvider>
-                  <RootLayoutNav />
-                </SavedProvider>
-              </OnboardingProvider>
-            </KeyboardProvider>
-          </GestureHandlerRootView>
-        </AuthProvider>
-      </QueryClientProvider>
+      <SafeAreaProvider>
+        <QueryClientProvider client={queryClient}>
+          <AuthProvider>
+            <OnboardingProvider>
+              <SavedProvider>
+                <GestureHandlerRootView
+                  style={{ flex: 1 }}
+                  onLayout={onLayoutRootView}
+                >
+                  <KeyboardProvider>
+                    <RootLayoutNav />
+                  </KeyboardProvider>
+                </GestureHandlerRootView>
+              </SavedProvider>
+            </OnboardingProvider>
+          </AuthProvider>
+        </QueryClientProvider>
+      </SafeAreaProvider>
     </ErrorBoundary>
   );
 }

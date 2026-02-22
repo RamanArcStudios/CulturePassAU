@@ -4,176 +4,110 @@ import { NativeTabs, Icon, Label } from "expo-router/unstable-native-tabs";
 import { BlurView } from "expo-blur";
 import { Platform, StyleSheet, useColorScheme, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import React, { useMemo } from "react";
+import React from "react";
 import Colors from "@/constants/colors";
-
-// ─── Native (Liquid Glass) Tab Layout ─────────────────────────────────────────
 
 function NativeTabLayout() {
   return (
     <NativeTabs>
       <NativeTabs.Trigger name="index">
-        <Icon sf={{ default: "house", selected: "house.fill" }} />
-        <Label>Home</Label>
+        <Icon sf={{ default: "sparkles", selected: "sparkles" }} />
+        <Label>Discover</Label>
       </NativeTabs.Trigger>
-      <NativeTabs.Trigger name="explore">
-        <Icon sf={{ default: "magnifyingglass", selected: "magnifyingglass" }} />
-        <Label>Explore</Label>
+      <NativeTabs.Trigger name="calendar">
+        <Icon sf={{ default: "calendar", selected: "calendar" }} />
+        <Label>Calendar</Label>
       </NativeTabs.Trigger>
-      <NativeTabs.Trigger name="communities">
-        <Icon sf={{ default: "person.2", selected: "person.2.fill" }} />
-        <Label>Communities</Label>
+      <NativeTabs.Trigger name="community">
+        <Icon sf={{ default: "person.3", selected: "person.3.fill" }} />
+        <Label>Community</Label>
       </NativeTabs.Trigger>
-      <NativeTabs.Trigger name="directory">
-        <Icon sf={{ default: "building.2", selected: "building.2.fill" }} />
-        <Label>Directory</Label>
+      <NativeTabs.Trigger name="perks">
+        <Icon sf={{ default: "gift", selected: "gift.fill" }} />
+        <Label>Perks</Label>
       </NativeTabs.Trigger>
       <NativeTabs.Trigger name="profile">
-        <Icon sf={{ default: "person.crop.circle", selected: "person.crop.circle.fill" }} />
+        <Icon sf={{ default: "person.circle", selected: "person.circle.fill" }} />
         <Label>Profile</Label>
       </NativeTabs.Trigger>
     </NativeTabs>
   );
 }
 
-// ─── Classic Tab Layout ────────────────────────────────────────────────────────
-
 function ClassicTabLayout() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
   const isWeb = Platform.OS === "web";
   const isIOS = Platform.OS === "ios";
-  const isAndroid = Platform.OS === "android";
 
-  // Memoise screenOptions so the object reference is stable across renders,
-  // preventing unnecessary tab bar re-mounts.
-  const screenOptions = useMemo(
-    () => ({
-      headerShown: false,
-      tabBarActiveTintColor: Colors.primary,
-      tabBarInactiveTintColor: Colors.tabIconDefault,
-      tabBarLabelStyle: {
-        fontFamily: "Poppins_600SemiBold",
-        fontSize: 10,
-        letterSpacing: 0.2,
-        marginTop: -2,
-      },
-      tabBarStyle: {
-        position: "absolute" as const,
-        // iOS uses a BlurView background, so the bar itself must be transparent
-        backgroundColor: isIOS
-          ? "transparent"
-          : isDark
-          ? "#000"
-          : Colors.tabBar,
-        borderTopWidth: isAndroid ? 1 : 0,
-        borderTopColor: isAndroid ? Colors.tabBarBorder : undefined,
-        elevation: 0,
-        // Web needs an explicit height and border
-        ...(isWeb
-          ? {
-              height: 84,
-              borderTopWidth: 1,
-              borderTopColor: Colors.tabBarBorder,
-            }
-          : {}),
-      },
-      tabBarItemStyle: {
-        paddingVertical: 4,
-      },
-      // tabBarBackground must be a *function* that returns a React element (or null)
-      tabBarBackground: () => {
-        if (isIOS) {
-          return (
+  return (
+    <Tabs
+      screenOptions={{
+        headerShown: false,
+        tabBarActiveTintColor: Colors.primary,
+        tabBarInactiveTintColor: isDark ? "#888" : Colors.textTertiary,
+        tabBarStyle: {
+          position: "absolute",
+          backgroundColor: isIOS ? "transparent" : isDark ? "#000" : "#fff",
+          borderTopWidth: isWeb ? 1 : 0,
+          borderTopColor: isDark ? "#333" : Colors.borderLight,
+          elevation: 0,
+          ...(isWeb ? { height: 84 } : {}),
+        },
+        tabBarLabelStyle: {
+          fontFamily: "Poppins_500Medium",
+          fontSize: 10,
+        },
+        tabBarBackground: () =>
+          isIOS ? (
             <BlurView
-              intensity={98}
+              intensity={100}
               tint={isDark ? "dark" : "light"}
-              style={[
-                StyleSheet.absoluteFill,
-                { borderTopWidth: 0.5, borderTopColor: Colors.tabBarBorder },
-              ]}
+              style={StyleSheet.absoluteFill}
             />
-          );
-        }
-        if (isWeb) {
-          return (
+          ) : isWeb ? (
             <View
               style={[
                 StyleSheet.absoluteFill,
-                {
-                  backgroundColor: isDark ? "#000" : Colors.tabBar,
-                  ...Colors.shadow.medium,
-                },
+                { backgroundColor: isDark ? "#000" : "#fff" },
               ]}
             />
-          );
-        }
-        // Android — no custom background (uses tabBarStyle backgroundColor)
-        return null;
-      },
-    }),
-    [isDark, isIOS, isWeb, isAndroid],
-  );
-
-  return (
-    <Tabs screenOptions={screenOptions}>
+          ) : null,
+      }}
+    >
       <Tabs.Screen
         name="index"
         options={{
-          title: "Home",
-          tabBarIcon: ({ color, focused }) => (
-            <View style={focused ? styles.activeIconWrap : undefined}>
-              <Ionicons
-                name={focused ? "home" : "home-outline"}
-                size={22}
-                color={color}
-              />
-            </View>
+          title: "Discover",
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="sparkles" size={size} color={color} />
           ),
         }}
       />
       <Tabs.Screen
-        name="explore"
+        name="calendar"
         options={{
-          title: "Explore",
-          tabBarIcon: ({ color, focused }) => (
-            <View style={focused ? styles.activeIconWrap : undefined}>
-              <Ionicons
-                name={focused ? "compass" : "compass-outline"}
-                size={23}
-                color={color}
-              />
-            </View>
+          title: "Calendar",
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="calendar-outline" size={size} color={color} />
           ),
         }}
       />
       <Tabs.Screen
-        name="communities"
+        name="community"
         options={{
           title: "Community",
-          tabBarIcon: ({ color, focused }) => (
-            <View style={focused ? styles.activeIconWrap : undefined}>
-              <Ionicons
-                name={focused ? "people" : "people-outline"}
-                size={23}
-                color={color}
-              />
-            </View>
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="people-outline" size={size} color={color} />
           ),
         }}
       />
       <Tabs.Screen
-        name="directory"
+        name="perks"
         options={{
-          title: "Directory",
-          tabBarIcon: ({ color, focused }) => (
-            <View style={focused ? styles.activeIconWrap : undefined}>
-              <Ionicons
-                name={focused ? "grid" : "grid-outline"}
-                size={21}
-                color={color}
-              />
-            </View>
+          title: "Perks",
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="gift-outline" size={size} color={color} />
           ),
         }}
       />
@@ -181,14 +115,8 @@ function ClassicTabLayout() {
         name="profile"
         options={{
           title: "Profile",
-          tabBarIcon: ({ color, focused }) => (
-            <View style={focused ? styles.activeIconWrap : undefined}>
-              <Ionicons
-                name={focused ? "person-circle" : "person-circle-outline"}
-                size={23}
-                color={color}
-              />
-            </View>
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="person-circle-outline" size={size} color={color} />
           ),
         }}
       />
@@ -196,22 +124,7 @@ function ClassicTabLayout() {
   );
 }
 
-// ─── Styles ───────────────────────────────────────────────────────────────────
-
-const styles = StyleSheet.create({
-  activeIconWrap: {
-    backgroundColor: Colors.primary + "10",
-    borderRadius: 16,
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-  },
-});
-
-// ─── Root Layout ──────────────────────────────────────────────────────────────
-
 export default function TabLayout() {
-  // isLiquidGlassAvailable() is synchronous — safe to call at render time.
-  // Only use NativeTabLayout on iOS 26+ where Liquid Glass is supported.
   if (isLiquidGlassAvailable()) {
     return <NativeTabLayout />;
   }
