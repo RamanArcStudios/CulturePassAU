@@ -43,7 +43,7 @@ export class DatabaseStorage {
   }
 
   async getAllUsers(): Promise<User[]> {
-    return db.select().from(users).orderBy(desc(users.createdAt));
+    return db.select().from(users).orderBy(users.createdAt);
   }
 
   // Profiles CRUD
