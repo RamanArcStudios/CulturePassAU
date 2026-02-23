@@ -9,18 +9,23 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import Colors from '@/constants/colors';
 import { sampleEvents } from '@/data/mockData';
-
-const CATEGORIES = ['All', ...new Set(sampleEvents.map(e => e.category))];
+import { useLocationFilter } from '@/hooks/useLocationFilter';
 
 export default function AllEventsScreen() {
   const insets = useSafeAreaInsets();
   const [selectedCategory, setSelectedCategory] = useState('All');
+  const { filterByLocation } = useLocationFilter();
+
+  const CATEGORIES = useMemo(
+    () => ['All', ...new Set(filterByLocation(sampleEvents).map(e => e.category))],
+    [filterByLocation],
+  );
 
   const filtered = useMemo(() =>
     selectedCategory === 'All'
-      ? sampleEvents
-      : sampleEvents.filter(e => e.category === selectedCategory),
-    [selectedCategory]
+      ? filterByLocation(sampleEvents)
+      : filterByLocation(sampleEvents).filter(e => e.category === selectedCategory),
+    [selectedCategory, filterByLocation]
   );
 
   return (

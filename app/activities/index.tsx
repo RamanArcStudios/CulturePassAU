@@ -7,18 +7,20 @@ import Colors from '@/constants/colors';
 import { useState, useMemo } from 'react';
 import * as Haptics from 'expo-haptics';
 import Animated, { FadeInDown } from 'react-native-reanimated';
+import { useLocationFilter } from '@/hooks/useLocationFilter';
 
 export default function ActivitiesScreen() {
   const insets = useSafeAreaInsets();
   const topInset = Platform.OS === 'web' ? 67 : insets.top;
   const [selectedCat, setSelectedCat] = useState('All');
+  const { filterByLocation } = useLocationFilter();
 
   const filtered = useMemo(() => {
-    if (selectedCat === 'All') return sampleActivities;
-    return sampleActivities.filter(a => a.category === selectedCat);
-  }, [selectedCat]);
+    if (selectedCat === 'All') return filterByLocation(sampleActivities);
+    return filterByLocation(sampleActivities).filter(a => a.category === selectedCat);
+  }, [selectedCat, filterByLocation]);
 
-  const popular = sampleActivities.filter(a => a.isPopular);
+  const popular = filterByLocation(sampleActivities).filter(a => a.isPopular);
 
   return (
     <View style={[styles.container, { paddingTop: topInset }]}>

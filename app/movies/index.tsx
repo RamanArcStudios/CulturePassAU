@@ -7,18 +7,20 @@ import Colors from '@/constants/colors';
 import { useState, useMemo } from 'react';
 import * as Haptics from 'expo-haptics';
 import Animated, { FadeInDown } from 'react-native-reanimated';
+import { useLocationFilter } from '@/hooks/useLocationFilter';
 
 export default function MoviesScreen() {
   const insets = useSafeAreaInsets();
   const topInset = Platform.OS === 'web' ? 67 : insets.top;
   const [selectedGenre, setSelectedGenre] = useState('All');
+  const { filterByLocation } = useLocationFilter();
 
   const filtered = useMemo(() => {
-    if (selectedGenre === 'All') return sampleMovies;
-    return sampleMovies.filter(m => m.genre.includes(selectedGenre));
-  }, [selectedGenre]);
+    if (selectedGenre === 'All') return filterByLocation(sampleMovies);
+    return filterByLocation(sampleMovies).filter(m => m.genre.includes(selectedGenre));
+  }, [selectedGenre, filterByLocation]);
 
-  const trending = sampleMovies.filter(m => m.isTrending);
+  const trending = filterByLocation(sampleMovies).filter(m => m.isTrending);
 
   return (
     <View style={[styles.container, { paddingTop: topInset }]}>

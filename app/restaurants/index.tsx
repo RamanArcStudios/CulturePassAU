@@ -7,16 +7,18 @@ import Colors from '@/constants/colors';
 import { useState, useMemo } from 'react';
 import * as Haptics from 'expo-haptics';
 import Animated, { FadeInDown } from 'react-native-reanimated';
+import { useLocationFilter } from '@/hooks/useLocationFilter';
 
 export default function RestaurantsScreen() {
   const insets = useSafeAreaInsets();
   const topInset = Platform.OS === 'web' ? 67 : insets.top;
   const [selectedCuisine, setSelectedCuisine] = useState('All');
+  const { filterByLocation } = useLocationFilter();
 
   const filtered = useMemo(() => {
-    if (selectedCuisine === 'All') return sampleRestaurants;
-    return sampleRestaurants.filter(r => r.cuisine === selectedCuisine);
-  }, [selectedCuisine]);
+    if (selectedCuisine === 'All') return filterByLocation(sampleRestaurants);
+    return filterByLocation(sampleRestaurants).filter(r => r.cuisine === selectedCuisine);
+  }, [selectedCuisine, filterByLocation]);
 
   return (
     <View style={[styles.container, { paddingTop: topInset }]}>

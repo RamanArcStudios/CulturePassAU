@@ -7,16 +7,18 @@ import Colors from '@/constants/colors';
 import { useState, useMemo } from 'react';
 import * as Haptics from 'expo-haptics';
 import Animated, { FadeInDown } from 'react-native-reanimated';
+import { useLocationFilter } from '@/hooks/useLocationFilter';
 
 export default function ShoppingScreen() {
   const insets = useSafeAreaInsets();
   const topInset = Platform.OS === 'web' ? 67 : insets.top;
   const [selectedCat, setSelectedCat] = useState('All');
+  const { filterByLocation } = useLocationFilter();
 
   const filtered = useMemo(() => {
-    if (selectedCat === 'All') return sampleShopping;
-    return sampleShopping.filter(s => s.category === selectedCat);
-  }, [selectedCat]);
+    if (selectedCat === 'All') return filterByLocation(sampleShopping);
+    return filterByLocation(sampleShopping).filter(s => s.category === selectedCat);
+  }, [selectedCat, filterByLocation]);
 
   return (
     <View style={[styles.container, { paddingTop: topInset }]}>

@@ -20,6 +20,7 @@ import { useState, useMemo, useCallback } from 'react';
 import * as Haptics from 'expo-haptics';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { FilterChipRow, FilterItem } from '@/components/FilterChip';
+import { useLocationFilter } from '@/hooks/useLocationFilter';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -76,9 +77,10 @@ export default function ExploreScreen() {
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [sortMode, setSortMode] = useState<'relevance' | 'date'>('relevance');
   const { isEventSaved, toggleSaveEvent } = useSaved();
+  const { filterByLocation } = useLocationFilter();
 
   const categoryCounts = useMemo(() => {
-    const all = sampleEvents as SampleEvent[];
+    const all = filterByLocation(sampleEvents) as SampleEvent[];
     const counts: Record<string, number> = {};
     for (const cat of exploreCategories) {
       if (cat.label === 'All') counts[cat.label] = all.length;
@@ -88,7 +90,7 @@ export default function ExploreScreen() {
       else counts[cat.label] = all.filter(e => e.category === cat.label).length;
     }
     return counts;
-  }, []);
+  }, [filterByLocation]);
 
   const filterItems = useMemo(
     () =>
@@ -105,7 +107,7 @@ export default function ExploreScreen() {
   );
 
   const filteredEvents = useMemo(() => {
-    let events = sampleEvents as SampleEvent[];
+    let events = filterByLocation(sampleEvents) as SampleEvent[];
 
     if (selectedCategory !== 'All') {
       if (selectedCategory === 'Free') {
@@ -138,7 +140,7 @@ export default function ExploreScreen() {
       if (!a.isFeatured && b.isFeatured) return 1;
       return b.attending - a.attending;
     });
-  }, [search, selectedCategory, sortMode]);
+  }, [search, selectedCategory, sortMode, filterByLocation]);
 
   const handleShareEvent = useCallback(async (event: SampleEvent) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);

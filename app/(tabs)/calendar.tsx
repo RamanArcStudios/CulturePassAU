@@ -9,6 +9,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import Colors from '@/constants/colors';
 import { sampleEvents, type EventData } from '@/data/mockData';
+import { useLocationFilter } from '@/hooks/useLocationFilter';
 
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June',
@@ -33,12 +34,13 @@ export default function CalendarScreen() {
   const [currentMonth, setCurrentMonth] = useState(today.getMonth());
   const [currentYear, setCurrentYear] = useState(today.getFullYear());
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const { filterByLocation } = useLocationFilter();
 
   const eventDates = useMemo(() => {
     const dates = new Set<string>();
-    sampleEvents.forEach(e => dates.add(e.date));
+    filterByLocation(sampleEvents).forEach(e => dates.add(e.date));
     return dates;
-  }, []);
+  }, [filterByLocation]);
 
   const daysInMonth = getDaysInMonth(currentYear, currentMonth);
   const firstDay = getFirstDayOfMonth(currentYear, currentMonth);
@@ -46,7 +48,7 @@ export default function CalendarScreen() {
   for (let i = 0; i < firstDay; i++) days.push(null);
   for (let i = 1; i <= daysInMonth; i++) days.push(i);
 
-  const selectedEvents = selectedDate ? sampleEvents.filter(e => e.date === selectedDate) : [];
+  const selectedEvents = selectedDate ? filterByLocation(sampleEvents).filter(e => e.date === selectedDate) : [];
 
   function prevMonth() {
     Haptics.selectionAsync();
@@ -172,7 +174,7 @@ export default function CalendarScreen() {
         {!selectedDate && (
           <View style={styles.eventsSection}>
             <Text style={styles.eventsSectionTitle}>Upcoming Events</Text>
-            {sampleEvents.slice(0, 4).map(event => (
+            {filterByLocation(sampleEvents).slice(0, 4).map(event => (
               <Pressable
                 key={event.id}
                 onPress={() => {

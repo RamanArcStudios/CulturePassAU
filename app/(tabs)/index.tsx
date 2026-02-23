@@ -32,6 +32,7 @@ import { User } from '@shared/schema';
 import { getQueryFn } from '@/lib/query-client';
 import { useMemo, useCallback, useState } from 'react';
 import { LocationPicker } from '@/components/LocationPicker';
+import { useLocationFilter } from '@/hooks/useLocationFilter';
 
 type SampleEvent = (typeof sampleEvents)[number];
 
@@ -139,6 +140,7 @@ export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const topInset = Platform.OS === 'web' ? 67 : insets.top;
   const { state } = useOnboarding();
+  const { filterByLocation } = useLocationFilter();
 
   const { data: users } = useQuery<User[]>({
     queryKey: ['/api/users'],
@@ -159,30 +161,30 @@ export default function HomeScreen() {
   }, [users]);
 
   const featuredEvents = useMemo(
-    () => sampleEvents.filter(e => e.isFeatured),
-    [],
+    () => filterByLocation(sampleEvents).filter(e => e.isFeatured),
+    [filterByLocation],
   );
 
   const thisWeekEvents = useMemo(() => {
     const now = new Date();
     const weekLater = new Date();
     weekLater.setDate(now.getDate() + 7);
-    return sampleEvents.filter(e => {
+    return filterByLocation(sampleEvents).filter(e => {
       const [year, month, day] = e.date.split('-').map(Number);
       if (!year || !month || !day) return false;
       const eventDate = new Date(year, month - 1, day);
       return eventDate >= now && eventDate <= weekLater;
     });
-  }, []);
+  }, [filterByLocation]);
 
   const trendingMovies = useMemo(
-    () => sampleMovies.filter(m => m.isTrending).slice(0, 4),
-    [],
+    () => filterByLocation(sampleMovies).filter(m => m.isTrending).slice(0, 4),
+    [filterByLocation],
   );
-  const topRestaurants = useMemo(() => sampleRestaurants.slice(0, 3), []);
+  const topRestaurants = useMemo(() => filterByLocation(sampleRestaurants).slice(0, 3), [filterByLocation]);
   const topActivities = useMemo(
-    () => sampleActivities.filter(a => a.isPopular).slice(0, 3),
-    [],
+    () => filterByLocation(sampleActivities).filter(a => a.isPopular).slice(0, 3),
+    [filterByLocation],
   );
 
   const [refreshing, setRefreshing] = useState(false);
@@ -403,7 +405,7 @@ export default function HomeScreen() {
               <Text style={styles.seeAll}>See All</Text>
             </Pressable>
           </View>
-          {sampleShopping.slice(0, 3).map(store => {
+          {filterByLocation(sampleShopping).slice(0, 3).map(store => {
             const firstDeal = store.deals?.[0];
             if (!firstDeal) return null;
             return (
