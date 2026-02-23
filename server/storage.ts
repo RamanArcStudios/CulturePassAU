@@ -1,5 +1,6 @@
 import { db } from "./db";
-import { eq, and, desc, sql, lte, gte } from "drizzle-orm";
+import { eq, and, desc, sql, lte, gte, inArray } from "drizzle-orm";
+import QRCode from "qrcode";
 import {
   users, profiles, follows, likes, reviews,
   paymentMethods, transactions, wallets,
@@ -455,7 +456,29 @@ export class DatabaseStorage {
 
   async createTicket(data: InsertTicket): Promise<Ticket> {
     const code = `CP-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).substr(2, 4).toUpperCase()}`;
-    const [t] = await db.insert(tickets).values({ ...data, ticketCode: code }).returning();
+    const totalPrice = data.totalPrice ? Number(data.totalPrice) : 0;
+    const platformFee = Math.round(totalPrice * 0.05 * 100) / 100;
+    const stripeFee = Math.round((totalPrice * 0.029 + 0.30) * 100) / 100;
+    const organizerAmount = Math.round((totalPrice - platformFee - stripeFee) * 100) / 100;
+
+    let qrDataUrl: string | null = null;
+    try {
+      qrDataUrl = await QRCode.toDataURL(code, {
+        width: 300,
+        margin: 2,
+        color: { dark: '#000000', light: '#FFFFFF' },
+        errorCorrectionLevel: 'M',
+      });
+    } catch {}
+
+    const [t] = await db.insert(tickets).values({
+      ...data,
+      ticketCode: code,
+      qrCode: qrDataUrl,
+      platformFee: totalPrice > 0 ? platformFee : 0,
+      stripeFee: totalPrice > 0 ? stripeFee : 0,
+      organizerAmount: totalPrice > 0 ? organizerAmount : 0,
+    }).returning();
     return t;
   }
 
@@ -464,11 +487,61 @@ export class DatabaseStorage {
     return t;
   }
 
+  async getTicketByCode(code: string): Promise<Ticket | undefined> {
+    const [t] = await db.select().from(tickets).where(eq(tickets.ticketCode, code));
+    return t;
+  }
+
+  async scanTicket(id: string, scannedBy: string): Promise<Ticket | undefined> {
+    const [t] = await db.update(tickets).set({
+      status: "used",
+      scannedAt: new Date(),
+      scannedBy,
+    }).where(eq(tickets.id, id)).returning();
+    return t;
+  }
+
+  async getAllTickets(): Promise<Ticket[]> {
+    return db.select().from(tickets).orderBy(desc(tickets.createdAt));
+  }
+
+  async getTicketsByEvent(eventId: string): Promise<Ticket[]> {
+    return db.select().from(tickets).where(eq(tickets.eventId, eventId)).orderBy(desc(tickets.createdAt));
+  }
+
   async getTicketCount(userId: string): Promise<number> {
     const result = await db.select().from(tickets).where(
       and(eq(tickets.userId, userId), eq(tickets.status, "confirmed"))
     );
     return result.length;
+  }
+
+  async backfillQRCodes(): Promise<number> {
+    const ticketsWithoutQR = await db.select().from(tickets).where(
+      sql`${tickets.qrCode} IS NULL AND ${tickets.ticketCode} IS NOT NULL`
+    );
+    let count = 0;
+    for (const ticket of ticketsWithoutQR) {
+      try {
+        const qrDataUrl = await QRCode.toDataURL(ticket.ticketCode!, {
+          width: 300, margin: 2,
+          color: { dark: '#000000', light: '#FFFFFF' },
+          errorCorrectionLevel: 'M',
+        });
+        const totalPrice = ticket.totalPrice ? Number(ticket.totalPrice) : 0;
+        const platformFee = Math.round(totalPrice * 0.05 * 100) / 100;
+        const stripeFee = Math.round((totalPrice * 0.029 + 0.30) * 100) / 100;
+        const organizerAmount = Math.round((totalPrice - platformFee - stripeFee) * 100) / 100;
+        await db.update(tickets).set({
+          qrCode: qrDataUrl,
+          platformFee: totalPrice > 0 ? platformFee : 0,
+          stripeFee: totalPrice > 0 ? stripeFee : 0,
+          organizerAmount: totalPrice > 0 ? organizerAmount : 0,
+        }).where(eq(tickets.id, ticket.id));
+        count++;
+      } catch {}
+    }
+    return count;
   }
 }
 

@@ -400,6 +400,93 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json(ticket);
   });
 
+  app.post("/api/tickets/scan", async (req: Request, res: Response) => {
+    try {
+      const { ticketCode, scannedBy } = req.body;
+      if (!ticketCode) return res.status(400).json({ error: "Ticket code is required" });
+
+      const ticket = await storage.getTicketByCode(ticketCode);
+      if (!ticket) return res.status(404).json({ error: "Invalid ticket code", valid: false });
+
+      if (ticket.status === "used") {
+        return res.status(400).json({
+          error: "Ticket already scanned",
+          valid: false,
+          ticket,
+          scannedAt: ticket.scannedAt,
+        });
+      }
+
+      if (ticket.status === "cancelled") {
+        return res.status(400).json({ error: "Ticket has been cancelled", valid: false, ticket });
+      }
+
+      if (ticket.status === "expired") {
+        return res.status(400).json({ error: "Ticket has expired", valid: false, ticket });
+      }
+
+      const updated = await storage.scanTicket(ticket.id, scannedBy || "staff");
+      res.json({ valid: true, message: "Ticket scanned successfully", ticket: updated });
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  app.get("/api/tickets-all", async (_req: Request, res: Response) => {
+    const allTickets = await storage.getAllTickets();
+    res.json(allTickets);
+  });
+
+  app.get("/api/tickets/event/:eventId", async (req: Request, res: Response) => {
+    const eventTickets = await storage.getTicketsByEvent(p(req.params.eventId));
+    res.json(eventTickets);
+  });
+
+  app.post("/api/tickets/backfill-qr", async (_req: Request, res: Response) => {
+    const count = await storage.backfillQRCodes();
+    res.json({ message: `Backfilled ${count} tickets with QR codes` });
+  });
+
+  app.get("/api/dashboard/stats", async (_req: Request, res: Response) => {
+    try {
+      const allTickets = await storage.getAllTickets();
+      const allUsers = await storage.getAllUsers();
+      const allPerks = await storage.getAllPerks();
+
+      const totalRevenue = allTickets.reduce((sum, t) => sum + (t.totalPrice || 0), 0);
+      const platformRevenue = allTickets.reduce((sum, t) => sum + (t.platformFee || 0), 0);
+      const organizerRevenue = allTickets.reduce((sum, t) => sum + (t.organizerAmount || 0), 0);
+      const scannedTickets = allTickets.filter(t => t.status === 'used').length;
+      const confirmedTickets = allTickets.filter(t => t.status === 'confirmed').length;
+      const cancelledTickets = allTickets.filter(t => t.status === 'cancelled').length;
+
+      const eventMap = new Map<string, { eventId: string; eventTitle: string; tickets: number; revenue: number; scanned: number; organizerAmount: number }>();
+      for (const t of allTickets) {
+        const existing = eventMap.get(t.eventId) || { eventId: t.eventId, eventTitle: t.eventTitle, tickets: 0, revenue: 0, scanned: 0, organizerAmount: 0 };
+        existing.tickets += (t.quantity || 1);
+        existing.revenue += (t.totalPrice || 0);
+        existing.organizerAmount += (t.organizerAmount || 0);
+        if (t.status === 'used') existing.scanned += (t.quantity || 1);
+        eventMap.set(t.eventId, existing);
+      }
+
+      res.json({
+        totalTickets: allTickets.length,
+        confirmedTickets,
+        scannedTickets,
+        cancelledTickets,
+        totalRevenue: Math.round(totalRevenue * 100) / 100,
+        platformRevenue: Math.round(platformRevenue * 100) / 100,
+        organizerRevenue: Math.round(organizerRevenue * 100) / 100,
+        totalUsers: allUsers.length,
+        totalPerks: allPerks.length,
+        eventBreakdown: Array.from(eventMap.values()).sort((a, b) => b.revenue - a.revenue),
+      });
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
   // === Wallet Pass Generation ===
   app.get("/api/tickets/:id/wallet/apple", async (req: Request, res: Response) => {
     const ticket = await storage.getTicket(p(req.params.id));
