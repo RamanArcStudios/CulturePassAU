@@ -73,7 +73,7 @@ export default function PerkDetailScreen() {
   const { data: perk, isLoading } = useQuery<Perk>({
     queryKey: ['/api/perks', id],
     queryFn: async () => {
-      const baseUrl = getApiUrl();
+      const baseUrl = getApiUrl().replace(/\/$/, '');
       const res = await fetch(`${baseUrl}/api/perks/${id}`);
       if (!res.ok) throw new Error('Perk not found');
       return res.json();
