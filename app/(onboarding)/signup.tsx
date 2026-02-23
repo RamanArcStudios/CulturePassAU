@@ -1,10 +1,13 @@
-import { View, Text, Pressable, StyleSheet, TextInput, Platform, KeyboardAvoidingView, ScrollView } from 'react-native';
+import { View, Text, Pressable, StyleSheet, TextInput, Platform, KeyboardAvoidingView, ScrollView, ActivityIndicator } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Colors from '@/constants/colors';
 import { useState } from 'react';
 import * as Haptics from 'expo-haptics';
+import { useAuth } from '@/lib/auth';
+import { getApiUrl } from '@/lib/query-client';
+import { fetch } from 'expo/fetch';
 
 export default function SignUpScreen() {
   const insets = useSafeAreaInsets();
@@ -14,12 +17,38 @@ export default function SignUpScreen() {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [agreed, setAgreed] = useState(false);
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+  const { login } = useAuth();
 
   const isValid = name.trim().length > 1 && email.includes('@') && password.length >= 6 && agreed;
 
-  const handleSignUp = () => {
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    router.push('/(onboarding)/location');
+  const handleSignUp = async () => {
+    setError('');
+    setLoading(true);
+    try {
+      const base = getApiUrl();
+      const username = email.split('@')[0] + '_' + Date.now().toString(36);
+      const res = await fetch(`${base}api/auth/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password, displayName: name.trim(), email: email.trim() }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error || 'Registration failed');
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+        return;
+      }
+      login(data.user);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      router.push('/(onboarding)/location');
+    } catch (e: any) {
+      setError('Connection error. Please try again.');
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -33,6 +62,8 @@ export default function SignUpScreen() {
           <Text style={styles.title}>Create Account</Text>
           <Text style={styles.benefitsRow}>Free events · Community access · Exclusive perks</Text>
           <Text style={styles.subtitle}>Join thousands of community members celebrating culture together.</Text>
+
+          {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
           <View style={styles.form}>
             <View style={styles.inputGroup}>
@@ -93,9 +124,13 @@ export default function SignUpScreen() {
             </Pressable>
           </View>
 
-          <Pressable style={[styles.submitBtn, !isValid && { opacity: 0.5 }]} onPress={isValid ? handleSignUp : undefined} disabled={!isValid}>
-            <Text style={styles.submitText}>Create Account</Text>
-            <Ionicons name="arrow-forward" size={20} color="#FFF" />
+          <Pressable style={[styles.submitBtn, !isValid && { opacity: 0.5 }]} onPress={isValid ? handleSignUp : undefined} disabled={!isValid || loading}>
+            {loading ? <ActivityIndicator color="#FFF" size="small" /> : (
+              <>
+                <Text style={styles.submitText}>Create Account</Text>
+                <Ionicons name="arrow-forward" size={20} color="#FFF" />
+              </>
+            )}
           </Pressable>
 
           <Pressable style={styles.switchRow} onPress={() => router.replace('/(onboarding)/login')}>
@@ -113,10 +148,11 @@ const styles = StyleSheet.create({
   scrollContent: { paddingHorizontal: 24, paddingBottom: 40 },
   title: { fontSize: 28, fontFamily: 'Poppins_700Bold', color: Colors.text, marginBottom: 8 },
   subtitle: { fontSize: 15, fontFamily: 'Poppins_400Regular', color: Colors.textSecondary, lineHeight: 22, marginBottom: 28 },
+  errorText: { fontSize: 14, fontFamily: 'Poppins_500Medium', color: Colors.error, textAlign: 'center', marginBottom: 16, backgroundColor: Colors.error + '15', paddingVertical: 10, paddingHorizontal: 16, borderRadius: 12 },
   form: { gap: 20, marginBottom: 28 },
   inputGroup: { gap: 6 },
   label: { fontSize: 14, fontFamily: 'Poppins_600SemiBold', color: Colors.text },
-  inputWrap: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: Colors.card, borderRadius: 14, paddingHorizontal: 14, paddingVertical: 14, borderWidth: 1.5, borderColor: Colors.cardBorder },
+  inputWrap: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: Colors.surface, borderRadius: 14, paddingHorizontal: 14, paddingVertical: 14, borderWidth: 1, borderColor: Colors.border },
   input: { flex: 1, fontSize: 15, fontFamily: 'Poppins_400Regular', color: Colors.text },
   hint: { fontSize: 12, fontFamily: 'Poppins_400Regular', color: Colors.warning, marginTop: 4 },
   checkRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },

@@ -17,6 +17,12 @@ export async function getUserByUsername(username: string): Promise<User | undefi
   return user;
 }
 
+/** Retrieves a user by their email */
+export async function getUserByEmail(email: string): Promise<User | undefined> {
+  const [user] = await db.select().from(users).where(eq(users.email, email));
+  return user;
+}
+
 /** Creates a new user and initialises their wallet */
 export async function createUser(data: InsertUser): Promise<User> {
   const [user] = await db.insert(users).values(data).returning();

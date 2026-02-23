@@ -1,10 +1,13 @@
-import { View, Text, Pressable, StyleSheet, TextInput, Platform, KeyboardAvoidingView, ScrollView } from 'react-native';
+import { View, Text, Pressable, StyleSheet, TextInput, Platform, KeyboardAvoidingView, ScrollView, ActivityIndicator } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Colors from '@/constants/colors';
 import { useState } from 'react';
 import * as Haptics from 'expo-haptics';
+import { useAuth } from '@/lib/auth';
+import { getApiUrl } from '@/lib/query-client';
+import { fetch } from 'expo/fetch';
 
 export default function LoginScreen() {
   const insets = useSafeAreaInsets();
@@ -14,13 +17,36 @@ export default function LoginScreen() {
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+  const { login } = useAuth();
 
-  const isValid = email.includes('@') && password.length >= 6;
+  const isValid = email.trim().length > 0 && password.length >= 6;
 
-  const handleLogin = () => {
+  const handleLogin = async () => {
     setError('');
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    router.push('/(onboarding)/location');
+    setLoading(true);
+    try {
+      const base = getApiUrl();
+      const res = await fetch(`${base}api/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: email.trim(), password }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error || 'Login failed');
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+        return;
+      }
+      login(data.user);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      router.push('/(onboarding)/location');
+    } catch (e: any) {
+      setError('Connection error. Please try again.');
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -42,10 +68,10 @@ export default function LoginScreen() {
 
           <View style={styles.form}>
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>Email Address</Text>
+              <Text style={styles.label}>Username or Email</Text>
               <View style={styles.inputWrap}>
                 <Ionicons name="mail-outline" size={20} color={Colors.textSecondary} />
-                <TextInput style={styles.input} placeholder="you@example.com" placeholderTextColor={Colors.textTertiary}
+                <TextInput style={styles.input} placeholder="Enter username or email" placeholderTextColor={Colors.textTertiary}
                   value={email} onChangeText={setEmail} autoCapitalize="none" keyboardType="email-address" />
               </View>
             </View>
@@ -75,9 +101,13 @@ export default function LoginScreen() {
             <Text style={styles.rememberText}>Remember me</Text>
           </Pressable>
 
-          <Pressable style={[styles.submitBtn, !isValid && { opacity: 0.5 }]} onPress={isValid ? handleLogin : undefined} disabled={!isValid}>
-            <Text style={styles.submitText}>Sign In</Text>
-            <Ionicons name="arrow-forward" size={20} color="#FFF" />
+          <Pressable style={[styles.submitBtn, !isValid && { opacity: 0.5 }]} onPress={isValid ? handleLogin : undefined} disabled={!isValid || loading}>
+            {loading ? <ActivityIndicator color="#FFF" size="small" /> : (
+              <>
+                <Text style={styles.submitText}>Sign In</Text>
+                <Ionicons name="arrow-forward" size={20} color="#FFF" />
+              </>
+            )}
           </Pressable>
 
           <View style={styles.socialDivider}>
@@ -107,34 +137,34 @@ export default function LoginScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.surface },
+  container: { flex: 1, backgroundColor: Colors.background },
   header: { paddingHorizontal: 20, paddingVertical: 12 },
   scrollContent: { paddingHorizontal: 24, paddingBottom: 40 },
   logoRow: { alignItems: 'center', marginTop: 12, marginBottom: 28 },
   logoCircle: { width: 68, height: 68, borderRadius: 34, backgroundColor: Colors.primaryGlow, alignItems: 'center', justifyContent: 'center' },
-  title: { fontSize: 34, fontWeight: '700' as const, color: Colors.text, textAlign: 'center', marginBottom: 8, letterSpacing: 0.37 },
-  subtitle: { fontSize: 15, fontWeight: '400' as const, color: Colors.textSecondary, lineHeight: 22, textAlign: 'center', marginBottom: 32 },
-  errorText: { fontSize: 14, fontWeight: '500' as const, color: Colors.error, textAlign: 'center', marginBottom: 16 },
+  title: { fontSize: 34, fontFamily: 'Poppins_700Bold', color: Colors.text, textAlign: 'center', marginBottom: 8, letterSpacing: 0.37 },
+  subtitle: { fontSize: 15, fontFamily: 'Poppins_400Regular', color: Colors.textSecondary, lineHeight: 22, textAlign: 'center', marginBottom: 32 },
+  errorText: { fontSize: 14, fontFamily: 'Poppins_500Medium', color: Colors.error, textAlign: 'center', marginBottom: 16, backgroundColor: Colors.error + '15', paddingVertical: 10, paddingHorizontal: 16, borderRadius: 12 },
   form: { gap: 20, marginBottom: 20 },
   inputGroup: { gap: 6 },
-  label: { fontSize: 14, fontWeight: '600' as const, color: Colors.text },
+  label: { fontSize: 14, fontFamily: 'Poppins_600SemiBold', color: Colors.text },
   labelRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  forgotText: { fontSize: 13, fontWeight: '600' as const, color: Colors.primary },
-  inputWrap: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: Colors.surfaceSecondary, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 14, borderWidth: StyleSheet.hairlineWidth, borderColor: Colors.borderLight },
-  input: { flex: 1, fontSize: 16, fontWeight: '400' as const, color: Colors.text },
-  submitBtn: { backgroundColor: Colors.primary, borderRadius: 12, paddingVertical: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginBottom: 28 },
-  submitText: { fontSize: 17, fontWeight: '600' as const, color: '#FFFFFF' },
+  forgotText: { fontSize: 13, fontFamily: 'Poppins_600SemiBold', color: Colors.primary },
+  inputWrap: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: Colors.surface, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 14, borderWidth: 1, borderColor: Colors.border },
+  input: { flex: 1, fontSize: 16, fontFamily: 'Poppins_400Regular', color: Colors.text },
+  submitBtn: { backgroundColor: Colors.primary, borderRadius: 14, paddingVertical: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginBottom: 28 },
+  submitText: { fontSize: 17, fontFamily: 'Poppins_600SemiBold', color: '#FFFFFF' },
   socialDivider: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 20 },
-  divLine: { flex: 1, height: StyleSheet.hairlineWidth, backgroundColor: Colors.borderLight },
-  divText: { fontSize: 13, fontWeight: '400' as const, color: Colors.textSecondary },
+  divLine: { flex: 1, height: StyleSheet.hairlineWidth, backgroundColor: Colors.border },
+  divText: { fontSize: 13, fontFamily: 'Poppins_400Regular', color: Colors.textSecondary },
   socialRow: { flexDirection: 'row', gap: 12, marginBottom: 28 },
-  socialButton: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: Colors.surface, borderRadius: 12, paddingVertical: 14, borderWidth: StyleSheet.hairlineWidth, borderColor: Colors.borderLight },
-  socialBtnText: { fontSize: 14, fontWeight: '600' as const, color: Colors.text },
+  socialButton: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: Colors.surface, borderRadius: 12, paddingVertical: 14, borderWidth: 1, borderColor: Colors.border },
+  socialBtnText: { fontSize: 14, fontFamily: 'Poppins_600SemiBold', color: Colors.text },
   switchRow: { alignItems: 'center' },
-  switchText: { fontSize: 14, fontWeight: '400' as const, color: Colors.textSecondary },
-  switchLink: { color: Colors.primary, fontWeight: '600' as const },
+  switchText: { fontSize: 14, fontFamily: 'Poppins_400Regular', color: Colors.textSecondary },
+  switchLink: { color: Colors.primary, fontFamily: 'Poppins_600SemiBold' },
   rememberRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 24 },
-  rememberCheckbox: { width: 20, height: 20, borderRadius: 6, borderWidth: 1.5, borderColor: Colors.borderLight, alignItems: 'center', justifyContent: 'center' },
+  rememberCheckbox: { width: 20, height: 20, borderRadius: 6, borderWidth: 1.5, borderColor: Colors.border, alignItems: 'center', justifyContent: 'center' },
   rememberChecked: { backgroundColor: Colors.primary, borderColor: Colors.primary },
-  rememberText: { fontSize: 14, fontWeight: '400' as const, color: Colors.textSecondary },
+  rememberText: { fontSize: 14, fontFamily: 'Poppins_400Regular', color: Colors.textSecondary },
 });

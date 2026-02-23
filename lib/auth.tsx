@@ -1,15 +1,29 @@
-import React, { createContext, useContext, useState, useMemo } from 'react';
+import React, { createContext, useContext, useState, useMemo, useEffect, useCallback } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+interface AuthUser {
+  id: string;
+  username: string;
+  displayName?: string;
+  email?: string;
+}
 
 interface AuthContextType {
   isAuthenticated: boolean;
   userId: string | null;
-  login: (id: string) => void;
+  user: AuthUser | null;
+  isLoading: boolean;
+  login: (user: AuthUser) => void;
   logout: () => void;
 }
+
+const AUTH_STORAGE_KEY = '@culturepass_auth_user';
 
 const AuthContext = createContext<AuthContextType>({
   isAuthenticated: false,
   userId: null,
+  user: null,
+  isLoading: true,
   login: () => {},
   logout: () => {},
 });
@@ -19,14 +33,39 @@ export function useAuth() {
 }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [userId, setUserId] = useState<string | null>(null);
+  const [user, setUser] = useState<AuthUser | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    AsyncStorage.getItem(AUTH_STORAGE_KEY)
+      .then((stored) => {
+        if (stored) {
+          try {
+            setUser(JSON.parse(stored));
+          } catch {}
+        }
+      })
+      .finally(() => setIsLoading(false));
+  }, []);
+
+  const login = useCallback((u: AuthUser) => {
+    setUser(u);
+    AsyncStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(u)).catch(() => {});
+  }, []);
+
+  const logout = useCallback(() => {
+    setUser(null);
+    AsyncStorage.removeItem(AUTH_STORAGE_KEY).catch(() => {});
+  }, []);
 
   const value = useMemo(() => ({
-    isAuthenticated: !!userId,
-    userId,
-    login: (id: string) => setUserId(id),
-    logout: () => setUserId(null),
-  }), [userId]);
+    isAuthenticated: !!user,
+    userId: user?.id ?? null,
+    user,
+    isLoading,
+    login,
+    logout,
+  }), [user, isLoading, login, logout]);
 
   return (
     <AuthContext.Provider value={value}>

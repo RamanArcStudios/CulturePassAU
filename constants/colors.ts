@@ -22,6 +22,8 @@ export type ColorTheme = {
   accent: string;
   accentLight: string;
 
+  gold: string;
+
   background: string;
   backgroundSecondary: string;
 
@@ -59,8 +61,8 @@ const base = {
   primary: '#007AFF',
   primaryLight: '#409CFF',
   primaryDark: '#0056CC',
-  primaryGlow: 'rgba(0, 122, 255, 0.12)',
-  primarySoft: 'rgba(0, 122, 255, 0.06)',
+  primaryGlow: 'rgba(0, 122, 255, 0.15)',
+  primarySoft: 'rgba(0, 122, 255, 0.08)',
 
   secondary: '#5856D6',
   secondaryLight: '#7A79E0',
@@ -69,12 +71,14 @@ const base = {
   accent: '#FF9500',
   accentLight: '#FFBF66',
 
+  gold: '#FFD700',
+
   success: '#34C759',
   warning: '#FF9F0A',
   error: '#FF3B30',
   info: '#5AC8FA',
 
-  overlay: 'rgba(0,0,0,0.4)',
+  overlay: 'rgba(0,0,0,0.5)',
 } as const;
 
 export const light: ColorTheme = {
@@ -110,46 +114,46 @@ export const light: ColorTheme = {
 export const dark: ColorTheme = {
   ...base,
 
-  background: '#000000',
-  backgroundSecondary: '#1C1C1E',
+  background: '#0A0A0F',
+  backgroundSecondary: '#111118',
 
-  surface: '#1C1C1E',
-  surfaceElevated: '#2C2C2E',
-  surfaceSecondary: '#2C2C2E',
+  surface: '#1A1A22',
+  surfaceElevated: '#222230',
+  surfaceSecondary: '#141419',
 
-  border: '#38383A',
-  borderLight: '#48484A',
-  divider: '#38383A',
+  border: '#2A2A35',
+  borderLight: '#2A2A35',
+  divider: '#1A1A22',
 
   text: '#FFFFFF',
   textSecondary: '#8E8E93',
   textTertiary: '#636366',
   textInverse: '#000000',
 
-  card: '#1C1C1E',
-  cardBorder: '#38383A',
+  card: '#1A1A22',
+  cardBorder: '#2A2A35',
 
-  tabBar: '#1C1C1E',
-  tabBarBorder: '#38383A',
+  tabBar: '#0A0A0F',
+  tabBarBorder: '#1A1A22',
   tabIconDefault: '#636366',
-  tabIconSelected: '#0A84FF',
+  tabIconSelected: '#007AFF',
 
-  tint: '#0A84FF',
+  tint: '#007AFF',
 };
 
 export const shadows = {
   small: {
     shadowColor: Platform.select({ ios: '#000', default: '#000' }),
     shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 3,
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
     elevation: 2,
   } satisfies ShadowStyle,
 
   medium: {
     shadowColor: Platform.select({ ios: '#000', default: '#000' }),
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
+    shadowOpacity: 0.3,
     shadowRadius: 8,
     elevation: 4,
   } satisfies ShadowStyle,
@@ -157,7 +161,7 @@ export const shadows = {
   large: {
     shadowColor: Platform.select({ ios: '#000', default: '#000' }),
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.12,
+    shadowOpacity: 0.35,
     shadowRadius: 16,
     elevation: 8,
   } satisfies ShadowStyle,
@@ -165,14 +169,14 @@ export const shadows = {
   heavy: {
     shadowColor: Platform.select({ ios: '#000', default: '#000' }),
     shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.16,
+    shadowOpacity: 0.4,
     shadowRadius: 24,
     elevation: 12,
   } satisfies ShadowStyle,
 };
 
 const Colors = {
-  ...light,
+  ...dark,
   light,
   dark,
   shadow: shadows,

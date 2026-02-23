@@ -24,7 +24,7 @@ export default function WelcomeScreen() {
     <View style={styles.container}>
       {/* Background gradient */}
       <LinearGradient
-        colors={[Colors.background, '#F5EDE4', '#EDE0D4']}
+        colors={[Colors.background, '#111118', '#0D0D14']}
         style={StyleSheet.absoluteFill}
       />
 
@@ -128,7 +128,7 @@ export default function WelcomeScreen() {
             <Ionicons
               name="logo-apple"
               size={20}
-              color={Platform.OS === 'ios' ? Colors.text : '#000'}
+              color={Colors.text}
             />
             <Text style={styles.socialText}>Apple</Text>
           </Pressable>
