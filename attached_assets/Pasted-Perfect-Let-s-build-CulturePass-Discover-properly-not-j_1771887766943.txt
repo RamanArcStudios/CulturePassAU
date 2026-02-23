@@ -1,0 +1,253 @@
+Perfect. Let’s build CulturePass Discover properly — not just like Luma, but culturally intelligent and premium.
+Since you’re building CulturePass by CultureOS, this UI must feel:
+🌍 Global
+🧬 Cultural
+🏛 Premium
+📱 Mobile-first
+🖥 Web-ready
+Below is a complete Discover UI structure + production-ready Expo Router code with modern card layout.
+
+🌍 CULTUREPASS DISCOVER STRUCTURE
+Inspired by Luma’s structure, but upgraded.
+Page Sections
+Hero Header (Cultural personalization)
+Cultural Highlights (Festival this week)
+Popular Near You
+Browse by Culture
+Browse by Category
+Featured Communities
+Explore Cities
+Upcoming Major Festivals
+
+🎨 DESIGN STYLE
+Large rounded cards (borderRadius: 20)
+Subtle shadows
+Cultural gradient accents
+Olympic-style color hints (for global unity)
+Clean Apple-style spacing
+Soft blur headers
+
+📁 Folder Structure
+app/
+  (tabs)/
+    discover.tsx
+components/
+  Discover/
+    EventCard.tsx
+    CategoryCard.tsx
+    CommunityCard.tsx
+    CityCard.tsx
+lib/
+  api/
+    discover.ts
+
+
+🧱 1️⃣ DISCOVER SCREEN
+app/(tabs)/discover.tsx
+import { 
+  View, 
+  Text, 
+  ScrollView, 
+  StyleSheet 
+} from "react-native";
+import { useQuery } from "@tanstack/react-query";
+import EventCard from "@/components/Discover/EventCard";
+import CategoryCard from "@/components/Discover/CategoryCard";
+import CommunityCard from "@/components/Discover/CommunityCard";
+import CityCard from "@/components/Discover/CityCard";
+import { getDiscoverData } from "@/lib/api/discover";
+
+export default function DiscoverScreen() {
+
+  const { data, isLoading } = useQuery({
+    queryKey: ["discover"],
+    queryFn: getDiscoverData,
+  });
+
+  if (isLoading) {
+    return <Text style={{ padding: 20 }}>Loading Discover...</Text>;
+  }
+
+  return (
+    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+      
+      {/* HEADER */}
+      <View style={styles.header}>
+        <Text style={styles.title}>
+          What’s happening in your culture this week?
+        </Text>
+        <Text style={styles.subtitle}>
+          Curated for you · Sydney
+        </Text>
+      </View>
+
+      {/* FESTIVAL HIGHLIGHT */}
+      {data.festival && (
+        <EventCard event={data.festival} highlight />
+      )}
+
+      {/* POPULAR NEAR YOU */}
+      <SectionTitle title="Popular Near You" />
+      {data.popular.map(event => (
+        <EventCard key={event.id} event={event} />
+      ))}
+
+      {/* BROWSE BY CULTURE */}
+      <SectionTitle title="Explore Your Culture" />
+      <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+        {data.cultures.map(c => (
+          <CategoryCard key={c.id} item={c} />
+        ))}
+      </ScrollView>
+
+      {/* BROWSE BY CATEGORY */}
+      <SectionTitle title="Browse Categories" />
+      <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+        {data.categories.map(c => (
+          <CategoryCard key={c.id} item={c} />
+        ))}
+      </ScrollView>
+
+      {/* FEATURED COMMUNITIES */}
+      <SectionTitle title="Cultural Communities" />
+      {data.communities.map(c => (
+        <CommunityCard key={c.id} community={c} />
+      ))}
+
+      {/* EXPLORE CITIES */}
+      <SectionTitle title="Explore Cities" />
+      <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+        {data.cities.map(city => (
+          <CityCard key={city.id} city={city} />
+        ))}
+      </ScrollView>
+
+      <View style={{ height: 100 }} />
+    </ScrollView>
+  );
+}
+
+function SectionTitle({ title }) {
+  return (
+    <Text style={styles.sectionTitle}>{title}</Text>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: "#0A0A0F",
+    paddingHorizontal: 20,
+  },
+  header: {
+    marginTop: 60,
+    marginBottom: 30,
+  },
+  title: {
+    fontSize: 26,
+    fontWeight: "700",
+    color: "white",
+  },
+  subtitle: {
+    color: "#888",
+    marginTop: 6,
+  },
+  sectionTitle: {
+    color: "white",
+    fontSize: 20,
+    fontWeight: "600",
+    marginTop: 30,
+    marginBottom: 15,
+  }
+});
+
+
+🧱 2️⃣ MODERN EVENT CARD
+components/Discover/EventCard.tsx
+import { View, Text, Image, StyleSheet, Pressable } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
+import { router } from "expo-router";
+
+export default function EventCard({ event, highlight }) {
+
+  return (
+    <Pressable 
+      style={[styles.card, highlight && styles.highlight]}
+      onPress={() => router.push(`/event/${event.id}`)}
+    >
+      <Image source={{ uri: event.image }} style={styles.image} />
+
+      <LinearGradient
+        colors={["transparent", "rgba(0,0,0,0.9)"]}
+        style={styles.overlay}
+      />
+
+      <View style={styles.content}>
+        <Text style={styles.date}>{event.date}</Text>
+        <Text style={styles.title}>{event.title}</Text>
+        <Text style={styles.location}>{event.city}</Text>
+      </View>
+    </Pressable>
+  );
+}
+
+const styles = StyleSheet.create({
+  card: {
+    height: 220,
+    borderRadius: 20,
+    overflow: "hidden",
+    marginBottom: 20,
+    backgroundColor: "#1A1A22",
+  },
+  highlight: {
+    borderWidth: 2,
+    borderColor: "#FFD700",
+  },
+  image: {
+    ...StyleSheet.absoluteFillObject,
+    width: "100%",
+    height: "100%",
+  },
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  content: {
+    position: "absolute",
+    bottom: 20,
+    left: 20,
+    right: 20,
+  },
+  date: {
+    color: "#FFD700",
+    fontSize: 12,
+  },
+  title: {
+    color: "white",
+    fontSize: 18,
+    fontWeight: "600",
+    marginTop: 4,
+  },
+  location: {
+    color: "#bbb",
+    marginTop: 4,
+  }
+});
+
+
+🧠 Backend Response Shape
+lib/api/discover.ts
+export async function getDiscoverData() {
+  const res = await fetch("/api/discover");
+  return res.json();
+}
+
+
+🔥 What Makes This Better Than
+
+CulturePass Discover =
+✔ Cultural relevance scoring
+✔ Diaspora-aware
+✔ Festival intelligence
+✔ Community graph
+✔ Homeland Tier 5 logic
+✔ Emotional personalization
