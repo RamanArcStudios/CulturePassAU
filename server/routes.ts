@@ -16,6 +16,7 @@ import { registerDashboardRoutes } from "./modules/dashboard/dashboard.routes";
 import { registerCpidRoutes } from "./modules/cpid/cpid.routes";
 import { registerLocationsRoutes } from "./modules/locations/locations.routes";
 import { registerCommunitiesRoutes } from "./modules/communities/communities.routes";
+import { registerDiscoverRoutes } from "./modules/discover/discover.routes";
 
 import * as usersService from "./modules/users/users.service";
 import * as profilesService from "./modules/profiles/profiles.service";
@@ -41,6 +42,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   registerCpidRoutes(app);
   registerLocationsRoutes(app);
   registerCommunitiesRoutes(app);
+  registerDiscoverRoutes(app);
 
   app.post("/api/seed", async (_req: Request, res: Response) => {
     try {
