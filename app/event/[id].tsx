@@ -94,6 +94,7 @@ function EventDetail({ event, topInset, bottomInset }: EventDetailProps) {
   const [ticketModalVisible, setTicketModalVisible] = useState(false);
   const [selectedTierIndex, setSelectedTierIndex] = useState(0);
   const [quantity, setQuantity] = useState(1);
+  const [buyMode, setBuyMode] = useState<'single' | 'family' | 'group'>('single');
 
   const usersQuery = useQuery<any[]>({ queryKey: ['/api/users'] });
   const demoUserId = usersQuery.data?.[0]?.id;
@@ -152,8 +153,21 @@ function EventDetail({ event, topInset, bottomInset }: EventDetailProps) {
   });
 
   const selectedTier = event.tiers[selectedTierIndex];
-  const maxQty = Math.min(10, selectedTier?.available ?? 1);
-  const totalPrice = (selectedTier?.price ?? 0) * quantity;
+  const maxQty = buyMode === 'family' ? 1 : Math.min(20, selectedTier?.available ?? 1);
+  const familySize = 4;
+  const familyDiscount = 0.10;
+  const groupDiscount = quantity >= 10 ? 0.15 : quantity >= 5 ? 0.10 : 0;
+  const basePrice = selectedTier?.price ?? 0;
+
+  const rawTotal = buyMode === 'family'
+    ? basePrice * familySize
+    : basePrice * quantity;
+  const discountRate = buyMode === 'family'
+    ? familyDiscount
+    : buyMode === 'group' ? groupDiscount : 0;
+  const discountAmount = rawTotal * discountRate;
+  const totalPrice = rawTotal - discountAmount;
+  const effectiveQty = buyMode === 'family' ? familySize : quantity;
   const cashbackAmount = isPlus ? totalPrice * 0.02 : 0;
 
   const handlePurchase = useCallback(() => {
@@ -164,6 +178,8 @@ function EventDetail({ event, topInset, bottomInset }: EventDetailProps) {
     }
     const userId = users[0].id;
 
+    const ticketLabel = buyMode === 'family' ? `${selectedTier.name} (Family Pack)` : buyMode === 'group' ? `${selectedTier.name} (Group)` : selectedTier.name;
+
     if (totalPrice <= 0) {
       purchaseFreeTicket({
         userId,
@@ -172,8 +188,8 @@ function EventDetail({ event, topInset, bottomInset }: EventDetailProps) {
         eventDate: event.date,
         eventTime: event.time,
         eventVenue: event.venue,
-        tierName: selectedTier.name,
-        quantity,
+        tierName: ticketLabel,
+        quantity: effectiveQty,
         totalPrice: 0,
         currency: 'AUD',
         imageColor: (event as any).imageColor ?? Colors.primary,
@@ -188,13 +204,13 @@ function EventDetail({ event, topInset, bottomInset }: EventDetailProps) {
       eventDate: event.date,
       eventTime: event.time,
       eventVenue: event.venue,
-      tierName: selectedTier.name,
-      quantity,
+      tierName: ticketLabel,
+      quantity: effectiveQty,
       totalPrice,
       currency: 'AUD',
       imageColor: (event as any).imageColor ?? Colors.primary,
     });
-  }, [usersQuery.data, event, selectedTier, quantity, totalPrice, purchaseMutation]);
+  }, [usersQuery.data, event, selectedTier, quantity, totalPrice, effectiveQty, buyMode, purchaseMutation]);
 
   const purchaseFreeTicket = useCallback(async (body: Record<string, unknown>) => {
     try {
@@ -218,6 +234,7 @@ function EventDetail({ event, topInset, bottomInset }: EventDetailProps) {
   const openTicketModal = useCallback((tierIdx?: number) => {
     setSelectedTierIndex(tierIdx ?? 0);
     setQuantity(1);
+    setBuyMode('single');
     setTicketModalVisible(true);
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
   }, []);
@@ -587,7 +604,47 @@ function EventDetail({ event, topInset, bottomInset }: EventDetailProps) {
             </View>
 
             <ScrollView showsVerticalScrollIndicator={false} style={modalStyles.content}>
-              <Text style={modalStyles.sectionLabel}>Ticket Type</Text>
+              <Text style={modalStyles.sectionLabel}>How are you booking?</Text>
+              <View style={modalStyles.buyModeRow}>
+                {([
+                  { key: 'single' as const, icon: 'person' as const, label: 'Single' },
+                  { key: 'family' as const, icon: 'people' as const, label: 'Family Pack' },
+                  { key: 'group' as const, icon: 'people-circle' as const, label: 'Group' },
+                ] as const).map(mode => {
+                  const active = buyMode === mode.key;
+                  return (
+                    <Pressable
+                      key={mode.key}
+                      style={[modalStyles.buyModeBtn, active && modalStyles.buyModeBtnActive]}
+                      onPress={() => {
+                        setBuyMode(mode.key);
+                        setQuantity(mode.key === 'family' ? 1 : 1);
+                        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                      }}
+                    >
+                      <Ionicons name={mode.icon} size={20} color={active ? Colors.primary : Colors.textSecondary} />
+                      <Text style={[modalStyles.buyModeText, active && { color: Colors.primary, fontFamily: 'Poppins_600SemiBold' }]}>{mode.label}</Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+
+              {buyMode === 'family' && (
+                <View style={modalStyles.savingsBadge}>
+                  <Ionicons name="pricetag" size={14} color="#27AE60" />
+                  <Text style={modalStyles.savingsText}>Family of {familySize} — Save 10%</Text>
+                </View>
+              )}
+              {buyMode === 'group' && quantity >= 5 && (
+                <View style={modalStyles.savingsBadge}>
+                  <Ionicons name="pricetag" size={14} color="#27AE60" />
+                  <Text style={modalStyles.savingsText}>
+                    {quantity >= 10 ? 'Group of 10+ — Save 15%' : 'Group of 5+ — Save 10%'}
+                  </Text>
+                </View>
+              )}
+
+              <Text style={[modalStyles.sectionLabel, { marginTop: 20 }]}>Ticket Tier</Text>
               {event.tiers.map((tier, idx) => {
                 const isSelected = idx === selectedTierIndex;
                 return (
@@ -619,38 +676,61 @@ function EventDetail({ event, topInset, bottomInset }: EventDetailProps) {
                 );
               })}
 
-              <Text style={[modalStyles.sectionLabel, { marginTop: 24 }]}>Quantity</Text>
-              <View style={modalStyles.quantityRow}>
-                <Pressable
-                  style={[modalStyles.quantityBtn, quantity <= 1 && modalStyles.quantityBtnDisabled]}
-                  onPress={() => {
-                    if (quantity > 1) {
-                      setQuantity(q => q - 1);
-                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                    }
-                  }}
-                >
-                  <Ionicons name="remove" size={20} color={quantity <= 1 ? Colors.textTertiary : Colors.primary} />
-                </Pressable>
-                <Text style={modalStyles.quantityText}>{quantity}</Text>
-                <Pressable
-                  style={[modalStyles.quantityBtn, quantity >= maxQty && modalStyles.quantityBtnDisabled]}
-                  onPress={() => {
-                    if (quantity < maxQty) {
-                      setQuantity(q => q + 1);
-                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                    }
-                  }}
-                >
-                  <Ionicons name="add" size={20} color={quantity >= maxQty ? Colors.textTertiary : Colors.primary} />
-                </Pressable>
-              </View>
+              {buyMode !== 'family' && (
+                <>
+                  <Text style={[modalStyles.sectionLabel, { marginTop: 20 }]}>
+                    {buyMode === 'group' ? 'Group Size' : 'Quantity'}
+                  </Text>
+                  <View style={modalStyles.quantityRow}>
+                    <Pressable
+                      style={[modalStyles.quantityBtn, quantity <= 1 && modalStyles.quantityBtnDisabled]}
+                      onPress={() => {
+                        if (quantity > 1) {
+                          setQuantity(q => q - 1);
+                          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                        }
+                      }}
+                    >
+                      <Ionicons name="remove" size={20} color={quantity <= 1 ? Colors.textTertiary : Colors.primary} />
+                    </Pressable>
+                    <Text style={modalStyles.quantityText}>{quantity}</Text>
+                    <Pressable
+                      style={[modalStyles.quantityBtn, quantity >= maxQty && modalStyles.quantityBtnDisabled]}
+                      onPress={() => {
+                        if (quantity < maxQty) {
+                          setQuantity(q => q + 1);
+                          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                        }
+                      }}
+                    >
+                      <Ionicons name="add" size={20} color={quantity >= maxQty ? Colors.textTertiary : Colors.primary} />
+                    </Pressable>
+                  </View>
+                </>
+              )}
 
-              <View style={modalStyles.totalRow}>
-                <Text style={modalStyles.totalLabel}>Total</Text>
-                <Text style={modalStyles.totalValue}>
-                  {totalPrice === 0 ? 'Free' : `A$${totalPrice.toFixed(2)}`}
-                </Text>
+              <View style={modalStyles.priceSummary}>
+                <View style={modalStyles.priceRow}>
+                  <Text style={modalStyles.priceRowLabel}>
+                    {effectiveQty}x {selectedTier?.name} @ ${basePrice.toFixed(2)}
+                  </Text>
+                  <Text style={modalStyles.priceRowValue}>${rawTotal.toFixed(2)}</Text>
+                </View>
+                {discountAmount > 0 && (
+                  <View style={modalStyles.priceRow}>
+                    <Text style={[modalStyles.priceRowLabel, { color: '#27AE60' }]}>
+                      {buyMode === 'family' ? 'Family' : 'Group'} Discount ({Math.round(discountRate * 100)}%)
+                    </Text>
+                    <Text style={[modalStyles.priceRowValue, { color: '#27AE60' }]}>-${discountAmount.toFixed(2)}</Text>
+                  </View>
+                )}
+                <View style={modalStyles.totalDivider} />
+                <View style={modalStyles.priceRow}>
+                  <Text style={modalStyles.totalLabel}>Total</Text>
+                  <Text style={modalStyles.totalValue}>
+                    {totalPrice === 0 ? 'Free' : `A$${totalPrice.toFixed(2)}`}
+                  </Text>
+                </View>
               </View>
 
               {isPlus && totalPrice > 0 && (
@@ -690,14 +770,14 @@ function EventDetail({ event, topInset, bottomInset }: EventDetailProps) {
                   <>
                     <Ionicons name="card" size={20} color="#FFF" />
                     <Text style={modalStyles.purchaseBtnText}>
-                      Pay ${totalPrice.toFixed(2)} with Stripe
+                      Pay A${totalPrice.toFixed(2)}
                     </Text>
                   </>
                 ) : (
                   <>
                     <Ionicons name="ticket" size={20} color="#FFF" />
                     <Text style={modalStyles.purchaseBtnText}>
-                      Get Free {quantity === 1 ? 'Ticket' : 'Tickets'}
+                      Get Free {effectiveQty === 1 ? 'Ticket' : `${effectiveQty} Tickets`}
                     </Text>
                   </>
                 )}
@@ -1227,5 +1307,75 @@ const modalStyles = StyleSheet.create({
     color: '#2E86C1',
     fontWeight: '500',
     flex: 1,
+  },
+  buyModeRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 16,
+  },
+  buyModeBtn: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
+    paddingVertical: 12,
+    borderRadius: 12,
+    backgroundColor: Colors.background,
+    borderWidth: 2,
+    borderColor: 'transparent',
+  },
+  buyModeBtnActive: {
+    borderColor: Colors.primary,
+    backgroundColor: Colors.primary + '08',
+  },
+  buyModeText: {
+    fontSize: 12,
+    fontFamily: 'Poppins_500Medium',
+    color: Colors.textSecondary,
+  },
+  savingsBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#E8F8F0',
+    borderRadius: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#C8F0DB',
+  },
+  savingsText: {
+    fontSize: 13,
+    fontFamily: 'Poppins_600SemiBold',
+    color: '#27AE60',
+  },
+  priceSummary: {
+    backgroundColor: Colors.background,
+    borderRadius: 12,
+    padding: 14,
+    marginTop: 8,
+    marginBottom: 16,
+  },
+  priceRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 4,
+  },
+  priceRowLabel: {
+    fontSize: 14,
+    fontFamily: 'Poppins_400Regular',
+    color: Colors.textSecondary,
+  },
+  priceRowValue: {
+    fontSize: 14,
+    fontFamily: 'Poppins_500Medium',
+    color: Colors.text,
+  },
+  totalDivider: {
+    height: 1,
+    backgroundColor: Colors.borderLight,
+    marginVertical: 8,
   },
 });

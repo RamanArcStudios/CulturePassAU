@@ -439,7 +439,10 @@ export const notifications = pgTable(
     isRead: boolean("is_read").default(false),
     metadata: jsonb("metadata").$type<Record<string, any>>(),
     createdAt: timestamp("created_at").defaultNow(),
-  }
+  },
+  (table) => ({
+    userIdIdx: index("notifications_user_id_idx").on(table.userId),
+  })
 );
 
 export const tickets = pgTable(
@@ -472,7 +475,12 @@ export const tickets = pgTable(
     paymentStatus: text("payment_status").default("pending"),
     culturePassId: varchar("culture_pass_id").unique(),
     createdAt: timestamp("created_at").defaultNow(),
-  }
+  },
+  (table) => ({
+    userIdIdx: index("tickets_user_id_idx").on(table.userId),
+    eventIdIdx: index("tickets_event_id_idx").on(table.eventId),
+    statusIdx: index("tickets_status_idx").on(table.status),
+  })
 );
 
 export const cpidRegistry = pgTable(

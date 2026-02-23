@@ -76,7 +76,7 @@ function FeaturedEventCard({ event }: { event: SampleEvent }) {
   return (
     <View style={styles.featuredCardOuter}>
       <Pressable
-        style={styles.featuredCard}
+        style={[styles.featuredCard, Platform.OS === 'web' && { cursor: 'pointer' }]}
         onPress={() =>
           router.push({ pathname: '/event/[id]', params: { id: event.id } })
         }
@@ -199,7 +199,7 @@ export default function HomeScreen() {
 
   return (
     <View style={[styles.container, { paddingTop: topInset }]}>
-      <View style={styles.topBar}>
+      <View style={[styles.topBar, Platform.OS === 'web' && { maxWidth: 900, alignSelf: 'center', width: '100%' }]}>
         <LocationPicker />
         <View style={styles.topBarRight}>
           <Pressable
@@ -222,7 +222,10 @@ export default function HomeScreen() {
 
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 100 }}
+        contentContainerStyle={[
+          { paddingBottom: 100 },
+          Platform.OS === 'web' && { maxWidth: 900, alignSelf: 'center', width: '100%' }
+        ]}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={Colors.primary} colors={[Colors.primary]} />}
       >
         <Animated.View entering={FadeInDown.delay(100).duration(500)} style={styles.greetSection}>
@@ -286,7 +289,7 @@ export default function HomeScreen() {
               {thisWeekEvents.map(event => (
                 <Pressable
                   key={event.id}
-                  style={styles.weekPill}
+                  style={[styles.weekPill, Platform.OS === 'web' && { cursor: 'pointer' }]}
                   onPress={() =>
                     router.push({ pathname: '/event/[id]', params: { id: event.id } })
                   }
@@ -304,7 +307,7 @@ export default function HomeScreen() {
         <View style={styles.section}>
           <View style={styles.sectionHeaderRow}>
             <Text style={styles.sectionTitle}>Now Showing</Text>
-            <Pressable onPress={() => router.push('/movies')}>
+            <Pressable onPress={() => router.push('/movies')} style={Platform.OS === 'web' ? { cursor: 'pointer' } : undefined}>
               <Text style={styles.seeAll}>See All</Text>
             </Pressable>
           </View>
@@ -341,7 +344,7 @@ export default function HomeScreen() {
           {topRestaurants.map(rest => (
             <Pressable
               key={rest.id}
-              style={styles.restRow}
+              style={[styles.restRow, Platform.OS === 'web' && { cursor: 'pointer' }]}
               onPress={() =>
                 router.push({ pathname: '/restaurants/[id]', params: { id: rest.id } })
               }
@@ -376,7 +379,7 @@ export default function HomeScreen() {
             {topActivities.map(act => (
               <Pressable
                 key={act.id}
-                style={styles.actCard}
+                style={[styles.actCard, Platform.OS === 'web' && { cursor: 'pointer' }]}
                 onPress={() =>
                   router.push({ pathname: '/activities/[id]', params: { id: act.id } })
                 }
@@ -406,7 +409,7 @@ export default function HomeScreen() {
             return (
               <Pressable
                 key={store.id}
-                style={styles.dealRow}
+                style={[styles.dealRow, Platform.OS === 'web' && { cursor: 'pointer' }]}
                 onPress={() =>
                   router.push({ pathname: '/shopping/[id]', params: { id: store.id } })
                 }
@@ -427,7 +430,7 @@ export default function HomeScreen() {
         </View>
 
         <Animated.View entering={FadeInDown.delay(400).duration(500)}>
-          <Pressable style={styles.perksBanner} onPress={() => router.push('/perks')}>
+          <Pressable style={[styles.perksBanner, Platform.OS === 'web' && { cursor: 'pointer' }]} onPress={() => router.push('/perks')}>
             <View style={styles.perksBannerLeft}>
               <View style={styles.perksBannerIcon}>
                 <Ionicons name="gift" size={22} color="#FFF" />
@@ -445,7 +448,7 @@ export default function HomeScreen() {
 
         <Animated.View entering={FadeInDown.delay(450).duration(500)}>
           <Pressable
-            style={styles.exploreCta}
+            style={[styles.exploreCta, Platform.OS === 'web' && { cursor: 'pointer' }]}
             onPress={() => router.push('/allevents')}
           >
             <View style={styles.exploreCtaIcon}>
