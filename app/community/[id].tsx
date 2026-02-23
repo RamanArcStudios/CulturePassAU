@@ -10,9 +10,9 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
 import Colors, { shadows } from '@/constants/colors';
 import { useSaved } from '@/contexts/SavedContext';
-import { sampleCommunities, sampleEvents } from '@/data/mockData';
 import { useQuery } from '@tanstack/react-query';
-import { getQueryFn } from '@/lib/query-client';
+import { getQueryFn, getApiUrl } from '@/lib/query-client';
+import { fetch } from 'expo/fetch';
 import { Community } from '@shared/schema';
 
 function formatNumber(num: number): string {
@@ -48,24 +48,18 @@ export default function CommunityDetailScreen() {
   const bottomInset = Platform.OS === 'web' ? 34 : insets.bottom;
   const { isCommunityJoined, toggleJoinCommunity } = useSaved();
 
-  const mockCommunity = sampleCommunities.find(c => c.id === id);
-
   const { data: dbCommunity, isLoading } = useQuery<Community>({
     queryKey: ['/api/communities', id],
     queryFn: getQueryFn({ on401: 'returnNull' }),
-    enabled: !mockCommunity && !!id,
+    enabled: !!id,
   });
 
-  if (!mockCommunity && isLoading) {
+  if (isLoading) {
     return (
       <View style={[styles.container, { paddingTop: topInset + 20, alignItems: 'center', justifyContent: 'center' }]}>
         <ActivityIndicator size="large" color={Colors.primary} />
       </View>
     );
-  }
-
-  if (mockCommunity) {
-    return <MockCommunityView community={mockCommunity} topInset={topInset} bottomInset={bottomInset} />;
   }
 
   if (dbCommunity) {
@@ -88,10 +82,20 @@ function DbCommunityView({ community, topInset, bottomInset }: { community: Comm
   const color = COMMUNITY_TYPE_COLORS[community.communityType] || Colors.primary;
   const icon = COMMUNITY_TYPE_ICONS[community.communityType] || 'people';
 
+  const { data: allEvents = [] } = useQuery({
+    queryKey: ['/api/events'],
+    queryFn: async () => {
+      const base = getApiUrl();
+      const res = await fetch(`${base}api/events`);
+      if (!res.ok) throw new Error(`${res.status}`);
+      return res.json();
+    },
+  });
+
   const relatedTags = getRelatedTagsForDb(community);
-  const relatedEvents = sampleEvents.filter(e =>
-    relatedTags.some(tag =>
-      e.communityTag.toLowerCase().includes(tag) || tag.includes(e.communityTag.toLowerCase())
+  const relatedEvents = allEvents.filter((e: any) =>
+    relatedTags.some((tag: string) =>
+      (e.communityTag || '').toLowerCase().includes(tag) || tag.includes((e.communityTag || '').toLowerCase())
     )
   );
 
@@ -255,7 +259,17 @@ function getRelatedTagsForDb(community: Community): string[] {
 function MockCommunityView({ community, topInset, bottomInset }: { community: any; topInset: number; bottomInset: number }) {
   const { isCommunityJoined, toggleJoinCommunity } = useSaved();
   const joined = isCommunityJoined(community.id);
-  const communityEvents = sampleEvents.filter(e => e.organizerId === community.id);
+
+  const { data: allEvents = [] } = useQuery({
+    queryKey: ['/api/events'],
+    queryFn: async () => {
+      const base = getApiUrl();
+      const res = await fetch(`${base}api/events`);
+      if (!res.ok) throw new Error(`${res.status}`);
+      return res.json();
+    },
+  });
+  const communityEvents = allEvents.filter((e: any) => e.organizerId === community.id);
 
   return (
     <View style={styles.container}>

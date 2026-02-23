@@ -1,26 +1,62 @@
-import { View, Text, Pressable, StyleSheet, ScrollView, Platform, Image } from 'react-native';
+import { View, Text, Pressable, StyleSheet, ScrollView, Platform, Image, ActivityIndicator } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { sampleMovies, movieGenres } from '@/data/mockData';
 import Colors from '@/constants/colors';
 import { useState, useMemo } from 'react';
 import * as Haptics from 'expo-haptics';
 import Animated, { FadeInDown } from 'react-native-reanimated';
-import { useLocationFilter } from '@/hooks/useLocationFilter';
+import { useQuery } from '@tanstack/react-query';
+import { getApiUrl } from '@/lib/query-client';
+import { useOnboarding } from '@/contexts/OnboardingContext';
+import { fetch } from 'expo/fetch';
+
+const movieGenres = [
+  { label: 'All', icon: 'film', color: '#1C1C1E' },
+  { label: 'Action', icon: 'flash', color: '#E85D3A' },
+  { label: 'Drama', icon: 'heart', color: '#9B59B6' },
+  { label: 'Comedy', icon: 'happy', color: '#F2A93B' },
+  { label: 'Horror', icon: 'skull', color: '#2C3E50' },
+  { label: 'Thriller', icon: 'eye', color: '#E74C3C' },
+  { label: 'Romance', icon: 'heart-circle', color: '#E91E63' },
+];
 
 export default function MoviesScreen() {
   const insets = useSafeAreaInsets();
   const topInset = Platform.OS === 'web' ? 67 : insets.top;
   const [selectedGenre, setSelectedGenre] = useState('All');
-  const { filterByLocation } = useLocationFilter();
+  const { state } = useOnboarding();
+
+  const queryParams = new URLSearchParams();
+  if (state.country) queryParams.set('country', state.country);
+  if (state.city) queryParams.set('city', state.city);
+  const qs = queryParams.toString();
+
+  const { data: movies = [], isLoading } = useQuery({
+    queryKey: ['/api/movies', state.country, state.city],
+    queryFn: async () => {
+      const base = getApiUrl();
+      const url = `${base}api/movies${qs ? `?${qs}` : ''}`;
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`${res.status}`);
+      return res.json();
+    },
+  });
 
   const filtered = useMemo(() => {
-    if (selectedGenre === 'All') return filterByLocation(sampleMovies);
-    return filterByLocation(sampleMovies).filter(m => m.genre.includes(selectedGenre));
-  }, [selectedGenre, filterByLocation]);
+    if (selectedGenre === 'All') return movies;
+    return movies.filter((m: any) => m.genre.includes(selectedGenre));
+  }, [selectedGenre, movies]);
 
-  const trending = filterByLocation(sampleMovies).filter(m => m.isTrending);
+  const trending = useMemo(() => movies.filter((m: any) => m.isTrending), [movies]);
+
+  if (isLoading) {
+    return (
+      <View style={[styles.container, { paddingTop: topInset, justifyContent: 'center', alignItems: 'center' }]}>
+        <ActivityIndicator size="large" color={Colors.primary} />
+      </View>
+    );
+  }
 
   return (
     <View style={[styles.container, { paddingTop: topInset }]}>
@@ -39,7 +75,7 @@ export default function MoviesScreen() {
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Now Trending</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 20, gap: 14 }}>
-              {trending.map((movie, i) => (
+              {trending.map((movie: any, i: number) => (
                 <Animated.View key={movie.id} entering={FadeInDown.delay(i * 80).duration(400)}>
                   <Pressable style={styles.trendingCard} onPress={() => router.push({ pathname: '/movies/[id]', params: { id: movie.id } })}>
                     <View style={{ position: 'relative' }}>
@@ -79,7 +115,7 @@ export default function MoviesScreen() {
 
         <View style={styles.listSection}>
           <Text style={styles.resultCount}>{filtered.length} movies showing</Text>
-          {filtered.map((movie, index) => (
+          {filtered.map((movie: any, index: number) => (
             <Animated.View key={movie.id} entering={FadeInDown.delay(index * 60).duration(400)}>
               <Pressable style={styles.movieCard} onPress={() => router.push({ pathname: '/movies/[id]', params: { id: movie.id } })}>
                 <Image source={{ uri: movie.posterUrl }} style={styles.moviePoster} />
@@ -87,7 +123,7 @@ export default function MoviesScreen() {
                   <Text style={styles.movieTitle} numberOfLines={1}>{movie.title}</Text>
                   <Text style={styles.movieMeta}>{movie.language} | {movie.duration} | {movie.rating}</Text>
                   <View style={styles.movieGenres}>
-                    {movie.genre.map(g => (
+                    {movie.genre.map((g: string) => (
                       <View key={g} style={styles.genrePill}><Text style={styles.genrePillText}>{g}</Text></View>
                     ))}
                   </View>

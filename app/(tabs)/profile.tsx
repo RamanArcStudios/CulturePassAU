@@ -15,13 +15,13 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useOnboarding } from '@/contexts/OnboardingContext';
 import { useSaved } from '@/contexts/SavedContext';
-import { sampleEvents, sampleCommunities } from '@/data/mockData';
 import Colors from '@/constants/colors';
 import { router } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { useState, useMemo, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { queryClient } from '@/lib/query-client';
+import { queryClient, getApiUrl } from '@/lib/query-client';
+import { fetch } from 'expo/fetch';
 import type { Wallet, User, Membership } from '@shared/schema';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
@@ -159,14 +159,34 @@ export default function ProfileScreen() {
     enabled: !!userId,
   });
 
+  const { data: allEventsData = [] } = useQuery({
+    queryKey: ['/api/events'],
+    queryFn: async () => {
+      const base = getApiUrl();
+      const res = await fetch(`${base}api/events`);
+      if (!res.ok) throw new Error(`${res.status}`);
+      return res.json();
+    },
+  });
+
+  const { data: allCommunitiesData = [] } = useQuery({
+    queryKey: ['/api/communities'],
+    queryFn: async () => {
+      const base = getApiUrl();
+      const res = await fetch(`${base}api/communities`);
+      if (!res.ok) throw new Error(`${res.status}`);
+      return res.json();
+    },
+  });
+
   const savedEventsList = useMemo(
-    () => sampleEvents.filter(e => savedEvents.includes(e.id)),
-    [savedEvents],
+    () => allEventsData.filter((e: any) => savedEvents.includes(e.id)),
+    [savedEvents, allEventsData],
   );
 
   const joinedCommunitiesList = useMemo(
-    () => sampleCommunities.filter(c => joinedCommunities.includes(c.id)),
-    [joinedCommunities],
+    () => allCommunitiesData.filter((c: any) => joinedCommunities.includes(c.id)),
+    [joinedCommunities, allCommunitiesData],
   );
 
   const tier = membership?.tier ?? 'free';

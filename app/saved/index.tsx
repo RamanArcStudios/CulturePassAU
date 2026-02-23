@@ -1,13 +1,15 @@
-import { View, Text, Pressable, StyleSheet, ScrollView, Platform, Image } from 'react-native';
+import { View, Text, Pressable, StyleSheet, ScrollView, Platform, Image, ActivityIndicator } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useSaved } from '@/contexts/SavedContext';
-import { sampleEvents, sampleCommunities } from '@/data/mockData';
 import Colors from '@/constants/colors';
 import { useMemo, useState } from 'react';
 import * as Haptics from 'expo-haptics';
 import Animated, { FadeInDown } from 'react-native-reanimated';
+import { useQuery } from '@tanstack/react-query';
+import { getApiUrl } from '@/lib/query-client';
+import { fetch } from 'expo/fetch';
 
 type TabKey = 'events' | 'communities';
 
@@ -25,14 +27,34 @@ export default function SavedScreen() {
   const [activeTab, setActiveTab] = useState<TabKey>('events');
   const { savedEvents, joinedCommunities, toggleSaveEvent, toggleJoinCommunity } = useSaved();
 
+  const { data: allEvents = [] } = useQuery({
+    queryKey: ['/api/events'],
+    queryFn: async () => {
+      const base = getApiUrl();
+      const res = await fetch(`${base}api/events`);
+      if (!res.ok) throw new Error(`${res.status}`);
+      return res.json();
+    },
+  });
+
+  const { data: allCommunities = [] } = useQuery({
+    queryKey: ['/api/communities'],
+    queryFn: async () => {
+      const base = getApiUrl();
+      const res = await fetch(`${base}api/communities`);
+      if (!res.ok) throw new Error(`${res.status}`);
+      return res.json();
+    },
+  });
+
   const savedEventItems = useMemo(
-    () => sampleEvents.filter(e => savedEvents.includes(e.id)),
-    [savedEvents],
+    () => allEvents.filter((e: any) => savedEvents.includes(e.id)),
+    [savedEvents, allEvents],
   );
 
   const joinedCommunityItems = useMemo(
-    () => sampleCommunities.filter(c => joinedCommunities.includes(c.id)),
-    [joinedCommunities],
+    () => allCommunities.filter((c: any) => joinedCommunities.includes(c.id)),
+    [joinedCommunities, allCommunities],
   );
 
   const tabs: { key: TabKey; label: string; icon: string; count: number }[] = [

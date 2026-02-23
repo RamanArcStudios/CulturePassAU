@@ -1,24 +1,60 @@
-import { View, Text, Pressable, StyleSheet, ScrollView, Platform, Image } from 'react-native';
+import { View, Text, Pressable, StyleSheet, ScrollView, Platform, Image, ActivityIndicator } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { sampleRestaurants, restaurantCuisines } from '@/data/mockData';
 import Colors from '@/constants/colors';
 import { useState, useMemo } from 'react';
 import * as Haptics from 'expo-haptics';
 import Animated, { FadeInDown } from 'react-native-reanimated';
-import { useLocationFilter } from '@/hooks/useLocationFilter';
+import { useQuery } from '@tanstack/react-query';
+import { getApiUrl } from '@/lib/query-client';
+import { useOnboarding } from '@/contexts/OnboardingContext';
+import { fetch } from 'expo/fetch';
+
+const restaurantCuisines = [
+  { label: 'All', icon: 'restaurant', color: '#1C1C1E' },
+  { label: 'South Indian', icon: 'flame', color: '#E85D3A' },
+  { label: 'North Indian', icon: 'star', color: '#F2A93B' },
+  { label: 'Sri Lankan', icon: 'leaf', color: '#9B59B6' },
+  { label: 'Street Food', icon: 'fast-food', color: '#2ECC71' },
+  { label: 'Afghan', icon: 'bonfire', color: '#1A7A6D' },
+  { label: 'Japanese-Fusion', icon: 'fish', color: '#E74C3C' },
+];
 
 export default function RestaurantsScreen() {
   const insets = useSafeAreaInsets();
   const topInset = Platform.OS === 'web' ? 67 : insets.top;
   const [selectedCuisine, setSelectedCuisine] = useState('All');
-  const { filterByLocation } = useLocationFilter();
+  const { state } = useOnboarding();
+
+  const queryParams = new URLSearchParams();
+  if (state.country) queryParams.set('country', state.country);
+  if (state.city) queryParams.set('city', state.city);
+  const qs = queryParams.toString();
+
+  const { data: restaurants = [], isLoading } = useQuery({
+    queryKey: ['/api/restaurants', state.country, state.city],
+    queryFn: async () => {
+      const base = getApiUrl();
+      const url = `${base}api/restaurants${qs ? `?${qs}` : ''}`;
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`${res.status}`);
+      return res.json();
+    },
+  });
 
   const filtered = useMemo(() => {
-    if (selectedCuisine === 'All') return filterByLocation(sampleRestaurants);
-    return filterByLocation(sampleRestaurants).filter(r => r.cuisine === selectedCuisine);
-  }, [selectedCuisine, filterByLocation]);
+    if (selectedCuisine === 'All') return restaurants;
+    return restaurants.filter((r: any) => r.cuisine === selectedCuisine);
+  }, [selectedCuisine, restaurants]);
+
+  if (isLoading) {
+    return (
+      <View style={[styles.container, { paddingTop: topInset, justifyContent: 'center', alignItems: 'center' }]}>
+        <ActivityIndicator size="large" color={Colors.primary} />
+      </View>
+    );
+  }
 
   return (
     <View style={[styles.container, { paddingTop: topInset }]}>
@@ -43,7 +79,7 @@ export default function RestaurantsScreen() {
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.list}>
         <Text style={styles.resultCount}>{filtered.length} restaurants found</Text>
-        {filtered.map((rest, index) => (
+        {filtered.map((rest: any, index: number) => (
           <Animated.View key={rest.id} entering={FadeInDown.delay(index * 60).duration(400)}>
             <Pressable style={styles.card} onPress={() => router.push({ pathname: '/restaurants/[id]', params: { id: rest.id } })}>
               <View style={[styles.cardBanner]}>
@@ -63,7 +99,7 @@ export default function RestaurantsScreen() {
                 </View>
                 <Text style={styles.cardDesc} numberOfLines={2}>{rest.description}</Text>
                 <View style={styles.featureRow}>
-                  {rest.features.slice(0, 3).map(f => (
+                  {rest.features.slice(0, 3).map((f: string) => (
                     <View key={f} style={styles.featurePill}><Text style={styles.featureText}>{f}</Text></View>
                   ))}
                 </View>

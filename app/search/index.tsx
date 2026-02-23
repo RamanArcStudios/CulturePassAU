@@ -1,20 +1,15 @@
-import { View, Text, Pressable, StyleSheet, TextInput, ScrollView, Platform, Image } from 'react-native';
+import { View, Text, Pressable, StyleSheet, TextInput, ScrollView, Platform, Image, ActivityIndicator } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import {
-  sampleEvents,
-  sampleMovies,
-  sampleRestaurants,
-  sampleActivities,
-  sampleShopping,
-  sampleCommunities,
-} from '@/data/mockData';
 import Colors from '@/constants/colors';
 import { useState, useMemo } from 'react';
 import * as Haptics from 'expo-haptics';
 import Animated, { FadeInDown } from 'react-native-reanimated';
-import { useLocationFilter } from '@/hooks/useLocationFilter';
+import { useQuery } from '@tanstack/react-query';
+import { getApiUrl } from '@/lib/query-client';
+import { fetch } from 'expo/fetch';
+import { useOnboarding } from '@/contexts/OnboardingContext';
 
 type ResultType = 'event' | 'movie' | 'restaurant' | 'activity' | 'shopping' | 'community';
 
@@ -45,7 +40,75 @@ export default function SearchScreen() {
   const bottomInset = Platform.OS === 'web' ? 34 : insets.bottom;
   const [query, setQuery] = useState('');
   const [selectedType, setSelectedType] = useState<ResultType | 'all'>('all');
-  const { filterByLocation } = useLocationFilter();
+  const { state } = useOnboarding();
+
+  const buildQs = () => {
+    const params = new URLSearchParams();
+    if (state.country) params.set('country', state.country);
+    if (state.city) params.set('city', state.city);
+    const qs = params.toString();
+    return qs ? `?${qs}` : '';
+  };
+
+  const { data: events = [] } = useQuery({
+    queryKey: ['/api/events', state.country, state.city],
+    queryFn: async () => {
+      const base = getApiUrl();
+      const res = await fetch(`${base}api/events${buildQs()}`);
+      if (!res.ok) throw new Error(`${res.status}`);
+      return res.json();
+    },
+  });
+
+  const { data: movies = [] } = useQuery({
+    queryKey: ['/api/movies', state.country, state.city],
+    queryFn: async () => {
+      const base = getApiUrl();
+      const res = await fetch(`${base}api/movies${buildQs()}`);
+      if (!res.ok) throw new Error(`${res.status}`);
+      return res.json();
+    },
+  });
+
+  const { data: restaurants = [] } = useQuery({
+    queryKey: ['/api/restaurants', state.country, state.city],
+    queryFn: async () => {
+      const base = getApiUrl();
+      const res = await fetch(`${base}api/restaurants${buildQs()}`);
+      if (!res.ok) throw new Error(`${res.status}`);
+      return res.json();
+    },
+  });
+
+  const { data: activities = [] } = useQuery({
+    queryKey: ['/api/activities', state.country, state.city],
+    queryFn: async () => {
+      const base = getApiUrl();
+      const res = await fetch(`${base}api/activities${buildQs()}`);
+      if (!res.ok) throw new Error(`${res.status}`);
+      return res.json();
+    },
+  });
+
+  const { data: shopping = [] } = useQuery({
+    queryKey: ['/api/shopping', state.country, state.city],
+    queryFn: async () => {
+      const base = getApiUrl();
+      const res = await fetch(`${base}api/shopping${buildQs()}`);
+      if (!res.ok) throw new Error(`${res.status}`);
+      return res.json();
+    },
+  });
+
+  const { data: communities = [] } = useQuery({
+    queryKey: ['/api/communities'],
+    queryFn: async () => {
+      const base = getApiUrl();
+      const res = await fetch(`${base}api/communities`);
+      if (!res.ok) throw new Error(`${res.status}`);
+      return res.json();
+    },
+  });
 
   const allResults = useMemo((): SearchResult[] => {
     const q = query.toLowerCase().trim();
@@ -53,44 +116,44 @@ export default function SearchScreen() {
 
     const results: SearchResult[] = [];
 
-    filterByLocation(sampleEvents).forEach(e => {
-      if (e.title.toLowerCase().includes(q) || e.communityTag.toLowerCase().includes(q) || e.venue.toLowerCase().includes(q)) {
-        results.push({ id: e.id, type: 'event', title: e.title, subtitle: `${e.communityTag} · ${e.venue}`, imageUrl: e.imageUrl, icon: 'calendar', color: '#E85D3A' });
+    events.forEach((e: any) => {
+      if (e.title?.toLowerCase().includes(q) || e.communityTag?.toLowerCase().includes(q) || e.venue?.toLowerCase().includes(q)) {
+        results.push({ id: e.id, type: 'event', title: e.title, subtitle: `${e.communityTag || ''} · ${e.venue || ''}`, imageUrl: e.imageUrl, icon: 'calendar', color: '#E85D3A' });
       }
     });
 
-    filterByLocation(sampleMovies).forEach(m => {
-      if (m.title.toLowerCase().includes(q) || m.language.toLowerCase().includes(q) || m.genre.some(g => g.toLowerCase().includes(q))) {
-        results.push({ id: m.id, type: 'movie', title: m.title, subtitle: `${m.language} · ${m.genre.join(', ')}`, imageUrl: m.posterUrl, icon: 'film', color: '#9B59B6' });
+    movies.forEach((m: any) => {
+      if (m.title?.toLowerCase().includes(q) || m.language?.toLowerCase().includes(q) || (m.genre || []).some((g: string) => g.toLowerCase().includes(q))) {
+        results.push({ id: m.id, type: 'movie', title: m.title, subtitle: `${m.language || ''} · ${(m.genre || []).join(', ')}`, imageUrl: m.posterUrl, icon: 'film', color: '#9B59B6' });
       }
     });
 
-    filterByLocation(sampleRestaurants).forEach(r => {
-      if (r.name.toLowerCase().includes(q) || r.cuisine.toLowerCase().includes(q) || r.description.toLowerCase().includes(q)) {
-        results.push({ id: r.id, type: 'restaurant', title: r.name, subtitle: `${r.cuisine} · ${r.priceRange}`, imageUrl: r.imageUrl, icon: 'restaurant', color: '#2ECC71' });
+    restaurants.forEach((r: any) => {
+      if (r.name?.toLowerCase().includes(q) || r.cuisine?.toLowerCase().includes(q) || r.description?.toLowerCase().includes(q)) {
+        results.push({ id: r.id, type: 'restaurant', title: r.name, subtitle: `${r.cuisine || ''} · ${r.priceRange || ''}`, imageUrl: r.imageUrl, icon: 'restaurant', color: '#2ECC71' });
       }
     });
 
-    filterByLocation(sampleActivities).forEach(a => {
-      if (a.name.toLowerCase().includes(q) || a.category.toLowerCase().includes(q) || a.description.toLowerCase().includes(q)) {
-        results.push({ id: a.id, type: 'activity', title: a.name, subtitle: `${a.category} · ${a.priceLabel}`, imageUrl: a.imageUrl, icon: 'football', color: '#3498DB' });
+    activities.forEach((a: any) => {
+      if (a.name?.toLowerCase().includes(q) || a.category?.toLowerCase().includes(q) || a.description?.toLowerCase().includes(q)) {
+        results.push({ id: a.id, type: 'activity', title: a.name, subtitle: `${a.category || ''} · ${a.priceLabel || ''}`, imageUrl: a.imageUrl, icon: 'football', color: '#3498DB' });
       }
     });
 
-    filterByLocation(sampleShopping).forEach(s => {
-      if (s.name.toLowerCase().includes(q) || s.category.toLowerCase().includes(q) || s.description.toLowerCase().includes(q)) {
-        results.push({ id: s.id, type: 'shopping', title: s.name, subtitle: `${s.category} · ${s.location}`, imageUrl: s.imageUrl, icon: 'bag', color: '#F2A93B' });
+    shopping.forEach((s: any) => {
+      if (s.name?.toLowerCase().includes(q) || s.category?.toLowerCase().includes(q) || s.description?.toLowerCase().includes(q)) {
+        results.push({ id: s.id, type: 'shopping', title: s.name, subtitle: `${s.category || ''} · ${s.location || ''}`, imageUrl: s.imageUrl, icon: 'bag', color: '#F2A93B' });
       }
     });
 
-    sampleCommunities.forEach(c => {
-      if (c.name.toLowerCase().includes(q) || c.category.toLowerCase().includes(q)) {
-        results.push({ id: c.id, type: 'community', title: c.name, subtitle: `${c.category} · ${c.members} members`, icon: 'people', color: '#16656E' });
+    communities.forEach((c: any) => {
+      if (c.name?.toLowerCase().includes(q) || c.category?.toLowerCase().includes(q)) {
+        results.push({ id: c.id, type: 'community', title: c.name, subtitle: `${c.category || ''} · ${c.members || 0} members`, icon: 'people', color: '#16656E' });
       }
     });
 
     return results;
-  }, [query, filterByLocation]);
+  }, [query, events, movies, restaurants, activities, shopping, communities]);
 
   const filteredResults = useMemo(() => {
     if (selectedType === 'all') return allResults;

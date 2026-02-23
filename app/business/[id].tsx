@@ -1,12 +1,14 @@
-import { View, Text, Pressable, StyleSheet, ScrollView, Platform, Linking } from 'react-native';
+import { View, Text, Pressable, StyleSheet, ScrollView, Platform, Linking, ActivityIndicator } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { sampleBusinesses } from '@/data/mockData';
 import Colors, { shadows } from '@/constants/colors';
 import * as Haptics from 'expo-haptics';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useQuery } from '@tanstack/react-query';
+import { getApiUrl } from '@/lib/query-client';
+import { fetch } from 'expo/fetch';
 
 export default function BusinessDetailScreen() {
   const { id } = useLocalSearchParams();
@@ -14,7 +16,25 @@ export default function BusinessDetailScreen() {
   const topInset = Platform.OS === 'web' ? 67 : insets.top;
   const bottomInset = Platform.OS === 'web' ? 34 : insets.bottom;
 
-  const business = sampleBusinesses.find(b => b.id === id);
+  const { data: business, isLoading } = useQuery({
+    queryKey: ['/api/businesses', id],
+    queryFn: async () => {
+      const base = getApiUrl();
+      const res = await fetch(`${base}api/businesses/${id}`);
+      if (!res.ok) throw new Error(`${res.status}`);
+      return res.json();
+    },
+    enabled: !!id,
+  });
+
+  if (isLoading) {
+    return (
+      <View style={[styles.container, { paddingTop: topInset, justifyContent: 'center', alignItems: 'center' }]}>
+        <ActivityIndicator size="large" color={Colors.primary} />
+      </View>
+    );
+  }
+
   if (!business) {
     return (
       <View style={[styles.container, { paddingTop: topInset, justifyContent: 'center', alignItems: 'center' }]}>

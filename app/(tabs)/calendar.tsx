@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import {
-  StyleSheet, Text, View, ScrollView, Pressable, Platform,
+  StyleSheet, Text, View, ScrollView, Pressable, Platform, ActivityIndicator,
 } from 'react-native';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
@@ -8,8 +8,10 @@ import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import Colors from '@/constants/colors';
-import { sampleEvents, type EventData } from '@/data/mockData';
-import { useLocationFilter } from '@/hooks/useLocationFilter';
+import { useQuery } from '@tanstack/react-query';
+import { getApiUrl } from '@/lib/query-client';
+import { fetch } from 'expo/fetch';
+import { useOnboarding } from '@/contexts/OnboardingContext';
 
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June',
@@ -34,13 +36,27 @@ export default function CalendarScreen() {
   const [currentMonth, setCurrentMonth] = useState(today.getMonth());
   const [currentYear, setCurrentYear] = useState(today.getFullYear());
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
-  const { filterByLocation } = useLocationFilter();
+  const { state } = useOnboarding();
+
+  const { data: allEvents = [], isLoading } = useQuery({
+    queryKey: ['/api/events', state.country, state.city],
+    queryFn: async () => {
+      const base = getApiUrl();
+      const params = new URLSearchParams();
+      if (state.country) params.set('country', state.country);
+      if (state.city) params.set('city', state.city);
+      const qs = params.toString();
+      const res = await fetch(`${base}api/events${qs ? `?${qs}` : ''}`);
+      if (!res.ok) throw new Error(`${res.status}`);
+      return res.json();
+    },
+  });
 
   const eventDates = useMemo(() => {
     const dates = new Set<string>();
-    filterByLocation(sampleEvents).forEach(e => dates.add(e.date));
+    allEvents.forEach((e: any) => dates.add(e.date));
     return dates;
-  }, [filterByLocation]);
+  }, [allEvents]);
 
   const daysInMonth = getDaysInMonth(currentYear, currentMonth);
   const firstDay = getFirstDayOfMonth(currentYear, currentMonth);
@@ -48,7 +64,7 @@ export default function CalendarScreen() {
   for (let i = 0; i < firstDay; i++) days.push(null);
   for (let i = 1; i <= daysInMonth; i++) days.push(i);
 
-  const selectedEvents = selectedDate ? filterByLocation(sampleEvents).filter(e => e.date === selectedDate) : [];
+  const selectedEvents = selectedDate ? allEvents.filter((e: any) => e.date === selectedDate) : [];
 
   function prevMonth() {
     Haptics.selectionAsync();
@@ -70,6 +86,14 @@ export default function CalendarScreen() {
       setCurrentMonth(currentMonth + 1);
     }
     setSelectedDate(null);
+  }
+
+  if (isLoading) {
+    return (
+      <View style={[styles.container, { paddingTop: insets.top + webTopInset, justifyContent: 'center', alignItems: 'center' }]}>
+        <ActivityIndicator size="large" color={Colors.primary} />
+      </View>
+    );
   }
 
   return (
@@ -96,7 +120,7 @@ export default function CalendarScreen() {
           <View style={styles.summaryChip}>
             <Ionicons name="calendar" size={14} color={Colors.primary} />
             <Text style={styles.summaryChipText}>
-              {filterByLocation(sampleEvents).length} events
+              {allEvents.length} events
             </Text>
           </View>
           <View style={styles.summaryChip}>
@@ -175,7 +199,7 @@ export default function CalendarScreen() {
                 <Text style={styles.noEventsText}>No events on this day</Text>
               </View>
             ) : (
-              selectedEvents.map(event => (
+              selectedEvents.map((event: any) => (
                 <Pressable
                   key={event.id}
                   onPress={() => {
@@ -204,7 +228,7 @@ export default function CalendarScreen() {
         {!selectedDate && (
           <View style={styles.eventsSection}>
             <Text style={styles.eventsSectionTitle}>Upcoming Events</Text>
-            {filterByLocation(sampleEvents).slice(0, 4).map(event => (
+            {allEvents.slice(0, 4).map((event: any) => (
               <Pressable
                 key={event.id}
                 onPress={() => {

@@ -1,8 +1,10 @@
-import { View, Text, Pressable, StyleSheet, ScrollView, Platform, Alert, Image, Share } from 'react-native';
+import { View, Text, Pressable, StyleSheet, ScrollView, Platform, Alert, Image, Share, ActivityIndicator } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { sampleActivities } from '@/data/mockData';
+import { useQuery } from '@tanstack/react-query';
+import { getApiUrl } from '@/lib/query-client';
+import { fetch } from 'expo/fetch';
 import Colors from '@/constants/colors';
 import * as Haptics from 'expo-haptics';
 
@@ -10,7 +12,18 @@ export default function ActivityDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const insets = useSafeAreaInsets();
   const topInset = Platform.OS === 'web' ? 67 : insets.top;
-  const act = sampleActivities.find(a => a.id === id);
+  const { data: act, isLoading } = useQuery({
+    queryKey: ['/api/activities', id],
+    queryFn: async () => {
+      const base = getApiUrl();
+      const res = await fetch(`${base}api/activities/${id}`);
+      if (!res.ok) throw new Error(`${res.status}`);
+      return res.json();
+    },
+    enabled: !!id,
+  });
+
+  if (isLoading) return <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}><ActivityIndicator size="large" color={Colors.primary} /></View>;
   if (!act) return <View style={styles.container}><Text>Activity not found</Text></View>;
 
   const handleShare = async () => {

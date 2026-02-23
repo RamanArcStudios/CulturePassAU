@@ -9,22 +9,37 @@ import {
   Share,
   RefreshControl,
   Image,
+  ActivityIndicator,
 } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useSaved } from '@/contexts/SavedContext';
-import { sampleEvents, exploreCategories } from '@/data/mockData';
 import Colors from '@/constants/colors';
 import { useState, useMemo, useCallback } from 'react';
 import * as Haptics from 'expo-haptics';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { FilterChipRow, FilterItem } from '@/components/FilterChip';
-import { useLocationFilter } from '@/hooks/useLocationFilter';
+import { useQuery } from '@tanstack/react-query';
+import { getApiUrl } from '@/lib/query-client';
+import { fetch } from 'expo/fetch';
+import { useOnboarding } from '@/contexts/OnboardingContext';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type SampleEvent = (typeof sampleEvents)[number];
+type SampleEvent = any;
+
+const exploreCategories = [
+  { label: 'All', icon: 'apps' },
+  { label: 'Events', icon: 'calendar' },
+  { label: 'Indigenous', icon: 'earth' },
+  { label: 'Free', icon: 'gift' },
+  { label: 'Council', icon: 'business' },
+  { label: 'Food', icon: 'restaurant' },
+  { label: 'Music', icon: 'musical-notes' },
+  { label: 'Dance', icon: 'body' },
+  { label: 'Wellness', icon: 'heart' },
+];
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -77,20 +92,34 @@ export default function ExploreScreen() {
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [sortMode, setSortMode] = useState<'relevance' | 'date'>('relevance');
   const { isEventSaved, toggleSaveEvent } = useSaved();
-  const { filterByLocation } = useLocationFilter();
+  const { state } = useOnboarding();
+
+  const { data: allEvents = [], isLoading } = useQuery({
+    queryKey: ['/api/events', state.country, state.city],
+    queryFn: async () => {
+      const base = getApiUrl();
+      const params = new URLSearchParams();
+      if (state.country) params.set('country', state.country);
+      if (state.city) params.set('city', state.city);
+      const qs = params.toString();
+      const res = await fetch(`${base}api/events${qs ? `?${qs}` : ''}`);
+      if (!res.ok) throw new Error(`${res.status}`);
+      return res.json();
+    },
+  });
 
   const categoryCounts = useMemo(() => {
-    const all = filterByLocation(sampleEvents) as SampleEvent[];
+    const all = allEvents as SampleEvent[];
     const counts: Record<string, number> = {};
     for (const cat of exploreCategories) {
       if (cat.label === 'All') counts[cat.label] = all.length;
-      else if (cat.label === 'Free') counts[cat.label] = all.filter(e => e.price === 0).length;
-      else if (cat.label === 'Council') counts[cat.label] = all.filter(e => e.isCouncil).length;
+      else if (cat.label === 'Free') counts[cat.label] = all.filter((e: any) => e.price === 0).length;
+      else if (cat.label === 'Council') counts[cat.label] = all.filter((e: any) => e.isCouncil).length;
       else if (cat.label === 'Events') counts[cat.label] = all.length;
-      else counts[cat.label] = all.filter(e => e.category === cat.label).length;
+      else counts[cat.label] = all.filter((e: any) => e.category === cat.label).length;
     }
     return counts;
-  }, [filterByLocation]);
+  }, [allEvents]);
 
   const filterItems = useMemo(
     () =>
@@ -107,40 +136,40 @@ export default function ExploreScreen() {
   );
 
   const filteredEvents = useMemo(() => {
-    let events = filterByLocation(sampleEvents) as SampleEvent[];
+    let events = allEvents as SampleEvent[];
 
     if (selectedCategory !== 'All') {
       if (selectedCategory === 'Free') {
-        events = events.filter(e => e.price === 0);
+        events = events.filter((e: any) => e.price === 0);
       } else if (selectedCategory === 'Council') {
-        events = events.filter(e => e.isCouncil);
+        events = events.filter((e: any) => e.isCouncil);
       } else if (selectedCategory !== 'Events') {
-        events = events.filter(e => e.category === selectedCategory);
+        events = events.filter((e: any) => e.category === selectedCategory);
       }
     }
 
     if (search.trim()) {
       const scored = events
-        .map(e => ({ event: e, score: scoreEvent(e, search) }))
-        .filter(s => s.score > 0);
-      scored.sort((a, b) => b.score - a.score);
-      const result = scored.map(s => s.event);
+        .map((e: any) => ({ event: e, score: scoreEvent(e, search) }))
+        .filter((s: any) => s.score > 0);
+      scored.sort((a: any, b: any) => b.score - a.score);
+      const result = scored.map((s: any) => s.event);
       if (sortMode === 'date') {
-        result.sort((a, b) => a.date.localeCompare(b.date));
+        result.sort((a: any, b: any) => a.date.localeCompare(b.date));
       }
       return result;
     }
 
     if (sortMode === 'date') {
-      return [...events].sort((a, b) => a.date.localeCompare(b.date));
+      return [...events].sort((a: any, b: any) => a.date.localeCompare(b.date));
     }
 
-    return [...events].sort((a, b) => {
+    return [...events].sort((a: any, b: any) => {
       if (a.isFeatured && !b.isFeatured) return -1;
       if (!a.isFeatured && b.isFeatured) return 1;
       return b.attending - a.attending;
     });
-  }, [search, selectedCategory, sortMode, filterByLocation]);
+  }, [search, selectedCategory, sortMode, allEvents]);
 
   const handleShareEvent = useCallback(async (event: SampleEvent) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -156,7 +185,7 @@ export default function ExploreScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const handleRefresh = useCallback(() => {
     setRefreshing(true);
-    setTimeout(() => setRefreshing(false), 1000);
+    setTimeout(() => setRefreshing(false), 800);
   }, []);
 
   const handleCategorySelect = useCallback((label: string) => {
@@ -228,6 +257,11 @@ export default function ExploreScreen() {
         </Pressable>
       </View>
 
+      {isLoading ? (
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', paddingTop: 60 }}>
+          <ActivityIndicator size="large" color={Colors.primary} />
+        </View>
+      ) : (
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.results}
@@ -282,6 +316,7 @@ export default function ExploreScreen() {
 
         <View style={{ height: 100 }} />
       </ScrollView>
+      )}
     </View>
   );
 }

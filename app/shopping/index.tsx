@@ -1,24 +1,60 @@
-import { View, Text, Pressable, StyleSheet, ScrollView, Platform, Image } from 'react-native';
+import { View, Text, Pressable, StyleSheet, ScrollView, Platform, Image, ActivityIndicator } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { sampleShopping, shoppingCategories } from '@/data/mockData';
 import Colors from '@/constants/colors';
 import { useState, useMemo } from 'react';
 import * as Haptics from 'expo-haptics';
 import Animated, { FadeInDown } from 'react-native-reanimated';
-import { useLocationFilter } from '@/hooks/useLocationFilter';
+import { useQuery } from '@tanstack/react-query';
+import { getApiUrl } from '@/lib/query-client';
+import { useOnboarding } from '@/contexts/OnboardingContext';
+import { fetch } from 'expo/fetch';
+
+const shoppingCategories = [
+  { label: 'All', icon: 'bag-handle', color: '#1C1C1E' },
+  { label: 'Groceries', icon: 'cart', color: '#E85D3A' },
+  { label: 'Fashion', icon: 'shirt', color: '#9B59B6' },
+  { label: 'Jewellery', icon: 'diamond', color: '#F2A93B' },
+  { label: 'Electronics', icon: 'phone-portrait', color: '#3498DB' },
+  { label: 'Health & Wellness', icon: 'leaf', color: '#2ECC71' },
+  { label: 'Books & Gifts', icon: 'book', color: '#E74C3C' },
+];
 
 export default function ShoppingScreen() {
   const insets = useSafeAreaInsets();
   const topInset = Platform.OS === 'web' ? 67 : insets.top;
   const [selectedCat, setSelectedCat] = useState('All');
-  const { filterByLocation } = useLocationFilter();
+  const { state } = useOnboarding();
+
+  const queryParams = new URLSearchParams();
+  if (state.country) queryParams.set('country', state.country);
+  if (state.city) queryParams.set('city', state.city);
+  const qs = queryParams.toString();
+
+  const { data: stores = [], isLoading } = useQuery({
+    queryKey: ['/api/shopping', state.country, state.city],
+    queryFn: async () => {
+      const base = getApiUrl();
+      const url = `${base}api/shopping${qs ? `?${qs}` : ''}`;
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`${res.status}`);
+      return res.json();
+    },
+  });
 
   const filtered = useMemo(() => {
-    if (selectedCat === 'All') return filterByLocation(sampleShopping);
-    return filterByLocation(sampleShopping).filter(s => s.category === selectedCat);
-  }, [selectedCat, filterByLocation]);
+    if (selectedCat === 'All') return stores;
+    return stores.filter((s: any) => s.category === selectedCat);
+  }, [selectedCat, stores]);
+
+  if (isLoading) {
+    return (
+      <View style={[styles.container, { paddingTop: topInset, justifyContent: 'center', alignItems: 'center' }]}>
+        <ActivityIndicator size="large" color={Colors.primary} />
+      </View>
+    );
+  }
 
   return (
     <View style={[styles.container, { paddingTop: topInset }]}>
@@ -43,7 +79,7 @@ export default function ShoppingScreen() {
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.list}>
         <Text style={styles.resultCount}>{filtered.length} stores found</Text>
-        {filtered.map((store, index) => (
+        {filtered.map((store: any, index: number) => (
           <Animated.View key={store.id} entering={FadeInDown.delay(index * 60).duration(400)}>
             <Pressable style={styles.card} onPress={() => router.push({ pathname: '/shopping/[id]', params: { id: store.id } })}>
               <View style={styles.cardTop}>
@@ -64,7 +100,7 @@ export default function ShoppingScreen() {
               <Text style={styles.storeDesc} numberOfLines={2}>{store.description}</Text>
               {store.deals.length > 0 && (
                 <View style={styles.dealsRow}>
-                  {store.deals.slice(0, 2).map((deal, i) => (
+                  {store.deals.slice(0, 2).map((deal: any, i: number) => (
                     <View key={i} style={styles.dealPill}>
                       <Ionicons name="pricetag" size={12} color={Colors.primary} />
                       <Text style={styles.dealText}>{deal.title}: <Text style={styles.dealDiscount}>{deal.discount}</Text></Text>

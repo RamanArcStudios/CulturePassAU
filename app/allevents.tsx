@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import {
-  StyleSheet, Text, View, ScrollView, Pressable, Platform,
+  StyleSheet, Text, View, ScrollView, Pressable, Platform, ActivityIndicator,
 } from 'react-native';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
@@ -8,24 +8,40 @@ import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import Colors from '@/constants/colors';
-import { sampleEvents } from '@/data/mockData';
-import { useLocationFilter } from '@/hooks/useLocationFilter';
+import { useQuery } from '@tanstack/react-query';
+import { getApiUrl } from '@/lib/query-client';
+import { fetch } from 'expo/fetch';
+import { useOnboarding } from '@/contexts/OnboardingContext';
 
 export default function AllEventsScreen() {
   const insets = useSafeAreaInsets();
   const [selectedCategory, setSelectedCategory] = useState('All');
-  const { filterByLocation } = useLocationFilter();
+  const { state } = useOnboarding();
+
+  const { data: allEvents = [], isLoading } = useQuery({
+    queryKey: ['/api/events', state.country, state.city],
+    queryFn: async () => {
+      const base = getApiUrl();
+      const params = new URLSearchParams();
+      if (state.country) params.set('country', state.country);
+      if (state.city) params.set('city', state.city);
+      const qs = params.toString();
+      const res = await fetch(`${base}api/events${qs ? `?${qs}` : ''}`);
+      if (!res.ok) throw new Error(`${res.status}`);
+      return res.json();
+    },
+  });
 
   const CATEGORIES = useMemo(
-    () => ['All', ...new Set(filterByLocation(sampleEvents).map(e => e.category))],
-    [filterByLocation],
+    () => ['All', ...new Set(allEvents.map((e: any) => e.category))],
+    [allEvents],
   );
 
   const filtered = useMemo(() =>
     selectedCategory === 'All'
-      ? filterByLocation(sampleEvents)
-      : filterByLocation(sampleEvents).filter(e => e.category === selectedCategory),
-    [selectedCategory, filterByLocation]
+      ? allEvents
+      : allEvents.filter((e: any) => e.category === selectedCategory),
+    [selectedCategory, allEvents]
   );
 
   return (
@@ -56,11 +72,16 @@ export default function AllEventsScreen() {
         ))}
       </ScrollView>
 
+      {isLoading ? (
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+          <ActivityIndicator size="large" color={Colors.primary} />
+        </View>
+      ) : (
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.list}
       >
-        {filtered.map(event => (
+        {filtered.map((event: any) => (
           <Pressable
             key={event.id}
             style={styles.eventCard}
@@ -98,6 +119,7 @@ export default function AllEventsScreen() {
           </View>
         )}
       </ScrollView>
+      )}
     </View>
   );
 }

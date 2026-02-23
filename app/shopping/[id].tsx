@@ -1,8 +1,10 @@
-import { View, Text, Pressable, StyleSheet, ScrollView, Platform, Alert, Linking, Image, Share } from 'react-native';
+import { View, Text, Pressable, StyleSheet, ScrollView, Platform, Alert, Linking, Image, Share, ActivityIndicator } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { sampleShopping } from '@/data/mockData';
+import { useQuery } from '@tanstack/react-query';
+import { getApiUrl } from '@/lib/query-client';
+import { fetch } from 'expo/fetch';
 import Colors from '@/constants/colors';
 import * as Haptics from 'expo-haptics';
 
@@ -10,7 +12,18 @@ export default function ShoppingDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const insets = useSafeAreaInsets();
   const topInset = Platform.OS === 'web' ? 67 : insets.top;
-  const store = sampleShopping.find(s => s.id === id);
+  const { data: store, isLoading } = useQuery({
+    queryKey: ['/api/shopping', id],
+    queryFn: async () => {
+      const base = getApiUrl();
+      const res = await fetch(`${base}api/shopping/${id}`);
+      if (!res.ok) throw new Error(`${res.status}`);
+      return res.json();
+    },
+    enabled: !!id,
+  });
+
+  if (isLoading) return <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}><ActivityIndicator size="large" color={Colors.primary} /></View>;
   if (!store) return <View style={styles.container}><Text>Store not found</Text></View>;
 
   const handleShare = async () => {

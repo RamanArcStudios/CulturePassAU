@@ -15,17 +15,17 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useSaved } from '@/contexts/SavedContext';
-import { sampleEvents, traditionalLands } from '@/data/mockData';
 import Colors, { shadows } from '@/constants/colors';
 import * as Haptics from 'expo-haptics';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useQuery, useMutation } from '@tanstack/react-query';
-import { apiRequest, queryClient } from '@/lib/query-client';
+import { apiRequest, queryClient, getApiUrl } from '@/lib/query-client';
+import { fetch } from 'expo/fetch';
 import * as WebBrowser from 'expo-web-browser';
 
-type SampleEvent = (typeof sampleEvents)[number];
+type SampleEvent = any;
 
 function formatDate(dateStr: string): string {
   const [year, month, day] = dateStr.split('-').map(Number);
@@ -56,10 +56,29 @@ export default function EventDetailScreen() {
   const bottomInset = Platform.OS === 'web' ? 34 : insets.bottom;
   const { isEventSaved, toggleSaveEvent } = useSaved();
 
-  const event = useMemo(
-    () => sampleEvents.find(e => e.id === id),
-    [id],
-  );
+  const { data: event, isLoading } = useQuery({
+    queryKey: ['/api/events', id],
+    queryFn: async () => {
+      const base = getApiUrl();
+      const res = await fetch(`${base}api/events/${id}`);
+      if (!res.ok) throw new Error(`${res.status}`);
+      return res.json();
+    },
+    enabled: !!id,
+  });
+
+  if (isLoading) {
+    return (
+      <View
+        style={[
+          styles.container,
+          { paddingTop: topInset, justifyContent: 'center', alignItems: 'center' },
+        ]}
+      >
+        <ActivityIndicator size="large" color={Colors.primary} />
+      </View>
+    );
+  }
 
   if (!event) {
     return (
@@ -273,16 +292,26 @@ function EventDetail({ event, topInset, bottomInset }: EventDetailProps) {
     [event.attending, event.capacity],
   );
 
+  const { data: allEventsForRelated = [] } = useQuery({
+    queryKey: ['/api/events'],
+    queryFn: async () => {
+      const base = getApiUrl();
+      const res = await fetch(`${base}api/events`);
+      if (!res.ok) throw new Error(`${res.status}`);
+      return res.json();
+    },
+  });
+
   const relatedEvents = useMemo(
     () =>
-      sampleEvents
+      allEventsForRelated
         .filter(
-          e =>
+          (e: any) =>
             e.id !== event.id &&
             (e.category === event.category || e.communityTag === event.communityTag),
         )
         .slice(0, 3),
-    [event.id, event.category, event.communityTag],
+    [event.id, event.category, event.communityTag, allEventsForRelated],
   );
 
   const avatarCount = 5;

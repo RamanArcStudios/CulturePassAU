@@ -1,26 +1,61 @@
-import { View, Text, Pressable, StyleSheet, ScrollView, Platform, Image } from 'react-native';
+import { View, Text, Pressable, StyleSheet, ScrollView, Platform, Image, ActivityIndicator } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { sampleActivities, activityCategories } from '@/data/mockData';
 import Colors from '@/constants/colors';
 import { useState, useMemo } from 'react';
 import * as Haptics from 'expo-haptics';
 import Animated, { FadeInDown } from 'react-native-reanimated';
-import { useLocationFilter } from '@/hooks/useLocationFilter';
+import { useQuery } from '@tanstack/react-query';
+import { getApiUrl } from '@/lib/query-client';
+import { useOnboarding } from '@/contexts/OnboardingContext';
+import { fetch } from 'expo/fetch';
+
+const activityCategories = [
+  { label: 'All', icon: 'compass', color: '#1C1C1E' },
+  { label: 'Theme Parks', icon: 'happy', color: '#E85D3A' },
+  { label: 'Gaming', icon: 'game-controller', color: '#9B59B6' },
+  { label: 'Workshops', icon: 'construct', color: '#F2A93B' },
+  { label: 'Nature', icon: 'leaf', color: '#2ECC71' },
+  { label: 'Fitness', icon: 'fitness', color: '#E74C3C' },
+];
 
 export default function ActivitiesScreen() {
   const insets = useSafeAreaInsets();
   const topInset = Platform.OS === 'web' ? 67 : insets.top;
   const [selectedCat, setSelectedCat] = useState('All');
-  const { filterByLocation } = useLocationFilter();
+  const { state } = useOnboarding();
+
+  const queryParams = new URLSearchParams();
+  if (state.country) queryParams.set('country', state.country);
+  if (state.city) queryParams.set('city', state.city);
+  const qs = queryParams.toString();
+
+  const { data: activities = [], isLoading } = useQuery({
+    queryKey: ['/api/activities', state.country, state.city],
+    queryFn: async () => {
+      const base = getApiUrl();
+      const url = `${base}api/activities${qs ? `?${qs}` : ''}`;
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`${res.status}`);
+      return res.json();
+    },
+  });
 
   const filtered = useMemo(() => {
-    if (selectedCat === 'All') return filterByLocation(sampleActivities);
-    return filterByLocation(sampleActivities).filter(a => a.category === selectedCat);
-  }, [selectedCat, filterByLocation]);
+    if (selectedCat === 'All') return activities;
+    return activities.filter((a: any) => a.category === selectedCat);
+  }, [selectedCat, activities]);
 
-  const popular = filterByLocation(sampleActivities).filter(a => a.isPopular);
+  const popular = useMemo(() => activities.filter((a: any) => a.isPopular), [activities]);
+
+  if (isLoading) {
+    return (
+      <View style={[styles.container, { paddingTop: topInset, justifyContent: 'center', alignItems: 'center' }]}>
+        <ActivityIndicator size="large" color={Colors.primary} />
+      </View>
+    );
+  }
 
   return (
     <View style={[styles.container, { paddingTop: topInset }]}>
@@ -35,7 +70,7 @@ export default function ActivitiesScreen() {
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Popular Near You</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 20, gap: 14 }}>
-              {popular.map((act, i) => (
+              {popular.map((act: any, i: number) => (
                 <Animated.View key={act.id} entering={FadeInDown.delay(i * 80).duration(400)}>
                   <Pressable style={styles.popularCard} onPress={() => router.push({ pathname: '/activities/[id]', params: { id: act.id } })}>
                     <View style={[styles.popularBanner]}>
@@ -74,7 +109,7 @@ export default function ActivitiesScreen() {
 
         <View style={styles.listSection}>
           <Text style={styles.resultCount}>{filtered.length} activities found</Text>
-          {filtered.map((act, index) => (
+          {filtered.map((act: any, index: number) => (
             <Animated.View key={act.id} entering={FadeInDown.delay(index * 60).duration(400)}>
               <Pressable style={styles.card} onPress={() => router.push({ pathname: '/activities/[id]', params: { id: act.id } })}>
                 <Image source={{ uri: act.imageUrl }} style={styles.cardIcon} />

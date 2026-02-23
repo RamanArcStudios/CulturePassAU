@@ -8,7 +8,8 @@ import * as Haptics from 'expo-haptics';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useState } from 'react';
 import type { Profile, Review } from '@/shared/schema';
-import { sampleEvents } from '@/data/mockData';
+import { getApiUrl } from '@/lib/query-client';
+import { fetch } from 'expo/fetch';
 
 const ENTITY_COLORS: Record<string, string> = {
   community: '#E85D3A',
@@ -105,18 +106,28 @@ export default function ProfileDetailScreen() {
   const profileCategory = (profile.category || '').toLowerCase();
   const profileTags = (profile.tags || []) as string[];
   const profileLocation = (profile.city || profile.location || '').toLowerCase();
-  const matchedEvents = sampleEvents.filter(ev => {
-    const tag = ev.communityTag.toLowerCase();
-    const organizer = ev.organizer.toLowerCase();
-    const venue = ev.venue.toLowerCase();
-    const nameWords = profileName.split(/\s+/).filter(w => w.length > 2);
-    return nameWords.some(w => tag.includes(w) || organizer.includes(w)) ||
-      profileTags.some(t => tag.includes(t.toLowerCase()) || ev.category.toLowerCase().includes(t.toLowerCase())) ||
+  const { data: allEventsData = [] } = useQuery<any[]>({
+    queryKey: ['/api/events'],
+    queryFn: async () => {
+      const base = getApiUrl();
+      const res = await fetch(`${base}api/events`);
+      if (!res.ok) throw new Error(`${res.status}`);
+      return res.json();
+    },
+  });
+
+  const matchedEvents = allEventsData.filter(ev => {
+    const tag = (ev.communityTag || '').toLowerCase();
+    const organizer = (ev.organizer || '').toLowerCase();
+    const venue = (ev.venue || '').toLowerCase();
+    const nameWords = profileName.split(/\s+/).filter((w: string) => w.length > 2);
+    return nameWords.some((w: string) => tag.includes(w) || organizer.includes(w)) ||
+      profileTags.some((t: string) => tag.includes(t.toLowerCase()) || (ev.category || '').toLowerCase().includes(t.toLowerCase())) ||
       (profileLocation && venue.includes(profileLocation));
   });
   const upcomingEvents = matchedEvents.length > 0
     ? matchedEvents.slice(0, 4)
-    : sampleEvents.filter(ev => ev.isFeatured || ev.price === 0).slice(0, 4);
+    : allEventsData.filter(ev => ev.isFeatured || ev.price === 0).slice(0, 4);
 
   const stats = [
     profile.followersCount ? { label: 'Followers', value: profile.followersCount } : null,
