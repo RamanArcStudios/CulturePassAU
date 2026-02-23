@@ -312,6 +312,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // === Memberships ===
+  app.get("/api/membership/member-count", async (_req: Request, res: Response) => {
+    const count = await storage.getMemberCount();
+    res.json({ count });
+  });
+
   app.get("/api/membership/:userId", async (req: Request, res: Response) => {
     const membership = await storage.getMembership(p(req.params.userId));
     res.json(membership || { tier: "free", status: "active" });
@@ -330,11 +335,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const membership = await storage.updateMembership(p(req.params.id), req.body);
     if (!membership) return res.status(404).json({ error: "Membership not found" });
     res.json(membership);
-  });
-
-  app.get("/api/membership/member-count", async (_req: Request, res: Response) => {
-    const count = await storage.getMemberCount();
-    res.json({ count });
   });
 
   app.post("/api/membership/subscribe", async (req: Request, res: Response) => {

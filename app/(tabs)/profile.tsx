@@ -334,7 +334,13 @@ export default function ProfileScreen() {
         </Animated.View>
 
         {nextTierInfo && (
-          <Pressable style={[styles.upgradeCta, { backgroundColor: nextTierInfo.color + '08' }]}>
+          <Pressable
+            style={[styles.upgradeCta, { backgroundColor: nextTierInfo.color + '08' }]}
+            onPress={() => {
+              if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              router.push('/membership/upgrade');
+            }}
+          >
             <View style={[styles.upgradeIconWrap, { backgroundColor: nextTierInfo.color + '12' }]}>
               <Ionicons name="arrow-up-circle" size={20} color={nextTierInfo.color} />
             </View>
