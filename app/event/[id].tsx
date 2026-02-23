@@ -1179,7 +1179,7 @@ const styles = StyleSheet.create({
   earlyAccessBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#EBF5FB',
+    backgroundColor: 'rgba(0, 122, 255, 0.08)',
     marginHorizontal: 20,
     marginTop: 4,
     marginBottom: 8,
@@ -1193,7 +1193,7 @@ const styles = StyleSheet.create({
   earlyAccessText: { fontSize: 12, fontWeight: '600', color: '#1A5276' },
   earlyAccessDot: { width: 3, height: 3, borderRadius: 1.5, backgroundColor: '#2E86C1', opacity: 0.4 },
   educationCard: {
-    backgroundColor: '#FDF8F3',
+    backgroundColor: 'rgba(255, 149, 0, 0.08)',
     borderRadius: 16,
     padding: 16,
     borderLeftWidth: 4,
@@ -1229,7 +1229,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: 8,
-    backgroundColor: '#EBF5FB',
+    backgroundColor: 'rgba(0, 122, 255, 0.08)',
     borderRadius: 10,
     padding: 12,
     marginTop: 8,
@@ -1408,7 +1408,7 @@ const modalStyles = StyleSheet.create({
   cashbackNote: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#EBF5FB',
+    backgroundColor: 'rgba(0, 122, 255, 0.08)',
     borderRadius: 8,
     padding: 10,
     marginBottom: 12,
@@ -1423,7 +1423,7 @@ const modalStyles = StyleSheet.create({
   upgradeNote: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#EBF5FB',
+    backgroundColor: 'rgba(0, 122, 255, 0.08)',
     borderRadius: 8,
     padding: 10,
     marginBottom: 12,
@@ -1466,7 +1466,7 @@ const modalStyles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: '#E8F8F0',
+    backgroundColor: 'rgba(52, 199, 89, 0.08)',
     borderRadius: 8,
     paddingVertical: 8,
     paddingHorizontal: 12,

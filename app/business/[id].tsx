@@ -104,7 +104,7 @@ export default function BusinessDetailScreen() {
         {business.isIndigenousOwned && (
           <Animated.View entering={FadeInDown.delay(150).duration(500)} style={styles.section}>
             <View style={{
-              backgroundColor: '#FDF8F3',
+              backgroundColor: 'rgba(255, 149, 0, 0.08)',
               borderRadius: 16,
               padding: 16,
               borderLeftWidth: 4,

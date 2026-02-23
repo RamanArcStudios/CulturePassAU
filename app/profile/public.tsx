@@ -39,9 +39,9 @@ const CP = {
   darkRaised: '#1E2535',
   muted:      '#94A3B8',
   border:     '#2D3748',
-  bg:         '#F8F9FA',
-  surface:    '#FFFFFF',
-  text:       '#0D0F14',
+  bg:         '#0A0A0F',
+  surface:    '#1A1A22',
+  text:       '#FFFFFF',
   success:    '#10B981',
   info:       '#3B82F6',
 } as const;
