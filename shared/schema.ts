@@ -636,6 +636,256 @@ export const eventCommunities = pgTable(
 );
 
 /* ======================================================
+   EVENTS
+====================================================== */
+
+export const events = pgTable(
+  "events",
+  {
+    id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+    cpid: varchar("cpid").unique(),
+    title: text("title").notNull(),
+    description: text("description"),
+    date: text("date").notNull(),
+    time: text("time"),
+    venue: text("venue"),
+    address: text("address"),
+    price: doublePrecision("price").default(0),
+    priceLabel: text("price_label"),
+    category: text("category"),
+    communityTag: text("community_tag"),
+    councilTag: text("council_tag"),
+    organizer: text("organizer"),
+    organizerId: varchar("organizer_id"),
+    imageColor: text("image_color"),
+    imageUrl: text("image_url"),
+    capacity: integer("capacity").default(0),
+    attending: integer("attending").default(0),
+    isFeatured: boolean("is_featured").default(false),
+    isCouncil: boolean("is_council").default(false),
+    tiers: jsonb("tiers").$type<{ name: string; price: number; available: number }[]>(),
+    country: text("country"),
+    city: text("city"),
+    indigenousTags: jsonb("indigenous_tags").$type<string[]>(),
+    languageTags: jsonb("language_tags").$type<string[]>(),
+    nationalSignificance: doublePrecision("national_significance").default(0),
+    createdAt: timestamp("created_at").defaultNow(),
+  },
+  (table) => ({
+    categoryIdx: index("events_category_idx").on(table.category),
+    cityIdx: index("events_city_idx").on(table.city),
+    countryIdx: index("events_country_idx").on(table.country),
+    featuredIdx: index("events_featured_idx").on(table.isFeatured),
+  })
+);
+
+/* ======================================================
+   BUSINESSES
+====================================================== */
+
+export const businesses = pgTable(
+  "businesses",
+  {
+    id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+    cpid: varchar("cpid").unique(),
+    name: text("name").notNull(),
+    category: text("category"),
+    description: text("description"),
+    rating: doublePrecision("rating").default(0),
+    reviews: integer("reviews").default(0),
+    location: text("location"),
+    phone: text("phone"),
+    services: jsonb("services").$type<string[]>(),
+    color: text("color"),
+    icon: text("icon"),
+    isVerified: boolean("is_verified").default(false),
+    priceRange: text("price_range"),
+    imageUrl: text("image_url"),
+    country: text("country"),
+    city: text("city"),
+    isIndigenousOwned: boolean("is_indigenous_owned").default(false),
+    supplyNationRegistered: boolean("supply_nation_registered").default(false),
+    indigenousCategory: text("indigenous_category"),
+    createdAt: timestamp("created_at").defaultNow(),
+  },
+  (table) => ({
+    categoryIdx: index("businesses_category_idx").on(table.category),
+    cityIdx: index("businesses_city_idx").on(table.city),
+  })
+);
+
+/* ======================================================
+   MOVIES
+====================================================== */
+
+export const movies = pgTable(
+  "movies",
+  {
+    id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+    cpid: varchar("cpid").unique(),
+    title: text("title").notNull(),
+    genre: jsonb("genre").$type<string[]>(),
+    language: text("language"),
+    duration: text("duration"),
+    rating: text("rating"),
+    imdbScore: doublePrecision("imdb_score").default(0),
+    description: text("description"),
+    director: text("director"),
+    cast: jsonb("cast").$type<string[]>(),
+    releaseDate: text("release_date"),
+    posterColor: text("poster_color"),
+    posterUrl: text("poster_url"),
+    icon: text("icon"),
+    showtimes: jsonb("showtimes").$type<{ cinema: string; times: string[]; price: number }[]>(),
+    isTrending: boolean("is_trending").default(false),
+    country: text("country"),
+    city: text("city"),
+    createdAt: timestamp("created_at").defaultNow(),
+  },
+  (table) => ({
+    cityIdx: index("movies_city_idx").on(table.city),
+  })
+);
+
+/* ======================================================
+   RESTAURANTS
+====================================================== */
+
+export const restaurants = pgTable(
+  "restaurants",
+  {
+    id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+    cpid: varchar("cpid").unique(),
+    name: text("name").notNull(),
+    cuisine: text("cuisine"),
+    description: text("description"),
+    rating: doublePrecision("rating").default(0),
+    reviews: integer("reviews").default(0),
+    priceRange: text("price_range"),
+    location: text("location"),
+    address: text("address"),
+    phone: text("phone"),
+    hours: text("hours"),
+    features: jsonb("features").$type<string[]>(),
+    color: text("color"),
+    icon: text("icon"),
+    isOpen: boolean("is_open").default(true),
+    deliveryAvailable: boolean("delivery_available").default(false),
+    reservationAvailable: boolean("reservation_available").default(false),
+    menuHighlights: jsonb("menu_highlights").$type<string[]>(),
+    imageUrl: text("image_url"),
+    country: text("country"),
+    city: text("city"),
+    createdAt: timestamp("created_at").defaultNow(),
+  },
+  (table) => ({
+    cuisineIdx: index("restaurants_cuisine_idx").on(table.cuisine),
+    cityIdx: index("restaurants_city_idx").on(table.city),
+  })
+);
+
+/* ======================================================
+   ACTIVITIES
+====================================================== */
+
+export const activities = pgTable(
+  "activities",
+  {
+    id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+    cpid: varchar("cpid").unique(),
+    name: text("name").notNull(),
+    category: text("category"),
+    description: text("description"),
+    location: text("location"),
+    price: doublePrecision("price").default(0),
+    priceLabel: text("price_label"),
+    rating: doublePrecision("rating").default(0),
+    reviews: integer("reviews").default(0),
+    duration: text("duration"),
+    color: text("color"),
+    icon: text("icon"),
+    highlights: jsonb("highlights").$type<string[]>(),
+    ageGroup: text("age_group"),
+    isPopular: boolean("is_popular").default(false),
+    imageUrl: text("image_url"),
+    country: text("country"),
+    city: text("city"),
+    indigenousTags: jsonb("indigenous_tags").$type<string[]>(),
+    createdAt: timestamp("created_at").defaultNow(),
+  },
+  (table) => ({
+    categoryIdx: index("activities_category_idx").on(table.category),
+    cityIdx: index("activities_city_idx").on(table.city),
+  })
+);
+
+/* ======================================================
+   SHOPPING
+====================================================== */
+
+export const shopping = pgTable(
+  "shopping",
+  {
+    id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+    cpid: varchar("cpid").unique(),
+    name: text("name").notNull(),
+    category: text("category"),
+    description: text("description"),
+    location: text("location"),
+    rating: doublePrecision("rating").default(0),
+    reviews: integer("reviews").default(0),
+    color: text("color"),
+    icon: text("icon"),
+    deals: jsonb("deals").$type<{ title: string; discount: string; validTill: string }[]>(),
+    isOpen: boolean("is_open").default(true),
+    deliveryAvailable: boolean("delivery_available").default(false),
+    imageUrl: text("image_url"),
+    country: text("country"),
+    city: text("city"),
+    createdAt: timestamp("created_at").defaultNow(),
+  },
+  (table) => ({
+    categoryIdx: index("shopping_category_idx").on(table.category),
+    cityIdx: index("shopping_city_idx").on(table.city),
+  })
+);
+
+/* ======================================================
+   INDIGENOUS SPOTLIGHTS
+====================================================== */
+
+export const indigenousSpotlights = pgTable(
+  "indigenous_spotlights",
+  {
+    id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+    title: text("title").notNull(),
+    description: text("description"),
+    imageUrl: text("image_url"),
+    type: text("type"),
+    createdAt: timestamp("created_at").defaultNow(),
+  }
+);
+
+/* ======================================================
+   TRADITIONAL LANDS
+====================================================== */
+
+export const traditionalLands = pgTable(
+  "traditional_lands",
+  {
+    id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+    city: text("city").notNull(),
+    country: text("country").notNull(),
+    traditionalName: text("traditional_name").notNull(),
+    peoples: text("peoples").notNull(),
+    createdAt: timestamp("created_at").defaultNow(),
+  },
+  (table) => ({
+    cityIdx: uniqueIndex("traditional_lands_city_idx").on(table.city, table.country),
+  })
+);
+
+/* ======================================================
    TYPES
 ====================================================== */
 
@@ -660,6 +910,14 @@ export type Location = typeof locations.$inferSelect;
 export type Community = typeof communities.$inferSelect;
 export type UserCommunity = typeof userCommunities.$inferSelect;
 export type EventCommunity = typeof eventCommunities.$inferSelect;
+export type Event = typeof events.$inferSelect;
+export type Business = typeof businesses.$inferSelect;
+export type Movie = typeof movies.$inferSelect;
+export type Restaurant = typeof restaurants.$inferSelect;
+export type Activity = typeof activities.$inferSelect;
+export type Shopping = typeof shopping.$inferSelect;
+export type IndigenousSpotlight = typeof indigenousSpotlights.$inferSelect;
+export type TraditionalLand = typeof traditionalLands.$inferSelect;
 
 /* ======================================================
    INSERT SCHEMAS
