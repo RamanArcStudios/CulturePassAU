@@ -32,6 +32,15 @@ Shared types between frontend and backend ensure type consistency. Path aliases 
 
 ## Recent Changes (Feb 2026)
 
+### Location Filtering & UI Improvements (Feb 23, 2026)
+- Added country/city fields to all mock data interfaces (EventData, CommunityData, BusinessData, MovieData, RestaurantData, ActivityData, ShoppingData)
+- Expanded mock data to 100+ items across 11 cities in 5 countries (AU, NZ, UAE, UK, CA)
+- Created `hooks/useLocationFilter.ts` hook that reads user's selected country/city from OnboardingContext and filters data
+- Applied location filtering to all screens: Home, Explore, Calendar, Movies, Restaurants, Activities, Shopping, All Events
+- LocationPicker shortens long country names in trigger display (UAE, UK, NZ)
+- Redesigned all filter/category buttons app-wide to pill-shaped capsules (borderRadius: 50) with inline icons, no icon wrapper boxes
+- Consistent filter button styling: active = filled accent color, inactive = white surface with thin border
+
 ### Production Hardening (Feb 23, 2026)
 - Standardized error handling: `server/errors.ts` with AppError class, 29 error codes, wrapHandler middleware, in-memory rate limiter
 - Frontend error mapping: `lib/errors.ts` with user-friendly message mapping, extractApiError, showErrorAlert helpers

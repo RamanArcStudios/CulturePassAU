@@ -1,4 +1,4 @@
-import { View, Text, Pressable, StyleSheet, ScrollView } from 'react-native';
+import { View, Text, Pressable, StyleSheet, ScrollView, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Colors from '@/constants/colors';
 import * as Haptics from 'expo-haptics';
@@ -31,33 +31,26 @@ export function FilterChip({ item, isActive, onPress, size = 'medium' }: FilterC
       style={({ pressed }) => [
         styles.chip,
         isSmall && styles.chipSmall,
-        isActive && { backgroundColor: accentColor, borderColor: accentColor },
+        isActive
+          ? { backgroundColor: accentColor, borderColor: accentColor }
+          : { backgroundColor: Colors.surface, borderColor: Colors.borderLight },
         pressed && !isActive && styles.chipPressed,
         isActive && styles.chipActiveShadow,
+        Platform.OS === 'web' && { cursor: 'pointer' as any },
       ]}
     >
       {item.icon ? (
-        <View
-          style={[
-            styles.iconWrap,
-            isSmall && styles.iconWrapSmall,
-            isActive
-              ? { backgroundColor: 'rgba(255,255,255,0.22)' }
-              : { backgroundColor: accentColor + '12' },
-          ]}
-        >
-          <Ionicons
-            name={item.icon as any}
-            size={isSmall ? 14 : 16}
-            color={isActive ? '#FFF' : accentColor}
-          />
-        </View>
+        <Ionicons
+          name={item.icon as any}
+          size={isSmall ? 14 : 15}
+          color={isActive ? '#FFF' : accentColor}
+        />
       ) : null}
       <Text
         style={[
           styles.label,
           isSmall && styles.labelSmall,
-          isActive && styles.labelActive,
+          isActive ? styles.labelActive : { color: Colors.text },
         ]}
         numberOfLines={1}
       >
@@ -121,17 +114,15 @@ const styles = StyleSheet.create({
   chip: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 7,
+    gap: 6,
     paddingHorizontal: 14,
-    paddingVertical: 10,
+    paddingVertical: 8,
     borderRadius: 50,
-    backgroundColor: Colors.card,
-    borderWidth: 1.5,
-    borderColor: Colors.cardBorder,
+    borderWidth: 1,
   },
   chipSmall: {
     paddingHorizontal: 12,
-    paddingVertical: 8,
+    paddingVertical: 6,
     gap: 5,
   },
   chipPressed: {
@@ -140,27 +131,14 @@ const styles = StyleSheet.create({
   },
   chipActiveShadow: {
     shadowColor: '#000',
-    shadowOpacity: 0.15,
-    shadowRadius: 6,
+    shadowOpacity: 0.12,
+    shadowRadius: 4,
     shadowOffset: { width: 0, height: 2 },
     elevation: 3,
-  },
-  iconWrap: {
-    width: 26,
-    height: 26,
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  iconWrapSmall: {
-    width: 22,
-    height: 22,
-    borderRadius: 6,
   },
   label: {
     fontSize: 13,
     fontFamily: 'Poppins_600SemiBold',
-    color: Colors.text,
   },
   labelSmall: {
     fontSize: 12,

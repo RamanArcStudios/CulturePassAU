@@ -67,11 +67,9 @@ export default function MoviesScreen() {
             {movieGenres.map(g => {
               const isActive = selectedGenre === g.label;
               return (
-                <Pressable key={g.label} style={[styles.genreChip, isActive && { backgroundColor: g.color, borderColor: g.color }]}
+                <Pressable key={g.label} style={[styles.genreChip, isActive ? { backgroundColor: g.color, borderColor: g.color } : { backgroundColor: Colors.surface, borderColor: Colors.borderLight }]}
                   onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setSelectedGenre(g.label); }}>
-                  <View style={[styles.genreIconWrap, isActive && { backgroundColor: 'rgba(255,255,255,0.25)' }]}>
-                    <Ionicons name={g.icon as any} size={16} color={isActive ? '#FFF' : g.color} />
-                  </View>
+                  <Ionicons name={g.icon as any} size={15} color={isActive ? '#FFF' : g.color} />
                   <Text style={[styles.genreText, isActive && { color: '#FFF' }]}>{g.label}</Text>
                 </Pressable>
               );
@@ -123,9 +121,8 @@ const styles = StyleSheet.create({
   trendingLang: { fontSize: 12, fontFamily: 'Poppins_400Regular', color: Colors.textSecondary },
   trendingMeta: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   trendingScore: { fontSize: 12, fontFamily: 'Poppins_600SemiBold', color: Colors.accent },
-  genreRow: { paddingHorizontal: 20, gap: 10, paddingBottom: 6 },
-  genreChip: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 14, paddingVertical: 10, borderRadius: 14, backgroundColor: Colors.card, borderWidth: 1.5, borderColor: Colors.cardBorder },
-  genreIconWrap: { width: 28, height: 28, borderRadius: 8, backgroundColor: '#1C1C1E12', alignItems: 'center', justifyContent: 'center' },
+  genreRow: { paddingHorizontal: 20, gap: 8, paddingBottom: 6 },
+  genreChip: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 50, borderWidth: 1 },
   genreText: { fontSize: 13, fontFamily: 'Poppins_600SemiBold', color: Colors.text },
   listSection: { paddingHorizontal: 20 },
   resultCount: { fontSize: 13, fontFamily: 'Poppins_500Medium', color: Colors.textSecondary, marginBottom: 10 },

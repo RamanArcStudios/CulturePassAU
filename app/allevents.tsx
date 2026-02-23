@@ -124,10 +124,10 @@ const styles = StyleSheet.create({
   chip: {
     paddingHorizontal: 16,
     paddingVertical: 8,
-    borderRadius: 20,
-    backgroundColor: Colors.card,
+    borderRadius: 50,
+    backgroundColor: Colors.surface,
     borderWidth: 1,
-    borderColor: Colors.cardBorder,
+    borderColor: Colors.borderLight,
   },
   chipActive: {
     backgroundColor: Colors.primary,

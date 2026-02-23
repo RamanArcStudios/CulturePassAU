@@ -32,11 +32,9 @@ export default function RestaurantsScreen() {
         {restaurantCuisines.map(c => {
           const isActive = selectedCuisine === c.label;
           return (
-            <Pressable key={c.label} style={[styles.cuisineChip, isActive && { backgroundColor: c.color, borderColor: c.color }]}
+            <Pressable key={c.label} style={[styles.cuisineChip, isActive ? { backgroundColor: c.color, borderColor: c.color } : { backgroundColor: Colors.surface, borderColor: Colors.borderLight }]}
               onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setSelectedCuisine(c.label); }}>
-              <View style={[styles.cuisineIcon, isActive && { backgroundColor: 'rgba(255,255,255,0.25)' }]}>
-                <Ionicons name={c.icon as any} size={16} color={isActive ? '#FFF' : c.color} />
-              </View>
+              <Ionicons name={c.icon as any} size={15} color={isActive ? '#FFF' : c.color} />
               <Text style={[styles.cuisineText, isActive && { color: '#FFF' }]}>{c.label}</Text>
             </Pressable>
           );
@@ -97,9 +95,8 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingVertical: 12 },
   title: { fontSize: 22, fontFamily: 'Poppins_700Bold', color: Colors.text },
-  cuisineRow: { paddingHorizontal: 20, gap: 10, paddingBottom: 14, paddingTop: 4 },
-  cuisineChip: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 14, paddingVertical: 10, borderRadius: 14, backgroundColor: Colors.card, borderWidth: 1.5, borderColor: Colors.cardBorder },
-  cuisineIcon: { width: 28, height: 28, borderRadius: 8, backgroundColor: '#1C1C1E12', alignItems: 'center', justifyContent: 'center' },
+  cuisineRow: { paddingHorizontal: 20, gap: 8, paddingBottom: 14, paddingTop: 4 },
+  cuisineChip: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 50, borderWidth: 1 },
   cuisineText: { fontSize: 13, fontFamily: 'Poppins_600SemiBold', color: Colors.text },
   list: { paddingHorizontal: 20, paddingTop: 4 },
   resultCount: { fontSize: 13, fontFamily: 'Poppins_500Medium', color: Colors.textSecondary, marginBottom: 10 },
