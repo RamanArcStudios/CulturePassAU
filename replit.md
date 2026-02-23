@@ -32,8 +32,19 @@ Shared types between frontend and backend ensure type consistency. Path aliases 
 
 ## Recent Changes (Feb 2026)
 
+### Production Hardening (Feb 23, 2026)
+- Standardized error handling: `server/errors.ts` with AppError class, 29 error codes, wrapHandler middleware, in-memory rate limiter
+- Frontend error mapping: `lib/errors.ts` with user-friendly message mapping, extractApiError, showErrorAlert helpers
+- Security: Rate limiting on purchase (5/min) and subscription (3/2min) endpoints, duplicate purchase prevention, QR scan fraud prevention
+- Ticket validation: Checks for already-scanned, cancelled, expired, and unpaid tickets with specific error codes
+- API response format: `{ success: true, data: ... }` or `{ success: false, error: { code, message } }`
+- Database indexes: Added on tickets (userId, eventId, status) and notifications (userId) tables
+- Platform-aware UI: Web layout with maxWidth: 900 centering, cursor: pointer on interactive elements, proper web insets
+
 ### Ticket Purchase Flow
-- Full ticket purchase modal on event detail screen (`app/event/[id].tsx`) with tier selection, quantity picker, and wallet payment
+- Full ticket purchase modal on event detail screen (`app/event/[id].tsx`) with Single/Family/Group buying modes
+- Family Pack: 4 tickets with 10% discount, Group: 10% at 5+, 15% at 10+
+- Price summary section with line items, discount breakdown, and total
 - Ticket detail screen (`app/tickets/[id].tsx`) with QR code visualization, event info, share and wallet save options
 - Enhanced tickets list screen (`app/tickets/index.tsx`) with tappable cards, share buttons, and "Add to Wallet" functionality
 - Server-side Apple Wallet (.pkpass) and Google Wallet pass generation endpoints at `/api/tickets/:id/wallet/apple` and `/api/tickets/:id/wallet/google`
@@ -69,6 +80,7 @@ Shared types between frontend and backend ensure type consistency. Path aliases 
 - `POST /api/stripe/refund` - Refund and cancel ticket
 - `GET /api/stripe/checkout-success` - Checkout success redirect handler
 - `GET /api/stripe/checkout-cancel` - Checkout cancel redirect handler
+- `POST /api/tickets/:id/scan` - QR code scan validation with fraud prevention
 
 ## External Dependencies
 
