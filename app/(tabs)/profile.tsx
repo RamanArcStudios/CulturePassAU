@@ -115,7 +115,7 @@ function ToggleItem({
           value={value}
           onValueChange={onToggle}
           trackColor={{ false: Colors.border, true: Colors.primary + '60' }}
-          thumbColor={value ? Colors.primary : '#f4f3f4'}
+          thumbColor={value ? Colors.primary : Colors.textTertiary}
         />
       </View>
       {showDivider && <View style={styles.divider} />}
