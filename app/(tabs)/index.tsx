@@ -10,6 +10,7 @@ import {
   Share,
   RefreshControl,
   Image,
+  ActivityIndicator,
 } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -17,14 +18,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useOnboarding } from '@/contexts/OnboardingContext';
 import { useSaved } from '@/contexts/SavedContext';
 import {
-  sampleEvents,
-  sampleMovies,
-  sampleRestaurants,
-  sampleActivities,
-  sampleShopping,
   superAppSections,
   traditionalLands,
-  indigenousSpotlights,
 } from '@/data/mockData';
 import { LinearGradient } from 'expo-linear-gradient';
 import Colors from '@/constants/colors';
@@ -32,12 +27,10 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 import { useQuery } from '@tanstack/react-query';
 import { User } from '@shared/schema';
-import { getQueryFn } from '@/lib/query-client';
+import { getQueryFn, getApiUrl } from '@/lib/query-client';
 import { useMemo, useCallback, useState } from 'react';
 import { LocationPicker } from '@/components/LocationPicker';
-import { useLocationFilter } from '@/hooks/useLocationFilter';
-
-type SampleEvent = (typeof sampleEvents)[number];
+import { fetch } from 'expo/fetch';
 
 const { width } = Dimensions.get('window');
 const CARD_WIDTH = width - 40;
@@ -51,6 +44,25 @@ const SECTION_ROUTES: Record<string, string> = {
   directory: '/(tabs)/directory',
 };
 
+interface DiscoverSection {
+  title: string;
+  subtitle?: string;
+  type: 'events' | 'communities' | 'businesses' | 'activities' | 'spotlight' | 'mixed';
+  items: any[];
+  priority: number;
+}
+
+interface DiscoverFeed {
+  sections: DiscoverSection[];
+  meta: {
+    userId: string;
+    city: string;
+    country: string;
+    generatedAt: string;
+    totalItems: number;
+  };
+}
+
 function formatDate(dateStr: string): string {
   const [year, month, day] = dateStr.split('-').map(Number);
   if (!year || !month || !day) return dateStr;
@@ -58,7 +70,12 @@ function formatDate(dateStr: string): string {
   return d.toLocaleDateString('en-AU', { day: 'numeric', month: 'short' });
 }
 
-function FeaturedEventCard({ event }: { event: SampleEvent }) {
+function useDemoUserId() {
+  const { data } = useQuery<{ id: string }[]>({ queryKey: ['/api/users'] });
+  return data?.[0]?.id;
+}
+
+function EventCard({ event, compact }: { event: any; compact?: boolean }) {
   const { isEventSaved, toggleSaveEvent } = useSaved();
   const saved = isEventSaved(event.id);
 
@@ -77,10 +94,32 @@ function FeaturedEventCard({ event }: { event: SampleEvent }) {
     toggleSaveEvent(event.id);
   }, [event.id, toggleSaveEvent]);
 
+  if (compact) {
+    return (
+      <Pressable
+        style={[styles.compactCard, Platform.OS === 'web' && { cursor: 'pointer' as any }]}
+        onPress={() => router.push({ pathname: '/event/[id]', params: { id: event.id } })}
+      >
+        <Image source={{ uri: event.imageUrl }} style={styles.compactImage} />
+        <View style={styles.compactInfo}>
+          <View style={styles.compactCommunityRow}>
+            <Text style={styles.compactCommunityTag}>{event.communityTag}</Text>
+          </View>
+          <Text style={styles.compactTitle} numberOfLines={2}>{event.title}</Text>
+          <View style={styles.compactMeta}>
+            <Ionicons name="calendar-outline" size={12} color={Colors.textSecondary} />
+            <Text style={styles.compactMetaText}>{formatDate(event.date)}</Text>
+          </View>
+          <Text style={styles.compactPrice}>{event.priceLabel}</Text>
+        </View>
+      </Pressable>
+    );
+  }
+
   return (
     <View style={styles.featuredCardOuter}>
       <Pressable
-        style={[styles.featuredCard, Platform.OS === 'web' && { cursor: 'pointer' }]}
+        style={[styles.featuredCard, Platform.OS === 'web' && { cursor: 'pointer' as any }]}
         onPress={() =>
           router.push({ pathname: '/event/[id]', params: { id: event.id } })
         }
@@ -139,15 +178,182 @@ function FeaturedEventCard({ event }: { event: SampleEvent }) {
   );
 }
 
+function CommunityCard({ community }: { community: any }) {
+  const isMockCommunity = !!community.color;
+  const name = community.name;
+  const desc = community.description;
+  const members = community.memberCount || community.members || 0;
+  const emoji = community.iconEmoji || '';
+  const color = community.color || Colors.primary;
+
+  return (
+    <Pressable
+      style={[styles.communityCard, Platform.OS === 'web' && { cursor: 'pointer' as any }]}
+      onPress={() => {
+        if (isMockCommunity) {
+          router.push({ pathname: '/community/[id]', params: { id: community.id } });
+        }
+      }}
+    >
+      <View style={[styles.communityIconWrap, { backgroundColor: color + '15' }]}>
+        {emoji ? (
+          <Text style={{ fontSize: 22 }}>{emoji}</Text>
+        ) : (
+          <Ionicons name={(community.icon || 'people') as any} size={22} color={color} />
+        )}
+      </View>
+      <Text style={styles.communityName} numberOfLines={1}>{name}</Text>
+      <Text style={styles.communityMembers}>{members} members</Text>
+      {desc ? <Text style={styles.communityDesc} numberOfLines={2}>{desc}</Text> : null}
+    </Pressable>
+  );
+}
+
+function SpotlightCard({ item }: { item: any }) {
+  const hasIndigenousTags = item.indigenousTags && item.indigenousTags.length > 0;
+
+  return (
+    <Pressable
+      style={[styles.spotlightCard, Platform.OS === 'web' && { cursor: 'pointer' as any }]}
+      onPress={() => {
+        if (item.venue) {
+          router.push({ pathname: '/event/[id]', params: { id: item.id } });
+        } else if (item.services) {
+          router.push({ pathname: '/business/[id]', params: { id: item.id } });
+        } else if (item.priceLabel) {
+          router.push({ pathname: '/activities/[id]', params: { id: item.id } });
+        }
+      }}
+    >
+      <LinearGradient
+        colors={['#5D4037', '#8B4513']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 0 }}
+        style={styles.spotlightBanner}
+      >
+        <View style={styles.spotlightBadge}>
+          <Text style={styles.spotlightBadgeText}>First Nations</Text>
+        </View>
+      </LinearGradient>
+      <View style={styles.spotlightBody}>
+        <Text style={styles.spotlightTitle} numberOfLines={2}>{item.title || item.name}</Text>
+        {hasIndigenousTags && (
+          <View style={styles.spotlightNation}>
+            <Text style={styles.spotlightNationText}>{item.indigenousTags[0]}</Text>
+          </View>
+        )}
+        <Text style={styles.spotlightDesc} numberOfLines={2}>
+          {item.description || item.venue || ''}
+        </Text>
+        {item.date && (
+          <View style={styles.spotlightDateRow}>
+            <Ionicons name="calendar-outline" size={11} color={Colors.textSecondary} />
+            <Text style={styles.spotlightDateText}>{formatDate(item.date)}</Text>
+          </View>
+        )}
+      </View>
+    </Pressable>
+  );
+}
+
+function DiscoverSectionRenderer({ section }: { section: DiscoverSection }) {
+  if (section.type === 'events' || section.type === 'mixed') {
+    const events = section.items.filter((i: any) => !!i.venue);
+    const communities = section.items.filter((i: any) => !i.venue && (i.color || i.iconEmoji));
+    const useCompact = events.length > 6;
+
+    return (
+      <View style={styles.section}>
+        <View style={styles.sectionHeaderRow}>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.sectionTitle}>{section.title}</Text>
+            {section.subtitle && <Text style={styles.sectionSubtitle}>{section.subtitle}</Text>}
+          </View>
+        </View>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={{ paddingHorizontal: 20, gap: 12 }}
+        >
+          {events.slice(0, 15).map((event: any) => (
+            <EventCard key={event.id} event={event} compact={useCompact} />
+          ))}
+          {communities.map((c: any) => (
+            <CommunityCard key={c.id} community={c} />
+          ))}
+        </ScrollView>
+      </View>
+    );
+  }
+
+  if (section.type === 'spotlight') {
+    return (
+      <View style={styles.section}>
+        <View style={styles.sectionHeaderRow}>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.sectionTitle}>{section.title}</Text>
+            {section.subtitle && <Text style={styles.sectionSubtitle}>{section.subtitle}</Text>}
+          </View>
+        </View>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={{ paddingHorizontal: 20, gap: 12 }}
+        >
+          {section.items.slice(0, 10).map((item: any) => (
+            <SpotlightCard key={item.id} item={item} />
+          ))}
+        </ScrollView>
+      </View>
+    );
+  }
+
+  if (section.type === 'communities') {
+    return (
+      <View style={styles.section}>
+        <View style={styles.sectionHeaderRow}>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.sectionTitle}>{section.title}</Text>
+            {section.subtitle && <Text style={styles.sectionSubtitle}>{section.subtitle}</Text>}
+          </View>
+        </View>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={{ paddingHorizontal: 20, gap: 12 }}
+        >
+          {section.items.slice(0, 10).map((c: any) => (
+            <CommunityCard key={c.id} community={c} />
+          ))}
+        </ScrollView>
+      </View>
+    );
+  }
+
+  return null;
+}
+
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const topInset = Platform.OS === 'web' ? 67 : insets.top;
   const { state } = useOnboarding();
-  const { filterByLocation } = useLocationFilter();
+  const userId = useDemoUserId();
 
   const { data: users } = useQuery<User[]>({
     queryKey: ['/api/users'],
     queryFn: getQueryFn({ on401: 'returnNull' }),
+  });
+
+  const { data: discoverFeed, isLoading: discoverLoading, refetch } = useQuery<DiscoverFeed>({
+    queryKey: ['/api/discover', userId],
+    queryFn: async () => {
+      if (!userId) return { sections: [], meta: { userId: '', city: '', country: '', generatedAt: '', totalItems: 0 } };
+      const baseUrl = getApiUrl();
+      const res = await fetch(`${baseUrl}api/discover/${userId}`, { credentials: 'include' });
+      if (!res.ok) throw new Error('Failed to fetch discover feed');
+      return res.json();
+    },
+    enabled: !!userId,
   });
 
   const timeGreeting = useMemo(() => {
@@ -163,42 +369,21 @@ export default function HomeScreen() {
     return user.displayName.split(' ')[0];
   }, [users]);
 
-  const featuredEvents = useMemo(
-    () => filterByLocation(sampleEvents).filter(e => e.isFeatured),
-    [filterByLocation],
-  );
-
-  const thisWeekEvents = useMemo(() => {
-    const now = new Date();
-    const weekLater = new Date();
-    weekLater.setDate(now.getDate() + 7);
-    return filterByLocation(sampleEvents).filter(e => {
-      const [year, month, day] = e.date.split('-').map(Number);
-      if (!year || !month || !day) return false;
-      const eventDate = new Date(year, month - 1, day);
-      return eventDate >= now && eventDate <= weekLater;
-    });
-  }, [filterByLocation]);
-
-  const trendingMovies = useMemo(
-    () => filterByLocation(sampleMovies).filter(m => m.isTrending).slice(0, 4),
-    [filterByLocation],
-  );
-  const topRestaurants = useMemo(() => filterByLocation(sampleRestaurants).slice(0, 3), [filterByLocation]);
-  const topActivities = useMemo(
-    () => filterByLocation(sampleActivities).filter(a => a.isPopular).slice(0, 3),
-    [filterByLocation],
-  );
+  const sections = discoverFeed?.sections ?? [];
+  const nearYou = sections.find(s => s.title === 'Near You');
+  const featuredFromNearYou = nearYou?.items.filter((e: any) => e.isFeatured).slice(0, 5) ?? [];
+  const otherSections = sections.filter(s => s.title !== 'Near You');
 
   const [refreshing, setRefreshing] = useState(false);
-  const handleRefresh = useCallback(() => {
+  const handleRefresh = useCallback(async () => {
     setRefreshing(true);
-    setTimeout(() => setRefreshing(false), 1000);
-  }, []);
+    await refetch();
+    setRefreshing(false);
+  }, [refetch]);
 
-  const keyExtractor = useCallback((item: SampleEvent) => item.id, []);
+  const keyExtractor = useCallback((item: any) => item.id, []);
   const renderFeaturedEvent = useCallback(
-    ({ item }: { item: SampleEvent }) => <FeaturedEventCard event={item} />,
+    ({ item }: { item: any }) => <EventCard event={item} />,
     [],
   );
 
@@ -283,231 +468,51 @@ export default function HomeScreen() {
           </ScrollView>
         </Animated.View>
 
-        <Animated.View entering={FadeInDown.delay(200).duration(500)}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Featured Events</Text>
+        {discoverLoading && (
+          <View style={styles.loadingWrap}>
+            <ActivityIndicator size="large" color={Colors.primary} />
+            <Text style={styles.loadingText}>Personalising your feed...</Text>
           </View>
-        </Animated.View>
-        <FlatList
-          data={featuredEvents}
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          snapToInterval={CARD_WIDTH + 12}
-          decelerationRate="fast"
-          contentContainerStyle={{ paddingHorizontal: 20, gap: 12 }}
-          scrollEnabled={featuredEvents.length > 0}
-          renderItem={renderFeaturedEvent}
-          keyExtractor={keyExtractor}
-          style={{ marginBottom: 32 }}
-          nestedScrollEnabled
-        />
-
-        {thisWeekEvents.length > 0 && (
-          <Animated.View entering={FadeInDown.delay(250).duration(500)}>
-            <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>This Week</Text>
-            </View>
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={{ paddingHorizontal: 20, gap: 8, paddingBottom: 4 }}
-            >
-              {thisWeekEvents.map(event => (
-                <Pressable
-                  key={event.id}
-                  style={[styles.weekPill, Platform.OS === 'web' && { cursor: 'pointer' }]}
-                  onPress={() =>
-                    router.push({ pathname: '/event/[id]', params: { id: event.id } })
-                  }
-                >
-                  <View style={[styles.weekPillDot, { backgroundColor: event.imageColor }]} />
-                  <Text style={styles.weekPillTitle} numberOfLines={1}>{event.title}</Text>
-                  <Text style={styles.weekPillDate}>{formatDate(event.date)}</Text>
-                </Pressable>
-              ))}
-            </ScrollView>
-            <View style={{ height: 24 }} />
-          </Animated.View>
         )}
 
-        <View style={styles.section}>
-          <View style={styles.sectionHeaderRow}>
-            <Text style={styles.sectionTitle}>Now Showing</Text>
-            <Pressable onPress={() => router.push('/movies')} style={Platform.OS === 'web' ? { cursor: 'pointer' } : undefined}>
-              <Text style={styles.seeAll}>See All</Text>
-            </Pressable>
-          </View>
-          <ScrollView
+        {featuredFromNearYou.length > 0 && (
+          <Animated.View entering={FadeInDown.delay(200).duration(500)}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Featured Near You</Text>
+            </View>
+          </Animated.View>
+        )}
+        {featuredFromNearYou.length > 0 && (
+          <FlatList
+            data={featuredFromNearYou}
             horizontal
             showsHorizontalScrollIndicator={false}
+            snapToInterval={CARD_WIDTH + 12}
+            decelerationRate="fast"
             contentContainerStyle={{ paddingHorizontal: 20, gap: 12 }}
-          >
-            {trendingMovies.map(movie => (
-              <Pressable
-                key={movie.id}
-                style={styles.movieMini}
-                onPress={() =>
-                  router.push({ pathname: '/movies/[id]', params: { id: movie.id } })
-                }
-              >
-                <Image source={{ uri: movie.posterUrl }} style={styles.moviePoster} />
-                <Text style={styles.movieTitle} numberOfLines={1}>
-                  {movie.title}
-                </Text>
-                <Text style={styles.movieLang}>{movie.language}</Text>
-              </Pressable>
-            ))}
-          </ScrollView>
-        </View>
+            scrollEnabled={featuredFromNearYou.length > 0}
+            renderItem={renderFeaturedEvent}
+            keyExtractor={keyExtractor}
+            style={{ marginBottom: 32 }}
+            nestedScrollEnabled
+          />
+        )}
 
-        <View style={styles.section}>
-          <View style={styles.sectionHeaderRow}>
-            <Text style={styles.sectionTitle}>Top Restaurants</Text>
-            <Pressable onPress={() => router.push('/restaurants')}>
-              <Text style={styles.seeAll}>See All</Text>
-            </Pressable>
-          </View>
-          {topRestaurants.map(rest => (
-            <Pressable
-              key={rest.id}
-              style={[styles.restRow, Platform.OS === 'web' && { cursor: 'pointer' }]}
-              onPress={() =>
-                router.push({ pathname: '/restaurants/[id]', params: { id: rest.id } })
-              }
-            >
-              <Image source={{ uri: rest.imageUrl }} style={styles.restIcon} />
-              <View style={{ flex: 1 }}>
-                <Text style={styles.restName}>{rest.name}</Text>
-                <Text style={styles.restCuisine}>
-                  {rest.cuisine} · {rest.priceRange}
-                </Text>
-              </View>
-              <View style={styles.restRating}>
-                <Ionicons name="star" size={12} color="#FF9F0A" />
-                <Text style={styles.restRatingText}>{rest.rating}</Text>
-              </View>
-            </Pressable>
-          ))}
-        </View>
+        {nearYou && nearYou.items.length > 0 && (
+          <DiscoverSectionRenderer section={{
+            ...nearYou,
+            title: 'Near You',
+            items: nearYou.items.filter((e: any) => !e.isFeatured).slice(0, 10),
+          }} />
+        )}
 
-        <View style={styles.section}>
-          <View style={styles.sectionHeaderRow}>
-            <Text style={styles.sectionTitle}>Activities</Text>
-            <Pressable onPress={() => router.push('/activities')}>
-              <Text style={styles.seeAll}>See All</Text>
-            </Pressable>
-          </View>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={{ paddingHorizontal: 20, gap: 12 }}
-          >
-            {topActivities.map(act => (
-              <Pressable
-                key={act.id}
-                style={[styles.actCard, Platform.OS === 'web' && { cursor: 'pointer' }]}
-                onPress={() =>
-                  router.push({ pathname: '/activities/[id]', params: { id: act.id } })
-                }
-              >
-                <Image source={{ uri: act.imageUrl }} style={styles.actBanner} />
-                <View style={styles.actInfo}>
-                  <Text style={styles.actName} numberOfLines={1}>
-                    {act.name}
-                  </Text>
-                  <Text style={styles.actPrice}>{act.priceLabel}</Text>
-                </View>
-              </Pressable>
-            ))}
-          </ScrollView>
-        </View>
-
-        <View style={styles.section}>
-          <View style={styles.sectionHeaderRow}>
-            <Text style={styles.sectionTitle}>Hot Deals</Text>
-            <Pressable onPress={() => router.push('/shopping')}>
-              <Text style={styles.seeAll}>See All</Text>
-            </Pressable>
-          </View>
-          {filterByLocation(sampleShopping).slice(0, 3).map(store => {
-            const firstDeal = store.deals?.[0];
-            if (!firstDeal) return null;
-            return (
-              <Pressable
-                key={store.id}
-                style={[styles.dealRow, Platform.OS === 'web' && { cursor: 'pointer' }]}
-                onPress={() =>
-                  router.push({ pathname: '/shopping/[id]', params: { id: store.id } })
-                }
-              >
-                <View style={[styles.dealIcon, { backgroundColor: store.color + '12' }]}>
-                  <Ionicons name="pricetag" size={18} color={store.color} />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.dealStore}>{store.name}</Text>
-                  <Text style={styles.dealTitle}>{firstDeal.title}</Text>
-                </View>
-                <View style={styles.dealBadge}>
-                  <Text style={styles.dealBadgeText}>{firstDeal.discount}</Text>
-                </View>
-              </Pressable>
-            );
-          })}
-        </View>
-
-        <View style={styles.section}>
-          <View style={styles.sectionHeaderRow}>
-            <Text style={styles.sectionTitle}>First Nations Spotlight</Text>
-            <Pressable onPress={() => {}} style={Platform.OS === 'web' ? { cursor: 'pointer' } : undefined}>
-              <Text style={styles.seeAll}>See All</Text>
-            </Pressable>
-          </View>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={{ paddingHorizontal: 20, gap: 12 }}
-          >
-            {indigenousSpotlights.map(spot => (
-              <Pressable
-                key={spot.id}
-                style={[styles.spotlightCard, Platform.OS === 'web' && { cursor: 'pointer' }]}
-                onPress={() => {
-                  const routes: Record<string, string> = {
-                    event: '/event/[id]',
-                    business: '/business/[id]',
-                    community: '/community/[id]',
-                  };
-                  const route = routes[spot.linkType];
-                  if (route) router.push({ pathname: route as any, params: { id: spot.linkId } });
-                }}
-              >
-                <LinearGradient
-                  colors={['#1A5276', '#2E86C1']}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 0 }}
-                  style={styles.spotlightBanner}
-                >
-                  <View style={styles.spotlightBadge}>
-                    <Text style={styles.spotlightBadgeText}>{spot.title}</Text>
-                  </View>
-                </LinearGradient>
-                <View style={styles.spotlightBody}>
-                  <Text style={styles.spotlightTitle}>{spot.subtitle}</Text>
-                  {spot.nation && (
-                    <View style={styles.spotlightNation}>
-                      <Text style={styles.spotlightNationText}>{spot.nation}</Text>
-                    </View>
-                  )}
-                  <Text style={styles.spotlightDesc} numberOfLines={2}>{spot.description}</Text>
-                </View>
-              </Pressable>
-            ))}
-          </ScrollView>
-        </View>
+        {otherSections.map((section) => (
+          <DiscoverSectionRenderer key={section.title} section={section} />
+        ))}
 
         <Animated.View entering={FadeInDown.delay(380).duration(500)}>
           <Pressable
-            style={[styles.plusBanner, Platform.OS === 'web' && { cursor: 'pointer' }]}
+            style={[styles.plusBanner, Platform.OS === 'web' && { cursor: 'pointer' as any }]}
             onPress={() => router.push('/membership/upgrade')}
           >
             <View style={styles.plusBannerLeft}>
@@ -528,7 +533,7 @@ export default function HomeScreen() {
         </Animated.View>
 
         <Animated.View entering={FadeInDown.delay(400).duration(500)}>
-          <Pressable style={[styles.perksBanner, Platform.OS === 'web' && { cursor: 'pointer' }]} onPress={() => router.push('/perks')}>
+          <Pressable style={[styles.perksBanner, Platform.OS === 'web' && { cursor: 'pointer' as any }]} onPress={() => router.push('/perks')}>
             <View style={styles.perksBannerLeft}>
               <View style={styles.perksBannerIcon}>
                 <Ionicons name="gift" size={22} color="#FFF" />
@@ -546,7 +551,7 @@ export default function HomeScreen() {
 
         <Animated.View entering={FadeInDown.delay(450).duration(500)}>
           <Pressable
-            style={[styles.exploreCta, Platform.OS === 'web' && { cursor: 'pointer' }]}
+            style={[styles.exploreCta, Platform.OS === 'web' && { cursor: 'pointer' as any }]}
             onPress={() => router.push('/allevents')}
           >
             <View style={styles.exploreCtaIcon}>
@@ -613,14 +618,17 @@ const styles = StyleSheet.create({
   },
   sectionHeaderRow: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     justifyContent: 'space-between',
     paddingHorizontal: 20,
     marginBottom: 14,
   },
   sectionTitle: { fontSize: 22, fontFamily: 'Poppins_700Bold', color: Colors.text, letterSpacing: 0.35 },
+  sectionSubtitle: { fontSize: 13, fontFamily: 'Poppins_400Regular', color: Colors.textSecondary, marginTop: 2 },
   seeAll: { fontSize: 15, fontFamily: 'Poppins_600SemiBold', color: Colors.primary },
   section: { marginBottom: 32 },
+  loadingWrap: { alignItems: 'center', paddingVertical: 40, gap: 12 },
+  loadingText: { fontSize: 14, fontFamily: 'Poppins_400Regular', color: Colors.textSecondary },
   featuredCardOuter: { ...Colors.shadow.medium },
   featuredCard: { width: CARD_WIDTH, height: 260, borderRadius: 16, overflow: 'hidden' },
   featuredCardImage: { position: 'absolute', width: '100%', height: '100%' },
@@ -685,181 +693,50 @@ const styles = StyleSheet.create({
   },
   attendingBadge: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   attendingText: { fontSize: 12, fontFamily: 'Poppins_500Medium', color: 'rgba(255,255,255,0.9)' },
-  movieMini: { width: 130, gap: 4 },
-  moviePoster: {
-    width: 130,
-    height: 180,
-    borderRadius: 12,
-  },
-  movieTitle: { fontSize: 14, fontFamily: 'Poppins_600SemiBold', color: Colors.text, marginTop: 4 },
-  movieLang: { fontSize: 12, fontFamily: 'Poppins_400Regular', color: Colors.textSecondary },
-  restRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
+  compactCard: {
+    width: 200,
     backgroundColor: Colors.surface,
-    borderRadius: 12,
-    padding: 12,
-    marginHorizontal: 20,
-    marginBottom: 8,
-    ...Colors.shadow.small,
-  },
-  restIcon: { width: 48, height: 48, borderRadius: 12 },
-  restName: { fontSize: 16, fontFamily: 'Poppins_600SemiBold', color: Colors.text },
-  restCuisine: { fontSize: 13, fontFamily: 'Poppins_400Regular', color: Colors.textSecondary, marginTop: 2 },
-  restRating: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 3,
-    backgroundColor: '#FF9F0A' + '12',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
-  },
-  restRatingText: { fontSize: 13, fontFamily: 'Poppins_700Bold', color: '#FF9F0A' },
-  actCard: {
-    width: 180,
-    backgroundColor: Colors.surface,
-    borderRadius: 12,
+    borderRadius: 14,
     overflow: 'hidden',
     ...Colors.shadow.small,
   },
-  actBanner: { height: 110 },
-  actInfo: { padding: 12, gap: 3 },
-  actName: { fontSize: 14, fontFamily: 'Poppins_600SemiBold', color: Colors.text },
-  actPrice: { fontSize: 13, fontFamily: 'Poppins_700Bold', color: Colors.primary },
-  dealRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    backgroundColor: Colors.surface,
-    borderRadius: 12,
-    padding: 12,
-    marginHorizontal: 20,
-    marginBottom: 8,
-    ...Colors.shadow.small,
-  },
-  dealIcon: { width: 42, height: 42, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
-  dealStore: { fontSize: 15, fontFamily: 'Poppins_600SemiBold', color: Colors.text },
-  dealTitle: { fontSize: 13, fontFamily: 'Poppins_400Regular', color: Colors.textSecondary },
-  dealBadge: { backgroundColor: Colors.primary, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 },
-  dealBadgeText: { fontSize: 12, fontFamily: 'Poppins_700Bold', color: '#FFF' },
-  perksBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: Colors.secondary,
-    borderRadius: 16,
-    paddingHorizontal: 18,
-    paddingVertical: 18,
-    marginHorizontal: 20,
-    marginBottom: 12,
-    ...Colors.shadow.medium,
-  },
-  perksBannerLeft: { flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 },
-  perksBannerIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  perksBannerTitle: { fontSize: 16, fontFamily: 'Poppins_700Bold', color: '#FFF' },
-  perksBannerSub: { fontSize: 13, fontFamily: 'Poppins_400Regular', color: 'rgba(255,255,255,0.8)' },
-  weekPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    backgroundColor: Colors.surface,
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    maxWidth: 220,
-    ...Colors.shadow.small,
-  },
-  weekPillDot: { width: 8, height: 8, borderRadius: 4 },
-  weekPillTitle: { fontSize: 13, fontFamily: 'Poppins_600SemiBold', color: Colors.text, flexShrink: 1 },
-  weekPillDate: { fontSize: 12, fontFamily: 'Poppins_400Regular', color: Colors.textSecondary },
-  plusBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: '#1A5276',
-    borderRadius: 16,
-    paddingHorizontal: 18,
-    paddingVertical: 16,
-    marginHorizontal: 20,
-    marginBottom: 12,
-    ...Colors.shadow.medium,
-  },
-  plusBannerLeft: { flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 },
-  plusBannerIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#2E86C1',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  plusBannerTitle: { fontSize: 16, fontFamily: 'Poppins_700Bold', color: '#FFF' },
-  plusBannerSub: { fontSize: 12, fontFamily: 'Poppins_400Regular', color: 'rgba(255,255,255,0.75)', marginTop: 1 },
-  plusBannerCta: {
-    backgroundColor: '#2E86C1',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
-  },
-  plusBannerCtaText: { fontSize: 13, fontFamily: 'Poppins_700Bold', color: '#FFF' },
-  exploreCta: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    backgroundColor: Colors.surface,
-    borderRadius: 16,
-    paddingHorizontal: 18,
-    paddingVertical: 16,
-    marginHorizontal: 20,
-    marginBottom: 28,
-    ...Colors.shadow.small,
-  },
-  exploreCtaIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
+  compactImage: { width: '100%', height: 110 },
+  compactInfo: { padding: 10, gap: 4 },
+  compactCommunityRow: { flexDirection: 'row' },
+  compactCommunityTag: {
+    fontSize: 10,
+    fontFamily: 'Poppins_600SemiBold',
+    color: Colors.primary,
     backgroundColor: Colors.primaryGlow,
-    alignItems: 'center',
-    justifyContent: 'center',
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: 6,
+    overflow: 'hidden',
   },
-  exploreCtaTitle: { fontSize: 16, fontFamily: 'Poppins_700Bold', color: Colors.text },
-  exploreCtaSub: { fontSize: 13, fontFamily: 'Poppins_400Regular', color: Colors.textSecondary },
-  landBanner: {
-    backgroundColor: '#F5EDE3',
-    borderRadius: 12,
-    padding: 12,
-    paddingLeft: 14,
-    borderLeftWidth: 3,
-    borderLeftColor: '#8B4513',
-    marginHorizontal: 20,
-    marginBottom: 16,
-  },
-  landBannerContent: {
-    flexDirection: 'row',
+  compactTitle: { fontSize: 14, fontFamily: 'Poppins_600SemiBold', color: Colors.text, lineHeight: 18 },
+  compactMeta: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  compactMetaText: { fontSize: 11, fontFamily: 'Poppins_400Regular', color: Colors.textSecondary },
+  compactPrice: { fontSize: 14, fontFamily: 'Poppins_700Bold', color: Colors.primary },
+  communityCard: {
+    width: 160,
+    backgroundColor: Colors.surface,
+    borderRadius: 14,
+    padding: 14,
     alignItems: 'center',
     gap: 6,
+    ...Colors.shadow.small,
   },
-  landBannerTitle: {
-    fontSize: 13,
-    fontFamily: 'Poppins_700Bold',
-    color: '#3E2723',
+  communityIconWrap: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 4,
   },
-  landBannerSub: {
-    fontSize: 11,
-    fontFamily: 'Poppins_400Regular',
-    color: '#6D4C41',
-    marginTop: 2,
-    marginLeft: 20,
-  },
+  communityName: { fontSize: 14, fontFamily: 'Poppins_600SemiBold', color: Colors.text, textAlign: 'center' },
+  communityMembers: { fontSize: 12, fontFamily: 'Poppins_400Regular', color: Colors.textSecondary },
+  communityDesc: { fontSize: 11, fontFamily: 'Poppins_400Regular', color: Colors.textTertiary, textAlign: 'center', lineHeight: 15 },
   spotlightCard: {
     width: 260,
     borderRadius: 16,
@@ -913,4 +790,117 @@ const styles = StyleSheet.create({
     marginTop: 6,
     lineHeight: 17,
   },
+  spotlightDateRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginTop: 4,
+  },
+  spotlightDateText: {
+    fontSize: 11,
+    fontFamily: 'Poppins_400Regular',
+    color: Colors.textSecondary,
+  },
+  plusBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#1A5276',
+    borderRadius: 16,
+    paddingHorizontal: 18,
+    paddingVertical: 16,
+    marginHorizontal: 20,
+    marginBottom: 12,
+    ...Colors.shadow.medium,
+  },
+  plusBannerLeft: { flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 },
+  plusBannerIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#2E86C1',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  plusBannerTitle: { fontSize: 16, fontFamily: 'Poppins_700Bold', color: '#FFF' },
+  plusBannerSub: { fontSize: 12, fontFamily: 'Poppins_400Regular', color: 'rgba(255,255,255,0.75)', marginTop: 1 },
+  plusBannerCta: {
+    backgroundColor: '#2E86C1',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  plusBannerCtaText: { fontSize: 13, fontFamily: 'Poppins_700Bold', color: '#FFF' },
+  perksBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: Colors.secondary,
+    borderRadius: 16,
+    paddingHorizontal: 18,
+    paddingVertical: 18,
+    marginHorizontal: 20,
+    marginBottom: 12,
+    ...Colors.shadow.medium,
+  },
+  perksBannerLeft: { flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 },
+  perksBannerIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  perksBannerTitle: { fontSize: 16, fontFamily: 'Poppins_700Bold', color: '#FFF' },
+  perksBannerSub: { fontSize: 13, fontFamily: 'Poppins_400Regular', color: 'rgba(255,255,255,0.8)' },
+  landBanner: {
+    backgroundColor: '#F5EDE3',
+    borderRadius: 12,
+    padding: 12,
+    paddingLeft: 14,
+    borderLeftWidth: 3,
+    borderLeftColor: '#8B4513',
+    marginHorizontal: 20,
+    marginBottom: 16,
+  },
+  landBannerContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  landBannerTitle: {
+    fontSize: 13,
+    fontFamily: 'Poppins_700Bold',
+    color: '#3E2723',
+  },
+  landBannerSub: {
+    fontSize: 11,
+    fontFamily: 'Poppins_400Regular',
+    color: '#6D4C41',
+    marginTop: 2,
+    marginLeft: 20,
+  },
+  exploreCta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    backgroundColor: Colors.surface,
+    borderRadius: 16,
+    paddingHorizontal: 18,
+    paddingVertical: 16,
+    marginHorizontal: 20,
+    marginBottom: 28,
+    ...Colors.shadow.small,
+  },
+  exploreCtaIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    backgroundColor: Colors.primaryGlow,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  exploreCtaTitle: { fontSize: 16, fontFamily: 'Poppins_700Bold', color: Colors.text },
+  exploreCtaSub: { fontSize: 13, fontFamily: 'Poppins_400Regular', color: Colors.textSecondary },
 });
