@@ -29,9 +29,13 @@ export function registerCommunitiesRoutes(app: Express) {
     }
   });
 
-  app.get("/api/communities/:slug", async (req: Request, res: Response) => {
+  app.get("/api/communities/:idOrSlug", async (req: Request, res: Response) => {
     try {
-      const community = await communitiesService.getCommunityBySlug(req.params.slug as string);
+      const param = req.params.idOrSlug as string;
+      let community = await communitiesService.getCommunityById(param);
+      if (!community) {
+        community = await communitiesService.getCommunityBySlug(param);
+      }
       if (!community) return res.status(404).json({ error: "Community not found" });
       res.json(community);
     } catch (e: any) {
