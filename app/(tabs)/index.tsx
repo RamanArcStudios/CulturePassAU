@@ -207,7 +207,7 @@ export default function HomeScreen() {
           <Pressable
             style={styles.iconButton}
             hitSlop={8}
-            onPress={() => router.push('/(tabs)/explore')}
+            onPress={() => router.push('/search')}
           >
             <Ionicons name="search" size={22} color={Colors.text} />
           </Pressable>
