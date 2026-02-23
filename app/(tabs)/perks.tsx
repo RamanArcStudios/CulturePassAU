@@ -104,7 +104,7 @@ export default function PerksTabScreen() {
     if (perk.perkType === 'free_ticket') return 'Free';
     if (perk.perkType === 'early_access') return '48h Early';
     if (perk.perkType === 'vip_upgrade') return 'VIP';
-    if (perk.perkType === 'cashback') return `$${(perk.discountFixedCents || 0) / 100}`;
+    if (perk.perkType === 'cashback') return perk.discountPercent ? `${perk.discountPercent}%` : `$${(perk.discountFixedCents || 0) / 100}`;
     return '';
   };
 
@@ -214,7 +214,7 @@ export default function PerksTabScreen() {
               const usagePercent = perk.usageLimit ? Math.round(((perk.usedCount || 0) / perk.usageLimit) * 100) : 0;
               return (
                 <Animated.View key={perk.id} entering={FadeInDown.delay(250 + i * 60).duration(400)}>
-                  <View style={styles.perkCard}>
+                  <Pressable style={styles.perkCard} onPress={() => router.push(`/perks/${perk.id}`)}>
                     <View style={styles.perkTop}>
                       <View style={[styles.perkBadge, { backgroundColor: typeInfo.color + '12' }]}>
                         <Ionicons name={typeInfo.icon as any} size={22} color={typeInfo.color} />
@@ -257,6 +257,12 @@ export default function PerksTabScreen() {
                           <Text style={styles.metaTagText}>Ends {new Date(perk.endDate).toLocaleDateString()}</Text>
                         </View>
                       )}
+                      {perk.perUserLimit && (
+                        <View style={styles.metaTag}>
+                          <Ionicons name="person" size={12} color={Colors.textSecondary} />
+                          <Text style={styles.metaTagText}>Max {perk.perUserLimit}/user</Text>
+                        </View>
+                      )}
                     </View>
 
                     {perk.usageLimit && (
@@ -284,7 +290,7 @@ export default function PerksTabScreen() {
                         {!redeemable ? (perk.isMembershipRequired ? 'Upgrade to CulturePass+' : 'Fully Redeemed') : 'Redeem Now'}
                       </Text>
                     </Pressable>
-                  </View>
+                  </Pressable>
                 </Animated.View>
               );
             })
