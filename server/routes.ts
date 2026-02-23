@@ -14,6 +14,8 @@ import { registerTicketsRoutes } from "./modules/tickets/tickets.routes";
 import { registerStripeRoutes } from "./modules/stripe/stripe.routes";
 import { registerDashboardRoutes } from "./modules/dashboard/dashboard.routes";
 import { registerCpidRoutes } from "./modules/cpid/cpid.routes";
+import { registerLocationsRoutes } from "./modules/locations/locations.routes";
+import { registerCommunitiesRoutes } from "./modules/communities/communities.routes";
 
 import * as usersService from "./modules/users/users.service";
 import * as profilesService from "./modules/profiles/profiles.service";
@@ -37,6 +39,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   registerStripeRoutes(app);
   registerDashboardRoutes(app);
   registerCpidRoutes(app);
+  registerLocationsRoutes(app);
+  registerCommunitiesRoutes(app);
 
   app.post("/api/seed", async (_req: Request, res: Response) => {
     try {
