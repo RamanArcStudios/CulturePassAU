@@ -451,7 +451,13 @@ export const tickets = pgTable(
     currency: text("currency").default("AUD"),
     status: text("status").default("confirmed"),
     ticketCode: text("ticket_code"),
+    qrCode: text("qr_code"),
     imageColor: text("image_color"),
+    scannedAt: timestamp("scanned_at"),
+    scannedBy: varchar("scanned_by"),
+    platformFee: doublePrecision("platform_fee"),
+    stripeFee: doublePrecision("stripe_fee"),
+    organizerAmount: doublePrecision("organizer_amount"),
     culturePassId: varchar("culture_pass_id").unique(),
     createdAt: timestamp("created_at").defaultNow(),
   }
