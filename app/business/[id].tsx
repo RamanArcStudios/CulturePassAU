@@ -51,6 +51,12 @@ export default function BusinessDetailScreen() {
                   <Text style={styles.verifiedText}>Verified</Text>
                 </View>
               )}
+              {business.isIndigenousOwned && (
+                <View style={[styles.verifiedBadge, { backgroundColor: 'rgba(139,69,19,0.8)' }]}>
+                  <Ionicons name="earth" size={16} color="#FFF" />
+                  <Text style={styles.verifiedText}>Indigenous Owned</Text>
+                </View>
+              )}
             </View>
             <Text style={styles.heroCategory}>{business.category} - {business.priceRange}</Text>
           </View>
@@ -74,6 +80,73 @@ export default function BusinessDetailScreen() {
             <Text style={styles.reviewText}>({business.reviews} reviews)</Text>
           </View>
         </Animated.View>
+
+        {business.isIndigenousOwned && (
+          <Animated.View entering={FadeInDown.delay(150).duration(500)} style={styles.section}>
+            <View style={{
+              backgroundColor: '#FDF8F3',
+              borderRadius: 16,
+              padding: 16,
+              borderLeftWidth: 4,
+              borderLeftColor: '#8B4513',
+            }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+                <View style={{
+                  width: 36,
+                  height: 36,
+                  borderRadius: 12,
+                  backgroundColor: '#8B451318',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}>
+                  <Ionicons name="earth" size={20} color="#8B4513" />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ fontSize: 15, fontFamily: 'Poppins_700Bold', color: '#3E2723' }}>
+                    100% Indigenous Owned
+                  </Text>
+                  {business.indigenousCategory && (
+                    <Text style={{ fontSize: 12, fontFamily: 'Poppins_400Regular', color: '#6D4C41' }}>
+                      {business.indigenousCategory}
+                    </Text>
+                  )}
+                </View>
+              </View>
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+                <View style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: 4,
+                  backgroundColor: '#8B451318',
+                  paddingHorizontal: 10,
+                  paddingVertical: 5,
+                  borderRadius: 50,
+                }}>
+                  <Ionicons name="checkmark-circle" size={14} color="#8B4513" />
+                  <Text style={{ fontSize: 12, fontFamily: 'Poppins_600SemiBold', color: '#8B4513' }}>
+                    Indigenous Owned
+                  </Text>
+                </View>
+                {business.supplyNationRegistered && (
+                  <View style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: 4,
+                    backgroundColor: '#1A527618',
+                    paddingHorizontal: 10,
+                    paddingVertical: 5,
+                    borderRadius: 50,
+                  }}>
+                    <Ionicons name="shield-checkmark" size={14} color="#1A5276" />
+                    <Text style={{ fontSize: 12, fontFamily: 'Poppins_600SemiBold', color: '#1A5276' }}>
+                      Supply Nation
+                    </Text>
+                  </View>
+                )}
+              </View>
+            </View>
+          </Animated.View>
+        )}
 
         <Animated.View entering={FadeInDown.delay(200).duration(500)} style={styles.section}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 8 }}>

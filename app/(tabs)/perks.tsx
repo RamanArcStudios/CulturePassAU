@@ -52,6 +52,7 @@ const CATEGORIES = [
   { id: 'dining', label: 'Dining', icon: 'restaurant' },
   { id: 'shopping', label: 'Shopping', icon: 'bag' },
   { id: 'wallet', label: 'Wallet', icon: 'wallet' },
+  { id: 'indigenous', label: 'First Nations', icon: 'earth' },
 ];
 
 const filterItems: FilterItem[] = CATEGORIES.map(cat => ({

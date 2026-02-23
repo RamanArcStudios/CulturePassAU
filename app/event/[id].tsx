@@ -15,7 +15,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useSaved } from '@/contexts/SavedContext';
-import { sampleEvents } from '@/data/mockData';
+import { sampleEvents, traditionalLands } from '@/data/mockData';
 import Colors, { shadows } from '@/constants/colors';
 import * as Haptics from 'expo-haptics';
 import Animated, { FadeInDown } from 'react-native-reanimated';
@@ -349,6 +349,12 @@ function EventDetail({ event, topInset, bottomInset }: EventDetailProps) {
                   <Text style={styles.heroBadgeText}>{event.councilTag}</Text>
                 </View>
               ) : null}
+              {event.indigenousTags?.map(tag => (
+                <View key={tag} style={[styles.heroBadge, { backgroundColor: 'rgba(139,69,19,0.7)' }]}>
+                  <Ionicons name="earth" size={11} color="#FFF" />
+                  <Text style={styles.heroBadgeText}>{tag}</Text>
+                </View>
+              ))}
             </View>
             <Text style={styles.heroTitle}>{event.title}</Text>
             <Text style={styles.heroOrganizer}>by {event.organizer}</Text>
@@ -464,6 +470,51 @@ function EventDetail({ event, topInset, bottomInset }: EventDetailProps) {
         <View style={styles.sectionDivider}>
           <View style={styles.accentBar} />
         </View>
+
+        {event.indigenousTags && event.indigenousTags.length > 0 && (
+          <>
+            <Animated.View entering={FadeInDown.delay(350).duration(500)} style={styles.section}>
+              <View style={styles.educationCard}>
+                <View style={styles.educationHeader}>
+                  <View style={styles.educationIconBg}>
+                    <Ionicons name="book" size={18} color="#8B4513" />
+                  </View>
+                  <Text style={styles.educationTitle}>Cultural Information</Text>
+                </View>
+                <Text style={styles.educationBody}>
+                  This is an event led by Aboriginal and Torres Strait Islander peoples. Please be mindful of cultural protocols and respect the traditions shared during this event.
+                </Text>
+                {event.indigenousTags.includes('NAIDOC Week') && (
+                  <View style={styles.educationHighlight}>
+                    <Ionicons name="information-circle" size={16} color="#1A5276" />
+                    <Text style={styles.educationHighlightText}>
+                      NAIDOC Week celebrates the history, culture, and achievements of Aboriginal and Torres Strait Islander peoples.
+                    </Text>
+                  </View>
+                )}
+                {event.indigenousTags.includes('Reconciliation Week') && (
+                  <View style={styles.educationHighlight}>
+                    <Ionicons name="information-circle" size={16} color="#1A5276" />
+                    <Text style={styles.educationHighlightText}>
+                      National Reconciliation Week commemorates two significant milestones in the reconciliation journey.
+                    </Text>
+                  </View>
+                )}
+                {event.indigenousTags.includes('Cultural Ceremony') && (
+                  <View style={styles.educationHighlight}>
+                    <Ionicons name="information-circle" size={16} color="#1A5276" />
+                    <Text style={styles.educationHighlightText}>
+                      This event includes cultural ceremonies. Photography may be restricted during certain performances. Please follow the guidance of event organisers.
+                    </Text>
+                  </View>
+                )}
+              </View>
+            </Animated.View>
+            <View style={styles.sectionDivider}>
+              <View style={styles.accentBar} />
+            </View>
+          </>
+        )}
 
         <Animated.View entering={FadeInDown.delay(400).duration(500)} style={styles.section}>
           <Text style={styles.sectionTitle}>Tickets</Text>
@@ -1112,6 +1163,55 @@ const styles = StyleSheet.create({
   },
   earlyAccessText: { fontSize: 12, fontWeight: '600', color: '#1A5276' },
   earlyAccessDot: { width: 3, height: 3, borderRadius: 1.5, backgroundColor: '#2E86C1', opacity: 0.4 },
+  educationCard: {
+    backgroundColor: '#FDF8F3',
+    borderRadius: 16,
+    padding: 16,
+    borderLeftWidth: 4,
+    borderLeftColor: '#8B4513',
+  },
+  educationHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginBottom: 12,
+  },
+  educationIconBg: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    backgroundColor: '#8B451318',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  educationTitle: {
+    fontSize: 16,
+    fontFamily: 'Poppins_700Bold',
+    color: '#3E2723',
+  },
+  educationBody: {
+    fontSize: 13,
+    fontFamily: 'Poppins_400Regular',
+    color: '#5D4037',
+    lineHeight: 20,
+    marginBottom: 8,
+  },
+  educationHighlight: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    backgroundColor: '#EBF5FB',
+    borderRadius: 10,
+    padding: 12,
+    marginTop: 8,
+  },
+  educationHighlightText: {
+    flex: 1,
+    fontSize: 12,
+    fontFamily: 'Poppins_400Regular',
+    color: '#1A5276',
+    lineHeight: 18,
+  },
 });
 
 const modalStyles = StyleSheet.create({
