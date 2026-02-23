@@ -108,7 +108,7 @@ export default function PerksTabScreen() {
   };
 
   const canRedeem = (perk: Perk) => {
-    if (perk.isMembershipRequired && membership?.tier === 'free') return false;
+    if (perk.isMembershipRequired && (!membership?.tier || membership.tier === 'free')) return false;
     if (perk.usageLimit && (perk.usedCount || 0) >= perk.usageLimit) return false;
     return true;
   };
@@ -239,9 +239,9 @@ export default function PerksTabScreen() {
 
                     <View style={styles.perkMeta}>
                       {perk.isMembershipRequired && (
-                        <View style={[styles.metaTag, { backgroundColor: '#AF52DE10' }]}>
-                          <Ionicons name="diamond" size={12} color="#AF52DE" />
-                          <Text style={[styles.metaTagText, { color: '#AF52DE' }]}>{perk.requiredMembershipTier || 'Premium'} Only</Text>
+                        <View style={[styles.metaTag, { backgroundColor: '#2E86C110' }]}>
+                          <Ionicons name="star" size={12} color="#2E86C1" />
+                          <Text style={[styles.metaTagText, { color: '#2E86C1' }]}>CulturePass+ Only</Text>
                         </View>
                       )}
                       {perk.usageLimit && (
@@ -268,12 +268,19 @@ export default function PerksTabScreen() {
                     )}
 
                     <Pressable
-                      onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); redeemMutation.mutate(perk.id); }}
-                      disabled={!redeemable || redeemMutation.isPending}
-                      style={[styles.redeemBtn, !redeemable && styles.redeemBtnDisabled]}>
-                      <Ionicons name={redeemable ? 'gift' : 'lock-closed'} size={16} color={redeemable ? '#FFF' : Colors.textTertiary} />
-                      <Text style={[styles.redeemBtnText, !redeemable && styles.redeemBtnTextDisabled]}>
-                        {!redeemable ? (perk.isMembershipRequired ? 'Upgrade to Unlock' : 'Fully Redeemed') : 'Redeem Now'}
+                      onPress={() => {
+                        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                        if (!redeemable && perk.isMembershipRequired) {
+                          router.push('/membership/upgrade');
+                        } else {
+                          redeemMutation.mutate(perk.id);
+                        }
+                      }}
+                      disabled={(!redeemable && !perk.isMembershipRequired) || redeemMutation.isPending}
+                      style={[styles.redeemBtn, !redeemable && !perk.isMembershipRequired && styles.redeemBtnDisabled, !redeemable && perk.isMembershipRequired && styles.upgradeBtn]}>
+                      <Ionicons name={redeemable ? 'gift' : (perk.isMembershipRequired ? 'star' : 'lock-closed')} size={16} color={redeemable ? '#FFF' : (perk.isMembershipRequired ? '#2E86C1' : Colors.textTertiary)} />
+                      <Text style={[styles.redeemBtnText, !redeemable && !perk.isMembershipRequired && styles.redeemBtnTextDisabled, !redeemable && perk.isMembershipRequired && styles.upgradeBtnText]}>
+                        {!redeemable ? (perk.isMembershipRequired ? 'Upgrade to CulturePass+' : 'Fully Redeemed') : 'Redeem Now'}
                       </Text>
                     </Pressable>
                   </View>
@@ -436,4 +443,12 @@ const styles = StyleSheet.create({
   },
   upgradePromptTitle: { fontSize: 14, fontWeight: '600', color: '#1A5276' },
   upgradePromptSub: { fontSize: 12, color: '#5D6D7E', marginTop: 1 },
+  upgradeBtn: {
+    backgroundColor: '#EBF5FB',
+    borderWidth: 1,
+    borderColor: '#D6EAF8',
+  },
+  upgradeBtnText: {
+    color: '#2E86C1',
+  },
 });

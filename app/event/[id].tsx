@@ -396,6 +396,16 @@ function EventDetail({ event, topInset, bottomInset }: EventDetailProps) {
           </View>
         </Animated.View>
 
+        {isPlus && (
+          <View style={styles.earlyAccessBadge}>
+            <Ionicons name="flash" size={14} color="#2E86C1" />
+            <Text style={styles.earlyAccessText}>48h Early Access</Text>
+            <View style={styles.earlyAccessDot} />
+            <Ionicons name="star" size={12} color="#2E86C1" />
+            <Text style={styles.earlyAccessText}>CulturePass+ Member</Text>
+          </View>
+        )}
+
         <View style={styles.sectionDivider}>
           <View style={styles.accentBar} />
         </View>
@@ -1006,6 +1016,22 @@ const styles = StyleSheet.create({
     elevation: 6,
   },
   buyText: { fontSize: 16, fontFamily: 'Poppins_600SemiBold', color: '#FFF' },
+  earlyAccessBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#EBF5FB',
+    marginHorizontal: 20,
+    marginTop: 4,
+    marginBottom: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    borderRadius: 10,
+    gap: 5,
+    borderWidth: 1,
+    borderColor: '#D6EAF8',
+  },
+  earlyAccessText: { fontSize: 12, fontWeight: '600', color: '#1A5276' },
+  earlyAccessDot: { width: 3, height: 3, borderRadius: 1.5, backgroundColor: '#2E86C1', opacity: 0.4 },
 });
 
 const modalStyles = StyleSheet.create({

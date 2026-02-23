@@ -72,6 +72,12 @@ export default function WalletScreen() {
   });
   const activeTickets = ticketsData.filter(t => t.status === 'confirmed').slice(0, 3);
 
+  const { data: membership } = useQuery<{ tier: string; cashbackMultiplier?: number }>({
+    queryKey: [`/api/membership/${userId}`],
+    enabled: !!userId,
+  });
+  const isPlus = membership?.tier === 'plus';
+
   const topUpMutation = useMutation({
     mutationFn: async (amount: number) => {
       await apiRequest('POST', `/api/wallet/${userId}/topup`, { amount });
@@ -127,6 +133,26 @@ export default function WalletScreen() {
           <Text style={styles.balanceAmount}>${balance.toFixed(2)}</Text>
           <Text style={styles.balanceCurrency}>{currency}</Text>
         </Animated.View>
+
+        {isPlus && (
+          <Animated.View entering={FadeInDown.delay(125)} style={styles.cashbackBanner}>
+            <Ionicons name="star" size={16} color="#2E86C1" />
+            <View style={{ flex: 1, marginLeft: 10 }}>
+              <Text style={styles.cashbackBannerTitle}>2% Cashback Active</Text>
+              <Text style={styles.cashbackBannerSub}>CulturePass+ cashback is applied to all ticket purchases</Text>
+            </View>
+          </Animated.View>
+        )}
+
+        {!isPlus && (
+          <Animated.View entering={FadeInDown.delay(125)}>
+            <Pressable style={styles.cashbackPrompt} onPress={() => router.push('/membership/upgrade')}>
+              <Ionicons name="star-outline" size={16} color="#2E86C1" />
+              <Text style={styles.cashbackPromptText}>Earn 2% cashback with CulturePass+</Text>
+              <Ionicons name="chevron-forward" size={14} color="#2E86C1" />
+            </Pressable>
+          </Animated.View>
+        )}
 
         {activeTickets.length > 0 && (
           <Animated.View entering={FadeInDown.delay(150)} style={styles.section}>
@@ -296,4 +322,31 @@ const styles = StyleSheet.create({
   ticketMiniMeta: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   ticketMiniDate: { fontSize: 11, fontFamily: 'Poppins_400Regular', color: Colors.textTertiary },
   ticketMiniTier: { fontSize: 10, fontFamily: 'Poppins_600SemiBold', color: Colors.accent, marginLeft: 8, backgroundColor: Colors.accent + '12', paddingHorizontal: 6, paddingVertical: 1, borderRadius: 4 },
+  cashbackBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginHorizontal: 20,
+    marginTop: 12,
+    backgroundColor: '#EBF5FB',
+    borderRadius: 12,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: '#D6EAF8',
+  },
+  cashbackBannerTitle: { fontSize: 14, fontWeight: '600', color: '#1A5276' },
+  cashbackBannerSub: { fontSize: 12, color: '#5D6D7E', marginTop: 1 },
+  cashbackPrompt: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginHorizontal: 20,
+    marginTop: 12,
+    backgroundColor: '#EBF5FB',
+    borderRadius: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    gap: 8,
+    borderWidth: 1,
+    borderColor: '#D6EAF8',
+  },
+  cashbackPromptText: { fontSize: 13, color: '#2E86C1', fontWeight: '500', flex: 1 },
 });
