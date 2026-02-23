@@ -3,6 +3,11 @@
 ## Overview
 CulturePass is a cross-platform cultural community and events platform designed to connect users with cultural communities, events, and local businesses across Australia, New Zealand, UAE, UK, and Canada. Its main purpose is to serve as a central hub for cultural interaction and commerce, offering features like event discovery, community engagement, a business directory, user profiles, perks and benefits, sponsorship tools, notifications, and payment integration. The project aims to foster cultural understanding and provide a marketplace for cultural experiences.
 
+## Recent Changes
+- **Feb 2026**: Unified dark theme (background #0A0A0F, surface #1A1A22) across all screens by updating Colors constants to use dark as default. All screens now automatically use the dark palette.
+- **Feb 2026**: Implemented functional authentication - POST /api/auth/login and POST /api/auth/register endpoints. Auth state persisted in AsyncStorage via AuthProvider. Demo user: username=demo, password=demo123.
+- **Feb 2026**: Fixed hardcoded light-theme background colors in event, business, and profile detail screens for dark theme consistency.
+
 ## User Preferences
 Preferred communication style: Simple, everyday language.
 
