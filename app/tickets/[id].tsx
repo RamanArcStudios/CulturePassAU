@@ -35,6 +35,7 @@ function formatDate(dateStr: string | null) {
 function getStatusInfo(status: string | null) {
   switch (status) {
     case 'confirmed': return { color: Colors.success, bg: Colors.success + '12', label: 'Confirmed', icon: 'checkmark-circle' as const };
+    case 'pending': return { color: Colors.warning, bg: Colors.warning + '12', label: 'Payment Pending', icon: 'time' as const };
     case 'used': return { color: '#8E8E93', bg: '#8E8E93' + '12', label: 'Scanned', icon: 'checkmark-done' as const };
     case 'cancelled': return { color: Colors.error, bg: Colors.error + '12', label: 'Cancelled', icon: 'close-circle' as const };
     case 'expired': return { color: Colors.warning, bg: Colors.warning + '12', label: 'Expired', icon: 'time' as const };
@@ -56,24 +57,37 @@ export default function TicketDetailScreen() {
 
   const cancelMutation = useMutation({
     mutationFn: async (ticketId: string) => {
-      await apiRequest('PUT', `/api/tickets/${ticketId}/cancel`);
+      const res = await apiRequest('POST', '/api/stripe/refund', { ticketId });
+      return await res.json();
     },
-    onSuccess: () => {
+    onSuccess: (data: any) => {
       queryClient.invalidateQueries({ queryKey: ['/api/ticket', id] });
       queryClient.invalidateQueries({ queryKey: ['/api/tickets'] });
-      Alert.alert('Ticket Cancelled', 'Your ticket has been cancelled. A refund will be processed to your wallet.');
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      const msg = data.refundId
+        ? 'Your ticket has been cancelled and a refund has been initiated to your card.'
+        : 'Your ticket has been cancelled.';
+      Alert.alert('Ticket Cancelled', msg);
+    },
+    onError: (error: Error) => {
+      Alert.alert('Refund Failed', error.message || 'Could not process the refund. Please try again.');
     },
   });
 
   const handleCancel = useCallback(() => {
     if (!ticket) return;
+    const hasPayment = !!(ticket as any).stripePaymentIntentId;
+    const title = hasPayment ? 'Cancel & Refund' : 'Cancel Ticket';
+    const message = hasPayment
+      ? `Are you sure you want to cancel your ticket for "${ticket.eventTitle}"? A refund will be processed to your card.`
+      : `Are you sure you want to cancel your ticket for "${ticket.eventTitle}"?`;
     Alert.alert(
-      'Cancel Ticket',
-      `Are you sure you want to cancel your ticket for "${ticket.eventTitle}"?`,
+      title,
+      message,
       [
         { text: 'Keep Ticket', style: 'cancel' },
         {
-          text: 'Cancel Ticket',
+          text: hasPayment ? 'Cancel & Refund' : 'Cancel Ticket',
           style: 'destructive',
           onPress: () => {
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);

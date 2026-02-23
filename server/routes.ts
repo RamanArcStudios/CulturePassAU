@@ -499,6 +499,104 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.post("/api/stripe/create-checkout-session", async (req: Request, res: Response) => {
+    try {
+      const { ticketData } = req.body;
+      if (!ticketData || !ticketData.totalPrice || ticketData.totalPrice <= 0) {
+        return res.status(400).json({ error: "Valid ticket data with price is required" });
+      }
+
+      const stripe = await getUncachableStripeClient();
+      const baseUrl = `https://${process.env.REPLIT_DEV_DOMAIN || process.env.REPLIT_DOMAINS?.split(',')[0] || 'localhost:5000'}`;
+
+      const ticket = await storage.createTicket({
+        ...ticketData,
+        paymentStatus: 'pending',
+        status: 'pending',
+      });
+
+      const session = await stripe.checkout.sessions.create({
+        payment_method_types: ['card'],
+        line_items: [{
+          price_data: {
+            currency: (ticketData.currency || 'aud').toLowerCase(),
+            product_data: {
+              name: `${ticketData.eventTitle} - ${ticketData.tierName}`,
+              description: `${ticketData.quantity}x ticket(s)`,
+            },
+            unit_amount: Math.round(ticketData.totalPrice * 100),
+          },
+          quantity: 1,
+        }],
+        mode: 'payment',
+        success_url: `${baseUrl}/api/stripe/checkout-success?session_id={CHECKOUT_SESSION_ID}&ticket_id=${ticket.id}`,
+        cancel_url: `${baseUrl}/api/stripe/checkout-cancel?ticket_id=${ticket.id}`,
+        metadata: {
+          ticketId: ticket.id,
+          eventId: ticketData.eventId || '',
+          userId: ticketData.userId || '',
+        },
+      });
+
+      await storage.updateTicketPayment(ticket.id, {
+        stripePaymentIntentId: session.payment_intent as string || session.id,
+      });
+
+      res.json({
+        checkoutUrl: session.url,
+        sessionId: session.id,
+        ticketId: ticket.id,
+      });
+    } catch (e: any) {
+      console.error('Create checkout session error:', e);
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  app.get("/api/stripe/checkout-success", async (req: Request, res: Response) => {
+    try {
+      const { session_id, ticket_id } = req.query;
+      if (session_id && ticket_id) {
+        const stripe = await getUncachableStripeClient();
+        const session = await stripe.checkout.sessions.retrieve(session_id as string);
+
+        if (session.payment_status === 'paid') {
+          await storage.updateTicketPayment(ticket_id as string, {
+            paymentStatus: 'paid',
+            status: 'confirmed',
+            stripePaymentIntentId: session.payment_intent as string,
+          });
+        }
+      }
+
+      res.setHeader("Content-Type", "text/html");
+      res.send(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Payment Successful</title>
+        <style>body{font-family:-apple-system,system-ui,sans-serif;display:flex;justify-content:center;align-items:center;min-height:100vh;margin:0;background:#f0fdf4;color:#166534}
+        .container{text-align:center;padding:40px}.icon{font-size:64px;margin-bottom:16px}.title{font-size:24px;font-weight:700;margin-bottom:8px}.sub{font-size:16px;opacity:0.8}</style>
+        </head><body><div class="container"><div class="icon">&#10003;</div><div class="title">Payment Successful!</div>
+        <div class="sub">Your ticket has been confirmed. You can close this page and return to the app.</div></div></body></html>`);
+    } catch (e: any) {
+      res.status(500).send('Error processing payment confirmation');
+    }
+  });
+
+  app.get("/api/stripe/checkout-cancel", async (req: Request, res: Response) => {
+    const { ticket_id } = req.query;
+    if (ticket_id) {
+      await storage.updateTicketPayment(ticket_id as string, {
+        paymentStatus: 'cancelled',
+        status: 'cancelled',
+      });
+    }
+
+    res.setHeader("Content-Type", "text/html");
+    res.send(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Payment Cancelled</title>
+      <style>body{font-family:-apple-system,system-ui,sans-serif;display:flex;justify-content:center;align-items:center;min-height:100vh;margin:0;background:#fef2f2;color:#991b1b}
+      .container{text-align:center;padding:40px}.icon{font-size:64px;margin-bottom:16px}.title{font-size:24px;font-weight:700;margin-bottom:8px}.sub{font-size:16px;opacity:0.8}</style>
+      </head><body><div class="container"><div class="icon">&#10005;</div><div class="title">Payment Cancelled</div>
+      <div class="sub">Your ticket purchase was cancelled. You can close this page and return to the app.</div></div></body></html>`);
+  });
+
   app.post("/api/stripe/confirm-payment", async (req: Request, res: Response) => {
     try {
       const { paymentIntentId, ticketId } = req.body;

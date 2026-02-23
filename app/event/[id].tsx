@@ -9,6 +9,7 @@ import {
   Image,
   Modal,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -22,6 +23,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { apiRequest, queryClient } from '@/lib/query-client';
+import * as WebBrowser from 'expo-web-browser';
 
 type SampleEvent = (typeof sampleEvents)[number];
 
@@ -95,21 +97,47 @@ function EventDetail({ event, topInset, bottomInset }: EventDetailProps) {
 
   const usersQuery = useQuery<any[]>({ queryKey: ['/api/users'] });
 
+  const [paymentLoading, setPaymentLoading] = useState(false);
+
   const purchaseMutation = useMutation({
     mutationFn: async (body: Record<string, unknown>) => {
-      const res = await apiRequest('POST', '/api/tickets', body);
+      const res = await apiRequest('POST', '/api/stripe/create-checkout-session', { ticketData: body });
       return await res.json();
     },
-    onSuccess: (data: any) => {
-      queryClient.invalidateQueries({ queryKey: ['/api/tickets'] });
-      setTicketModalVisible(false);
-      Alert.alert('Ticket Purchased!', 'Your ticket has been confirmed.', [
-        {
-          text: 'View Ticket',
-          onPress: () => router.push(`/tickets/${data.id}` as any),
-        },
-        { text: 'OK' },
-      ]);
+    onSuccess: async (data: any) => {
+      if (data.checkoutUrl) {
+        setPaymentLoading(true);
+        setTicketModalVisible(false);
+
+        try {
+          const result = await WebBrowser.openBrowserAsync(data.checkoutUrl, {
+            dismissButtonStyle: 'cancel',
+            presentationStyle: WebBrowser.WebBrowserPresentationStyle.FULL_SCREEN,
+          });
+
+          queryClient.invalidateQueries({ queryKey: ['/api/tickets'] });
+
+          if (result.type === 'cancel' || result.type === 'dismiss') {
+            const ticketRes = await apiRequest('GET', `/api/ticket/${data.ticketId}`, undefined);
+            const ticket = await ticketRes.json();
+
+            if (ticket.paymentStatus === 'paid' || ticket.status === 'confirmed') {
+              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+              Alert.alert('Ticket Purchased!', 'Your payment was successful.', [
+                {
+                  text: 'View Ticket',
+                  onPress: () => router.push(`/tickets/${data.ticketId}` as any),
+                },
+                { text: 'OK' },
+              ]);
+            }
+          }
+        } catch (e: any) {
+          Alert.alert('Payment Error', 'Could not open payment page. Please try again.');
+        } finally {
+          setPaymentLoading(false);
+        }
+      }
     },
     onError: (error: Error) => {
       Alert.alert('Purchase Failed', error.message);
@@ -127,6 +155,24 @@ function EventDetail({ event, topInset, bottomInset }: EventDetailProps) {
       return;
     }
     const userId = users[0].id;
+
+    if (totalPrice <= 0) {
+      purchaseFreeTicket({
+        userId,
+        eventId: event.id,
+        eventTitle: event.title,
+        eventDate: event.date,
+        eventTime: event.time,
+        eventVenue: event.venue,
+        tierName: selectedTier.name,
+        quantity,
+        totalPrice: 0,
+        currency: 'AUD',
+        imageColor: (event as any).imageColor ?? Colors.primary,
+      });
+      return;
+    }
+
     purchaseMutation.mutate({
       userId,
       eventId: event.id,
@@ -141,6 +187,25 @@ function EventDetail({ event, topInset, bottomInset }: EventDetailProps) {
       imageColor: (event as any).imageColor ?? Colors.primary,
     });
   }, [usersQuery.data, event, selectedTier, quantity, totalPrice, purchaseMutation]);
+
+  const purchaseFreeTicket = useCallback(async (body: Record<string, unknown>) => {
+    try {
+      const res = await apiRequest('POST', '/api/tickets', body);
+      const data = await res.json();
+      queryClient.invalidateQueries({ queryKey: ['/api/tickets'] });
+      setTicketModalVisible(false);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      Alert.alert('Ticket Confirmed!', 'Your free ticket has been reserved.', [
+        {
+          text: 'View Ticket',
+          onPress: () => router.push(`/tickets/${data.id}` as any),
+        },
+        { text: 'OK' },
+      ]);
+    } catch (e: any) {
+      Alert.alert('Error', 'Failed to reserve ticket. Please try again.');
+    }
+  }, []);
 
   const openTicketModal = useCallback((tierIdx?: number) => {
     setSelectedTierIndex(tierIdx ?? 0);
@@ -574,18 +639,28 @@ function EventDetail({ event, topInset, bottomInset }: EventDetailProps) {
                 style={({ pressed }) => [
                   modalStyles.purchaseBtn,
                   pressed && { opacity: 0.9, transform: [{ scale: 0.98 }] },
-                  purchaseMutation.isPending && { opacity: 0.6 },
+                  (purchaseMutation.isPending || paymentLoading) && { opacity: 0.6 },
                 ]}
                 onPress={handlePurchase}
-                disabled={purchaseMutation.isPending}
+                disabled={purchaseMutation.isPending || paymentLoading}
               >
-                {purchaseMutation.isPending ? (
-                  <Text style={modalStyles.purchaseBtnText}>Processing...</Text>
+                {purchaseMutation.isPending || paymentLoading ? (
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                    <ActivityIndicator size="small" color="#FFF" />
+                    <Text style={modalStyles.purchaseBtnText}>Processing...</Text>
+                  </View>
+                ) : totalPrice > 0 ? (
+                  <>
+                    <Ionicons name="card" size={20} color="#FFF" />
+                    <Text style={modalStyles.purchaseBtnText}>
+                      Pay ${totalPrice.toFixed(2)} with Stripe
+                    </Text>
+                  </>
                 ) : (
                   <>
                     <Ionicons name="ticket" size={20} color="#FFF" />
                     <Text style={modalStyles.purchaseBtnText}>
-                      Purchase {quantity} {quantity === 1 ? 'Ticket' : 'Tickets'}
+                      Get Free {quantity === 1 ? 'Ticket' : 'Tickets'}
                     </Text>
                   </>
                 )}
