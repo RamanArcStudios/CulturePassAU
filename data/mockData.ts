@@ -23,6 +23,7 @@ export interface EventData {
   tiers: { name: string; price: number; available: number }[];
   country: string;
   city: string;
+  indigenousTags?: string[];
 }
 
 export interface CommunityData {
@@ -39,6 +40,8 @@ export interface CommunityData {
   imageUrl: string;
   country: string;
   city: string;
+  isIndigenous?: boolean;
+  nationLanguageGroup?: string;
 }
 
 export interface BusinessData {
@@ -59,6 +62,9 @@ export interface BusinessData {
   imageUrl: string;
   country: string;
   city: string;
+  isIndigenousOwned?: boolean;
+  supplyNationRegistered?: boolean;
+  indigenousCategory?: string;
 }
 
 export interface MovieData {
@@ -128,6 +134,7 @@ export interface ActivityData {
   imageUrl: string;
   country: string;
   city: string;
+  indigenousTags?: string[];
 }
 
 export interface ShoppingData {
@@ -163,7 +170,31 @@ export const locations: LocationData[] = [
   { country: 'Canada', countryCode: 'CA', cities: ['Toronto', 'Vancouver', 'Calgary', 'Montreal'] },
 ];
 
+export interface TraditionalLandData {
+  city: string;
+  country: string;
+  traditionalCustodians: string;
+  landName: string;
+  acknowledgement: string;
+}
+
+export const traditionalLands: TraditionalLandData[] = [
+  { city: 'Sydney', country: 'Australia', traditionalCustodians: 'Gadigal People', landName: 'Gadigal Land', acknowledgement: 'CulturePass acknowledges the Gadigal People of the Eora Nation as the Traditional Custodians of this land.' },
+  { city: 'Melbourne', country: 'Australia', traditionalCustodians: 'Wurundjeri Woi-wurrung People', landName: 'Wurundjeri Land', acknowledgement: 'CulturePass acknowledges the Wurundjeri Woi-wurrung People of the Kulin Nation as the Traditional Custodians of this land.' },
+  { city: 'Brisbane', country: 'Australia', traditionalCustodians: 'Turrbal and Jagera Peoples', landName: 'Turrbal & Jagera Land', acknowledgement: 'CulturePass acknowledges the Turrbal and Jagera Peoples as the Traditional Custodians of this land.' },
+  { city: 'Perth', country: 'Australia', traditionalCustodians: 'Whadjuk Noongar People', landName: 'Whadjuk Noongar Land', acknowledgement: 'CulturePass acknowledges the Whadjuk Noongar People as the Traditional Custodians of this land.' },
+  { city: 'Adelaide', country: 'Australia', traditionalCustodians: 'Kaurna People', landName: 'Kaurna Land', acknowledgement: 'CulturePass acknowledges the Kaurna People as the Traditional Custodians of this land.' },
+  { city: 'Canberra', country: 'Australia', traditionalCustodians: 'Ngunnawal People', landName: 'Ngunnawal Land', acknowledgement: 'CulturePass acknowledges the Ngunnawal People as the Traditional Custodians of this land.' },
+  { city: 'Hobart', country: 'Australia', traditionalCustodians: 'Muwinina People', landName: 'Muwinina Land', acknowledgement: 'CulturePass acknowledges the Muwinina People as the Traditional Custodians of this land.' },
+  { city: 'Darwin', country: 'Australia', traditionalCustodians: 'Larrakia People', landName: 'Larrakia Land', acknowledgement: 'CulturePass acknowledges the Larrakia People as the Traditional Custodians of this land.' },
+  { city: 'Auckland', country: 'New Zealand', traditionalCustodians: 'Ngāti Whātua Ōrākei', landName: 'Tāmaki Makaurau', acknowledgement: 'CulturePass acknowledges Ngāti Whātua Ōrākei as mana whenua of Tāmaki Makaurau.' },
+  { city: 'Wellington', country: 'New Zealand', traditionalCustodians: 'Te Āti Awa, Taranaki Whānui', landName: 'Te Whanganui-a-Tara', acknowledgement: 'CulturePass acknowledges Te Āti Awa and Taranaki Whānui as mana whenua of Te Whanganui-a-Tara.' },
+  { city: 'Toronto', country: 'Canada', traditionalCustodians: 'Mississaugas of the Credit', landName: 'Treaty 13 Land', acknowledgement: 'CulturePass acknowledges the Mississaugas of the Credit, Anishnabeg, Chippewa, Haudenosaunee and Wendat peoples as the original inhabitants of this land.' },
+  { city: 'Vancouver', country: 'Canada', traditionalCustodians: 'Musqueam, Squamish & Tsleil-Waututh Nations', landName: 'xʷməθkʷəy̓əm Land', acknowledgement: 'CulturePass acknowledges the Musqueam, Squamish and Tsleil-Waututh Nations on whose unceded traditional territory we operate.' },
+];
+
 export const communities: string[] = [
+  'Aboriginal & Torres Strait Islander', 'First Nations',
   'Malayalee', 'Tamil', 'Punjabi', 'Multicultural', 'Council Events',
   'Business Networking', 'Youth', 'Religious', 'Bengali', 'Gujarati',
   'Telugu', 'Chinese', 'Filipino', 'Korean', 'Pacific Islander',
@@ -184,6 +215,7 @@ export const interestIcons: Record<string, string> = {
 };
 
 export const communityIcons: Record<string, string> = {
+  'Aboriginal & Torres Strait Islander': 'earth', 'First Nations': 'earth',
   'Malayalee': 'globe', 'Tamil': 'globe', 'Punjabi': 'globe',
   'Multicultural': 'earth', 'Council Events': 'business',
   'Business Networking': 'briefcase', 'Youth': 'rocket', 'Religious': 'leaf',
@@ -522,6 +554,78 @@ export const sampleEvents: EventData[] = [
     tiers: [{ name: 'General', price: 100, available: 300 }, { name: 'VIP Brunch', price: 180, available: 80 }],
     country: 'United Arab Emirates', city: 'Dubai',
   },
+  {
+    id: 'ei1', cpid: 'CP-EVT-I01', title: 'NAIDOC Week Opening Ceremony',
+    description: 'Join the national opening ceremony for NAIDOC Week celebrating the history, culture, and achievements of Aboriginal and Torres Strait Islander peoples.',
+    date: '2026-07-05', time: '10:00 AM', venue: 'The Domain', address: 'Art Gallery Rd, Sydney NSW 2000',
+    price: 0, priceLabel: 'Free', category: 'Festivals', communityTag: 'Aboriginal & Torres Strait Islander',
+    organizer: 'First Nations Cultural Council', organizerId: 'ci1', imageColor: '#2C3E50',
+    imageUrl: 'https://images.unsplash.com/photo-1534312527009-56c7016453e6?w=800&q=80',
+    capacity: 10000, attending: 7500, isFeatured: true, isCouncil: false,
+    tiers: [{ name: 'Free Entry', price: 0, available: 2500 }],
+    country: 'Australia', city: 'Sydney',
+    indigenousTags: ['Indigenous-led', 'NAIDOC Week', 'Cultural Ceremony'],
+  },
+  {
+    id: 'ei2', cpid: 'CP-EVT-I02', title: 'Dreamtime Stories Under the Stars',
+    description: 'An enchanting evening of traditional Aboriginal storytelling under the stars, featuring Dreamtime narratives passed down through generations.',
+    date: '2026-06-20', time: '7:00 PM', venue: 'Royal Botanic Gardens', address: 'Birdwood Ave, Melbourne VIC 3004',
+    price: 25, priceLabel: '$25', category: 'Arts', communityTag: 'Aboriginal & Torres Strait Islander',
+    organizer: 'First Nations Cultural Council', organizerId: 'ci1', imageColor: '#1A5276',
+    imageUrl: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800&q=80',
+    capacity: 300, attending: 240, isFeatured: true, isCouncil: false,
+    tiers: [{ name: 'General', price: 25, available: 60 }],
+    country: 'Australia', city: 'Melbourne',
+    indigenousTags: ['Indigenous-led', 'Cultural Ceremony'],
+  },
+  {
+    id: 'ei3', cpid: 'CP-EVT-I03', title: 'First Nations Art Exhibition',
+    description: 'A curated exhibition of contemporary and traditional First Nations art featuring works from emerging and established Aboriginal artists.',
+    date: '2026-05-10', time: '10:00 AM', venue: 'QAGOMA', address: 'Stanley Pl, South Brisbane QLD 4101',
+    price: 15, priceLabel: '$15', category: 'Arts', communityTag: 'Aboriginal & Torres Strait Islander',
+    organizer: 'First Nations Cultural Council', organizerId: 'ci1', imageColor: '#8B4513',
+    imageUrl: 'https://images.unsplash.com/photo-1513364776144-60967b0f800f?w=800&q=80',
+    capacity: 500, attending: 350, isFeatured: false, isCouncil: false,
+    tiers: [{ name: 'General', price: 15, available: 150 }],
+    country: 'Australia', city: 'Brisbane',
+    indigenousTags: ['Indigenous-led', 'First Nations Owned'],
+  },
+  {
+    id: 'ei4', cpid: 'CP-EVT-I04', title: 'Indigenous Bush Tucker Experience',
+    description: 'Discover native Australian ingredients and traditional cooking methods in this immersive bush tucker experience led by Aboriginal elders.',
+    date: '2026-06-14', time: '11:00 AM', venue: 'Kings Park', address: 'Fraser Ave, Perth WA 6005',
+    price: 65, priceLabel: '$65', category: 'Food & Cooking', communityTag: 'Aboriginal & Torres Strait Islander',
+    organizer: 'First Nations Cultural Council', organizerId: 'ci1', imageColor: '#2ECC71',
+    imageUrl: 'https://images.unsplash.com/photo-1464226184884-fa280b87c399?w=800&q=80',
+    capacity: 40, attending: 32, isFeatured: false, isCouncil: false,
+    tiers: [{ name: 'General', price: 65, available: 8 }],
+    country: 'Australia', city: 'Perth',
+    indigenousTags: ['Indigenous-led', 'First Nations Owned'],
+  },
+  {
+    id: 'ei5', cpid: 'CP-EVT-I05', title: 'Reconciliation Week Concert',
+    description: 'A powerful concert celebrating reconciliation featuring First Nations musicians, dancers, and spoken word artists at the iconic Sydney Opera House.',
+    date: '2026-05-27', time: '7:00 PM', venue: 'Sydney Opera House', address: 'Bennelong Point, Sydney NSW 2000',
+    price: 0, priceLabel: 'Free', category: 'Music', communityTag: 'Aboriginal & Torres Strait Islander',
+    organizer: 'First Nations Cultural Council', organizerId: 'ci1', imageColor: '#C0392B',
+    imageUrl: 'https://images.unsplash.com/photo-1501612780327-45045538702b?w=800&q=80',
+    capacity: 5000, attending: 4200, isFeatured: true, isCouncil: false,
+    tiers: [{ name: 'Free Entry', price: 0, available: 800 }],
+    country: 'Australia', city: 'Sydney',
+    indigenousTags: ['Indigenous-led', 'Reconciliation Week'],
+  },
+  {
+    id: 'ei6', cpid: 'CP-EVT-I06', title: 'Didgeridoo & Traditional Dance Workshop',
+    description: 'Learn the ancient art of didgeridoo playing and traditional Aboriginal dance in this hands-on workshop led by Indigenous performers.',
+    date: '2026-06-28', time: '2:00 PM', venue: 'Museum and Art Gallery of NT', address: '19 Conacher St, Darwin NT 0801',
+    price: 35, priceLabel: '$35', category: 'Dance', communityTag: 'Aboriginal & Torres Strait Islander',
+    organizer: 'First Nations Cultural Council', organizerId: 'ci1', imageColor: '#E85D3A',
+    imageUrl: 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=800&q=80',
+    capacity: 60, attending: 48, isFeatured: false, isCouncil: false,
+    tiers: [{ name: 'General', price: 35, available: 12 }],
+    country: 'Australia', city: 'Darwin',
+    indigenousTags: ['Indigenous-led', 'Cultural Ceremony'],
+  },
 ];
 
 export const sampleCommunities: CommunityData[] = [
@@ -542,6 +646,8 @@ export const sampleCommunities: CommunityData[] = [
   { id: 'c15', cpid: 'CP-COM-015', name: 'Manchester Desi Community', description: 'Bringing together the South Asian community in Greater Manchester for cultural celebrations, networking, and support.', members: 15000, events: 45, color: '#3498DB', icon: 'globe', category: 'Cultural', leaders: ['Raj Sharma', 'Ayesha Malik'], imageUrl: 'https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=800&q=80', country: 'United Kingdom', city: 'Manchester' },
   { id: 'c16', cpid: 'CP-COM-016', name: 'Toronto Tamil Community', description: 'One of the largest Tamil communities outside South Asia. Cultural preservation, language programs, and community events.', members: 28000, events: 65, color: '#1A7A6D', icon: 'globe', category: 'Cultural', leaders: ['Kumaran Selvaraj', 'Thilaga Rajan'], imageUrl: 'https://images.unsplash.com/photo-1506869640319-fe1a24fd76cb?w=800&q=80', country: 'Canada', city: 'Toronto' },
   { id: 'c17', cpid: 'CP-COM-017', name: 'Vancouver Indo-Canadian Society', description: 'Celebrating the rich Indo-Canadian heritage in Vancouver through festivals, community service, and cultural programs.', members: 20000, events: 55, color: '#F2A93B', icon: 'globe', category: 'Cultural', leaders: ['Gurpreet Dhillon', 'Rani Bhatia'], imageUrl: 'https://images.unsplash.com/photo-1504609813442-a8924e83f76e?w=800&q=80', country: 'Canada', city: 'Vancouver' },
+  { id: 'ci1', cpid: 'CP-COM-I01', name: 'First Nations Cultural Council', description: 'Supporting Aboriginal and Torres Strait Islander cultural preservation, community events, and artistic expression across Australia.', members: 12500, events: 45, color: '#1A5276', icon: 'earth', category: 'Indigenous', leaders: ['Uncle Jack', 'Aunty Mabel', 'Dr. Sarah Brown'], imageUrl: 'https://images.unsplash.com/photo-1534312527009-56c7016453e6?w=800&q=80', country: 'Australia', city: 'Sydney', isIndigenous: true, nationLanguageGroup: 'Multi-Nation' },
+  { id: 'ci2', cpid: 'CP-COM-I02', name: 'Yolngu Cultural Exchange', description: 'Connecting Yolngu community members with cultural programs, language preservation initiatives, and traditional arts workshops.', members: 3200, events: 18, color: '#8B4513', icon: 'earth', category: 'Indigenous', leaders: ['Elder Wunungmurra', 'Dhopiya Marika'], imageUrl: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800&q=80', country: 'Australia', city: 'Darwin', isIndigenous: true, nationLanguageGroup: 'Yolngu Matha' },
 ];
 
 export const sampleBusinesses: BusinessData[] = [
@@ -570,6 +676,9 @@ export const sampleBusinesses: BusinessData[] = [
   { id: 'b23', cpid: 'CP-BIZ-023', name: 'Scarborough Tamil Studio', category: 'Photographers', description: 'Professional photography and videography for Tamil weddings, cultural events, and family portraits.', rating: 4.7, reviews: 178, location: 'Scarborough, ON', phone: '+1 416 345 6789', services: ['Wedding Photography', 'Event Coverage', 'Family Portraits', 'Videography'], color: '#1A7A6D', icon: 'camera', isVerified: true, priceRange: '$$', imageUrl: 'https://images.unsplash.com/photo-1554048612-b6a482bc67e5?w=800&q=80', country: 'Canada', city: 'Toronto' },
   { id: 'b24', cpid: 'CP-BIZ-024', name: 'Vancouver Spice Catering', category: 'Restaurants', description: 'Authentic Indian catering for weddings, corporate events, and private parties across Metro Vancouver.', rating: 4.7, reviews: 198, location: 'Surrey, BC', phone: '+1 604 123 4567', services: ['Wedding Catering', 'Corporate Lunches', 'Private Chef', 'Meal Prep'], color: '#2ECC71', icon: 'restaurant', isVerified: true, priceRange: '$$', imageUrl: 'https://images.unsplash.com/photo-1565557623262-b51c2513a641?w=800&q=80', country: 'Canada', city: 'Vancouver' },
   { id: 'b25', cpid: 'CP-BIZ-025', name: 'Vancouver Bollywood Entertainment', category: 'Musicians', description: 'Live Bollywood bands, DJs, and entertainment for South Asian events in Greater Vancouver.', rating: 4.8, reviews: 145, location: 'Vancouver, BC', phone: '+1 604 234 5678', services: ['Live Band', 'DJ Services', 'MC', 'Choreography'], color: '#9B59B6', icon: 'musical-notes', isVerified: true, priceRange: '$$$', imageUrl: 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=800&q=80', country: 'Canada', city: 'Vancouver' },
+  { id: 'bi1', cpid: 'CP-BIZ-I01', name: 'Boomalli Aboriginal Artists', category: 'Art Gallery', description: 'Aboriginal-owned cooperative gallery showcasing contemporary Indigenous art, prints, and sculptures from emerging and established First Nations artists.', rating: 4.9, reviews: 187, location: 'Chippendale, Sydney', phone: '02 8399 3133', services: ['Art Sales', 'Exhibitions', 'Artist Workshops', 'Cultural Tours'], color: '#8B4513', icon: 'color-palette', isVerified: true, priceRange: '$$', imageUrl: 'https://images.unsplash.com/photo-1513364776144-60967b0f800f?w=800&q=80', country: 'Australia', city: 'Sydney', isIndigenousOwned: true, supplyNationRegistered: true, indigenousCategory: 'Art & Culture' },
+  { id: 'bi2', cpid: 'CP-BIZ-I02', name: 'Koskela Design', category: 'Furniture & Homewares', description: 'Indigenous-owned design studio creating contemporary furniture and homewares in collaboration with Aboriginal communities.', rating: 4.8, reviews: 124, location: 'Rosebery, Sydney', phone: '02 9280 0999', services: ['Furniture', 'Homewares', 'Custom Design', 'Corporate Gifts'], color: '#1A5276', icon: 'home', isVerified: true, priceRange: '$$$', imageUrl: 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=800&q=80', country: 'Australia', city: 'Sydney', isIndigenousOwned: true, supplyNationRegistered: true, indigenousCategory: 'Design' },
+  { id: 'bi3', cpid: 'CP-BIZ-I03', name: 'Mabu Mabu', category: 'Restaurant', description: 'First Nations-owned restaurant celebrating native Australian ingredients and Torres Strait Islander cuisine.', rating: 4.7, reviews: 312, location: 'Federation Square, Melbourne', phone: '03 9077 0550', services: ['Dine In', 'Catering', 'Bush Tucker Tasting', 'Cultural Events'], color: '#2ECC71', icon: 'restaurant', isVerified: true, priceRange: '$$', imageUrl: 'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=800&q=80', country: 'Australia', city: 'Melbourne', isIndigenousOwned: true, supplyNationRegistered: false, indigenousCategory: 'Food & Dining' },
 ];
 
 export const sampleMovies: MovieData[] = [
@@ -1154,6 +1263,24 @@ export const sampleActivities: ActivityData[] = [
     imageUrl: 'https://images.unsplash.com/photo-1596040033229-a9821ebd058d?w=800&q=80',
     country: 'Canada', city: 'Vancouver',
   },
+  {
+    id: 'ai1', cpid: 'CP-ACT-I01', name: 'Aboriginal Cultural Walking Tour', category: 'Cultural Tours',
+    description: 'Guided walk through Sydney exploring Aboriginal rock art, middens, and sacred sites with a Gadigal knowledge keeper.',
+    location: 'The Rocks, Sydney', price: 45, priceLabel: '$45', rating: 4.9, reviews: 234,
+    duration: '2.5 hours', color: '#1A5276', icon: 'walk', highlights: ['Rock Art', 'Dreamtime Stories', 'Bush Medicine', 'Sacred Sites'],
+    ageGroup: 'All Ages', isPopular: true,
+    imageUrl: 'https://images.unsplash.com/photo-1500043357865-c6b8827edf10?w=800&q=80',
+    country: 'Australia', city: 'Sydney', indigenousTags: ['Indigenous-led', 'First Nations Owned'],
+  },
+  {
+    id: 'ai2', cpid: 'CP-ACT-I02', name: 'Boomerang & Spear Throwing Workshop', category: 'Outdoor Adventure',
+    description: 'Learn traditional boomerang and spear throwing techniques from Aboriginal elders in a hands-on bush workshop.',
+    location: 'Kings Park, Perth', price: 55, priceLabel: '$55', rating: 4.8, reviews: 156,
+    duration: '2 hours', color: '#8B4513', icon: 'fitness', highlights: ['Boomerang Throwing', 'Spear Technique', 'Bush Skills', 'Cultural Storytelling'],
+    ageGroup: 'Ages 8+', isPopular: true,
+    imageUrl: 'https://images.unsplash.com/photo-1528164344885-47b1492b7391?w=800&q=80',
+    country: 'Australia', city: 'Perth', indigenousTags: ['Indigenous-led'],
+  },
 ];
 
 export const sampleShopping: ShoppingData[] = [
@@ -1340,6 +1467,7 @@ export const businessCategories = [
 export const exploreCategories = [
   { label: 'All', icon: 'apps' },
   { label: 'Events', icon: 'calendar' },
+  { label: 'Indigenous', icon: 'earth' },
   { label: 'Free', icon: 'gift' },
   { label: 'Council', icon: 'business' },
   { label: 'Food', icon: 'restaurant' },
@@ -1395,3 +1523,24 @@ export const superAppSections = [
   { id: 'events', label: 'Events', icon: 'calendar', color: '#1A7A6D', route: '/explore' },
   { id: 'directory', label: 'Directory', icon: 'storefront', color: '#3498DB', route: '/directory' },
 ];
+
+export interface IndigenousSpotlightData {
+  id: string;
+  type: 'artist' | 'business' | 'event' | 'community';
+  title: string;
+  subtitle: string;
+  description: string;
+  imageUrl: string;
+  linkId: string;
+  linkType: string;
+  nation?: string;
+}
+
+export const indigenousSpotlights: IndigenousSpotlightData[] = [
+  { id: 'is1', type: 'artist', title: 'Artist of the Week', subtitle: 'Warrina Designs', description: 'Contemporary Aboriginal textile art blending traditional dot painting with modern fashion design.', imageUrl: 'https://images.unsplash.com/photo-1513364776144-60967b0f800f?w=800&q=80', linkId: 'bi1', linkType: 'business', nation: 'Wiradjuri' },
+  { id: 'is2', type: 'business', title: 'Indigenous Business Feature', subtitle: 'Mabu Mabu Restaurant', description: 'Torres Strait Islander cuisine celebrating native Australian ingredients in the heart of Melbourne.', imageUrl: 'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=800&q=80', linkId: 'bi3', linkType: 'business', nation: 'Torres Strait Islander' },
+  { id: 'is3', type: 'event', title: 'Cultural Event', subtitle: 'NAIDOC Week Opening', description: 'Annual celebration honouring the history, culture, and achievements of Aboriginal and Torres Strait Islander peoples.', imageUrl: 'https://images.unsplash.com/photo-1534312527009-56c7016453e6?w=800&q=80', linkId: 'ei1', linkType: 'event', nation: 'Multi-Nation' },
+  { id: 'is4', type: 'community', title: 'Community of the Month', subtitle: 'First Nations Cultural Council', description: 'Supporting cultural preservation and artistic expression for Aboriginal communities across Australia.', imageUrl: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800&q=80', linkId: 'ci1', linkType: 'community', nation: 'Multi-Nation' },
+];
+
+export const acknowledgementOfCountry = "CulturePass acknowledges the Traditional Custodians of the lands on which events are held and recognises Aboriginal and Torres Strait Islander peoples as the First Nations of Australia. We pay our respects to Elders past, present, and emerging.";
