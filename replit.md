@@ -64,6 +64,17 @@ Preferred communication style: Simple, everyday language.
     - Explore: Larger search bar with shadow, 110px result images, pill-shaped sort toggle, improved empty state
     - Directory: Matching search bar, 22px listing cards, 40px contact buttons, full-width details button
     - Event/Community/Business detail: 320/280px hero images with LinearGradient overlays, 20px card radius, accent bar dividers, improved buttons
+- **Feb 2026**: Apple HIG Design System Overhaul:
+  - Complete redesign following Apple Human Interface Guidelines (clarity, deference, depth)
+  - Color palette: Apple system blue (#007AFF) primary, #5856D6 secondary, #FF9500 accent, #F2F2F7 background, #FFFFFF surfaces
+  - Typography: iOS system fonts on iOS, Poppins fallback, Apple-standard text scale (34px large title, 22px title2, 17px body)
+  - Shadows: Subtle, refined shadows (4 tiers: small/medium/large/heavy) with low opacity
+  - Tab bar: BlurView on iOS, clean hairline border, system tint colors
+  - All screens: clean white surfaces, 12-16px border radius, generous whitespace, removed accent strips/borders
+  - Cards: borderless clean surfaces with subtle shadows, removed 1px+ borders
+  - Login: clean white background, flat buttons, no gradients
+  - Profile: Apple Settings-style grouped menu rows, clean stats row
+  - Community/Perks: Apple system colors for type indicators
 - **Feb 2026**: Profile & Database improvements:
   - Refined color scheme: warmer primary (#D4552A), deeper secondary (#1B7F6F), better shadows with brown-tinted shadow colors, added primarySoft color
   - Redesigned Profile tab: hero card with accent strip, CPID/location chips, colored completeness bar with percentage, full-width Edit Profile button, card-based quick actions with icons
