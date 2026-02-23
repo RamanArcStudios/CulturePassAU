@@ -75,7 +75,37 @@ export default function CalendarScreen() {
   return (
     <View style={[styles.container, { paddingTop: insets.top + webTopInset }]}>
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 120 }}>
-        <Text style={styles.headerTitle}>Calendar</Text>
+        <View style={styles.headerRow}>
+          <Text style={styles.headerTitle}>Calendar</Text>
+          {(currentMonth !== today.getMonth() || currentYear !== today.getFullYear()) && (
+            <Pressable
+              style={styles.todayBtn}
+              onPress={() => {
+                Haptics.selectionAsync();
+                setCurrentMonth(today.getMonth());
+                setCurrentYear(today.getFullYear());
+                setSelectedDate(null);
+              }}
+            >
+              <Text style={styles.todayBtnText}>Today</Text>
+            </Pressable>
+          )}
+        </View>
+
+        <View style={styles.summaryRow}>
+          <View style={styles.summaryChip}>
+            <Ionicons name="calendar" size={14} color={Colors.primary} />
+            <Text style={styles.summaryChipText}>
+              {filterByLocation(sampleEvents).length} events
+            </Text>
+          </View>
+          <View style={styles.summaryChip}>
+            <Ionicons name="today" size={14} color={Colors.accent} />
+            <Text style={styles.summaryChipText}>
+              {eventDates.size} days with events
+            </Text>
+          </View>
+        </View>
 
         <View style={styles.calendarCard}>
           <View style={styles.monthNav}>
@@ -206,14 +236,51 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.background,
   },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 24,
+    paddingTop: 12,
+    paddingBottom: 12,
+  },
   headerTitle: {
     fontFamily: 'Poppins_700Bold',
     fontSize: 34,
     color: Colors.text,
     letterSpacing: 0.37,
+  },
+  todayBtn: {
+    backgroundColor: Colors.primary,
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 50,
+  },
+  todayBtnText: {
+    fontFamily: 'Poppins_600SemiBold',
+    fontSize: 13,
+    color: '#FFF',
+  },
+  summaryRow: {
+    flexDirection: 'row',
+    gap: 10,
     paddingHorizontal: 24,
-    paddingTop: 12,
-    paddingBottom: 24,
+    paddingBottom: 20,
+  },
+  summaryChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: Colors.surface,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 50,
+    ...Colors.shadow.small,
+  },
+  summaryChipText: {
+    fontFamily: 'Poppins_500Medium',
+    fontSize: 13,
+    color: Colors.textSecondary,
   },
   calendarCard: {
     backgroundColor: Colors.surface,
