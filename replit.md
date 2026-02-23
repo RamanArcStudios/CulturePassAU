@@ -64,8 +64,19 @@ Shared types between frontend and backend ensure type consistency. Path aliases 
 ### Web Dashboard
 - Admin dashboard at `/dashboard` route (served from `server/templates/dashboard.html`)
 - Login with username "admin" and password from `ADMIN_USER_PASSWORD` env secret (fallback: "admin123")
-- Dashboard sections: Overview (stats, charts), Tickets management, Events, Users, Perks, Analytics
+- Dashboard sections: Overview (stats, charts), Tickets management, Events, Users, Perks, Indigenous Visibility, Analytics, Revenue
 - Login endpoint: `POST /api/dashboard/login`
+
+### Indigenous Visibility Framework (Feb 2026)
+- Data layer: `indigenousTags` on events/activities, `isIndigenousOwned`/`supplyNationRegistered`/`indigenousCategory` on businesses
+- Traditional Custodian land mapping (`traditionalLands` in mockData) for 12 cities across AU, NZ, CA
+- Acknowledgement of Country text (`acknowledgementOfCountry` in mockData) shown on onboarding when Australia selected
+- 6 Indigenous events (IDs ei1-ei6), 3 Indigenous businesses (IDs bi1-bi3), 2 Indigenous communities, 2 Indigenous activities, Indigenous spotlight data
+- Home screen: Traditional Custodian Land banner (shows for AU/NZ/CA cities), First Nations Spotlight carousel
+- Event detail: Indigenous tag badges (brown/ochre) in hero, Cultural Information education card with NAIDOC/Reconciliation/Ceremony context
+- Business detail: "Indigenous Owned" hero badge, info card with Supply Nation badge
+- Perks: "First Nations" category filter, 3 seeded Indigenous perks (cashback boost, art discount, Welcome to Country)
+- Dashboard: Indigenous Visibility page with stats, Traditional Custodian coverage, events table, Acknowledgement card
 
 ### Stripe Payment Integration (Feb 2026)
 - Replaced wallet-based payment with Stripe Checkout for ticket purchases
