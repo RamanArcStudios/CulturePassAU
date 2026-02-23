@@ -17,6 +17,13 @@ import { registerCpidRoutes } from "./modules/cpid/cpid.routes";
 import { registerLocationsRoutes } from "./modules/locations/locations.routes";
 import { registerCommunitiesRoutes } from "./modules/communities/communities.routes";
 import { registerDiscoverRoutes } from "./modules/discover/discover.routes";
+import { registerEventsRoutes } from "./modules/events/events.routes";
+import { registerBusinessesRoutes } from "./modules/businesses/businesses.routes";
+import { registerMoviesRoutes } from "./modules/movies/movies.routes";
+import { registerRestaurantsRoutes } from "./modules/restaurants/restaurants.routes";
+import { registerActivitiesRoutes } from "./modules/activities/activities.routes";
+import { registerShoppingRoutes } from "./modules/shopping/shopping.routes";
+import { registerIndigenousRoutes } from "./modules/indigenous/indigenous.routes";
 
 import * as usersService from "./modules/users/users.service";
 import * as profilesService from "./modules/profiles/profiles.service";
@@ -43,6 +50,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   registerLocationsRoutes(app);
   registerCommunitiesRoutes(app);
   registerDiscoverRoutes(app);
+  registerEventsRoutes(app);
+  registerBusinessesRoutes(app);
+  registerMoviesRoutes(app);
+  registerRestaurantsRoutes(app);
+  registerActivitiesRoutes(app);
+  registerShoppingRoutes(app);
+  registerIndigenousRoutes(app);
 
   app.post("/api/seed", async (_req: Request, res: Response) => {
     try {
