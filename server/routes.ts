@@ -496,7 +496,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Seed a demo user
-      const demoUser = await storage.createUser({ username: "demo", password: "demo123" });
+      const demoPassword = process.env.DEMO_USER_PASSWORD || "demo123";
+      const demoUser = await storage.createUser({ username: "demo", password: demoPassword });
       await storage.updateUser(demoUser.id, {
         displayName: "Alex Chen",
         email: "alex@culturepass.com",
@@ -512,7 +513,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await generateCpid(demoUser.id, "user");
 
       // Seed Super Admin user
-      const adminUser = await storage.createUser({ username: "superadmin", password: "admin2026" });
+      const adminPassword = process.env.ADMIN_USER_PASSWORD;
+      if (!adminPassword) {
+        throw new Error("ADMIN_USER_PASSWORD environment variable is required for seeding the super admin account");
+      }
+      const adminUser = await storage.createUser({ username: "superadmin", password: adminPassword });
       await storage.updateUser(adminUser.id, {
         displayName: "Super Admin",
         email: "jiobaba369@gmail.com",
