@@ -23,7 +23,10 @@ import {
   sampleActivities,
   sampleShopping,
   superAppSections,
+  traditionalLands,
+  indigenousSpotlights,
 } from '@/data/mockData';
+import { LinearGradient } from 'expo-linear-gradient';
 import Colors from '@/constants/colors';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
@@ -242,6 +245,20 @@ export default function HomeScreen() {
           <Text style={styles.heroTitle}>{firstName}</Text>
         </Animated.View>
 
+        {(() => {
+          const land = traditionalLands.find(l => l.city === state.city);
+          if (!land) return null;
+          return (
+            <Animated.View entering={FadeInDown.delay(120).duration(500)} style={styles.landBanner}>
+              <View style={styles.landBannerContent}>
+                <Ionicons name="earth" size={14} color="#8B4513" />
+                <Text style={styles.landBannerTitle}>You are on {land.landName}</Text>
+              </View>
+              <Text style={styles.landBannerSub}>Traditional Custodians: {land.traditionalCustodians}</Text>
+            </Animated.View>
+          );
+        })()}
+
         <Animated.View entering={FadeInDown.delay(150).duration(500)}>
           <ScrollView
             horizontal
@@ -436,6 +453,56 @@ export default function HomeScreen() {
               </Pressable>
             );
           })}
+        </View>
+
+        <View style={styles.section}>
+          <View style={styles.sectionHeaderRow}>
+            <Text style={styles.sectionTitle}>First Nations Spotlight</Text>
+            <Pressable onPress={() => {}} style={Platform.OS === 'web' ? { cursor: 'pointer' } : undefined}>
+              <Text style={styles.seeAll}>See All</Text>
+            </Pressable>
+          </View>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={{ paddingHorizontal: 20, gap: 12 }}
+          >
+            {indigenousSpotlights.map(spot => (
+              <Pressable
+                key={spot.id}
+                style={[styles.spotlightCard, Platform.OS === 'web' && { cursor: 'pointer' }]}
+                onPress={() => {
+                  const routes: Record<string, string> = {
+                    event: '/event/[id]',
+                    business: '/business/[id]',
+                    community: '/community/[id]',
+                  };
+                  const route = routes[spot.linkType];
+                  if (route) router.push({ pathname: route as any, params: { id: spot.linkId } });
+                }}
+              >
+                <LinearGradient
+                  colors={['#1A5276', '#2E86C1']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={styles.spotlightBanner}
+                >
+                  <View style={styles.spotlightBadge}>
+                    <Text style={styles.spotlightBadgeText}>{spot.title}</Text>
+                  </View>
+                </LinearGradient>
+                <View style={styles.spotlightBody}>
+                  <Text style={styles.spotlightTitle}>{spot.subtitle}</Text>
+                  {spot.nation && (
+                    <View style={styles.spotlightNation}>
+                      <Text style={styles.spotlightNationText}>{spot.nation}</Text>
+                    </View>
+                  )}
+                  <Text style={styles.spotlightDesc} numberOfLines={2}>{spot.description}</Text>
+                </View>
+              </Pressable>
+            ))}
+          </ScrollView>
         </View>
 
         <Animated.View entering={FadeInDown.delay(380).duration(500)}>
@@ -766,4 +833,84 @@ const styles = StyleSheet.create({
   },
   exploreCtaTitle: { fontSize: 16, fontFamily: 'Poppins_700Bold', color: Colors.text },
   exploreCtaSub: { fontSize: 13, fontFamily: 'Poppins_400Regular', color: Colors.textSecondary },
+  landBanner: {
+    backgroundColor: '#F5EDE3',
+    borderRadius: 12,
+    padding: 12,
+    paddingLeft: 14,
+    borderLeftWidth: 3,
+    borderLeftColor: '#8B4513',
+    marginHorizontal: 20,
+    marginBottom: 16,
+  },
+  landBannerContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  landBannerTitle: {
+    fontSize: 13,
+    fontFamily: 'Poppins_700Bold',
+    color: '#3E2723',
+  },
+  landBannerSub: {
+    fontSize: 11,
+    fontFamily: 'Poppins_400Regular',
+    color: '#6D4C41',
+    marginTop: 2,
+    marginLeft: 20,
+  },
+  spotlightCard: {
+    width: 260,
+    borderRadius: 16,
+    backgroundColor: Colors.surface,
+    overflow: 'hidden',
+    ...Colors.shadow.small,
+  },
+  spotlightBanner: {
+    height: 40,
+    justifyContent: 'flex-end',
+    paddingHorizontal: 10,
+    paddingBottom: 6,
+  },
+  spotlightBadge: {
+    alignSelf: 'flex-start',
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  spotlightBadgeText: {
+    fontSize: 10,
+    fontFamily: 'Poppins_600SemiBold',
+    color: '#FFF',
+  },
+  spotlightBody: {
+    padding: 12,
+  },
+  spotlightTitle: {
+    fontSize: 15,
+    fontFamily: 'Poppins_700Bold',
+    color: Colors.text,
+  },
+  spotlightNation: {
+    alignSelf: 'flex-start',
+    backgroundColor: '#F5EDE3',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 8,
+    marginTop: 4,
+  },
+  spotlightNationText: {
+    fontSize: 11,
+    fontFamily: 'Poppins_600SemiBold',
+    color: '#8B4513',
+  },
+  spotlightDesc: {
+    fontSize: 12,
+    fontFamily: 'Poppins_400Regular',
+    color: Colors.textSecondary,
+    marginTop: 6,
+    lineHeight: 17,
+  },
 });

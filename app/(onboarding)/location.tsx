@@ -3,7 +3,7 @@ import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useOnboarding } from '@/contexts/OnboardingContext';
-import { locations } from '@/data/mockData';
+import { locations, acknowledgementOfCountry } from '@/data/mockData';
 import Colors from '@/constants/colors';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useState } from 'react';
@@ -106,6 +106,19 @@ export default function LocationScreen() {
             </View>
           </Animated.View>
         )}
+
+        {selectedCountry === 'Australia' && (
+          <Animated.View entering={FadeInDown.duration(500)} style={styles.acknowledgementContainer}>
+            <View style={styles.acknowledgementBanner}>
+              <View style={styles.acknowledgementHeader}>
+                <Ionicons name="earth" size={24} color="#FFF" />
+                <Text style={styles.acknowledgementTitle}>Acknowledgement of Country</Text>
+              </View>
+              <Text style={styles.acknowledgementText}>{acknowledgementOfCountry}</Text>
+            </View>
+          </Animated.View>
+        )}
+
         <View style={{ height: 120 }} />
       </ScrollView>
 
@@ -236,5 +249,35 @@ const styles = StyleSheet.create({
     color: '#FFF',
     fontSize: 17,
     fontFamily: 'Poppins_600SemiBold',
+  },
+  acknowledgementContainer: {
+    marginTop: 20,
+    marginHorizontal: 20,
+  },
+  acknowledgementBanner: {
+    backgroundColor: '#1A5276',
+    borderRadius: 16,
+    padding: 16,
+    borderLeftWidth: 4,
+    borderLeftColor: '#8B4513',
+  },
+  acknowledgementHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 12,
+  },
+  acknowledgementTitle: {
+    fontSize: 15,
+    fontFamily: 'Poppins_700Bold',
+    color: '#FFF',
+    flex: 1,
+  },
+  acknowledgementText: {
+    fontSize: 13,
+    fontFamily: 'Poppins_400Regular',
+    color: '#FFF',
+    opacity: 0.9,
+    lineHeight: 20,
   },
 });
