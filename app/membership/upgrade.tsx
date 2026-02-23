@@ -76,8 +76,28 @@ export default function UpgradeScreen() {
       });
       const data = await res.json();
       if (data.checkoutUrl) {
-        await WebBrowser.openBrowserAsync(data.checkoutUrl);
-        queryClient.invalidateQueries({ queryKey: [`/api/membership/${userId}`] });
+        const result = await WebBrowser.openBrowserAsync(data.checkoutUrl);
+        await queryClient.invalidateQueries({ queryKey: [`/api/membership/${userId}`] });
+        await queryClient.invalidateQueries({ queryKey: ['/api/membership/member-count'] });
+
+        const pollForUpdate = async (retries = 0): Promise<void> => {
+          if (retries >= 8) return;
+          try {
+            const checkRes = await apiRequest('GET', `/api/membership/${userId}`);
+            const checkData = await checkRes.json();
+            if (checkData?.tier === 'plus' && checkData?.status === 'active') {
+              await queryClient.invalidateQueries({ queryKey: [`/api/membership/${userId}`] });
+              if (Platform.OS !== 'web') {
+                Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+              }
+              Alert.alert('Welcome to CulturePass+!', 'Your membership is now active. Enjoy early access, cashback rewards, and exclusive perks!');
+              return;
+            }
+          } catch {}
+          await new Promise(r => setTimeout(r, 2000));
+          return pollForUpdate(retries + 1);
+        };
+        await pollForUpdate();
       }
     } catch (e: any) {
       Alert.alert('Error', e.message || 'Failed to start subscription');
@@ -90,21 +110,23 @@ export default function UpgradeScreen() {
     if (!userId) return;
     Alert.alert(
       'Cancel Membership',
-      'Are you sure you want to cancel your CulturePass+ membership? You will lose access to exclusive perks and cashback.',
+      'Are you sure you want to cancel your CulturePass+ membership? Your subscription will be cancelled immediately and you will lose access to exclusive perks and cashback.',
       [
         { text: 'Keep Membership', style: 'cancel' },
         {
-          text: 'Cancel',
+          text: 'Cancel Membership',
           style: 'destructive',
           onPress: async () => {
             setLoading(true);
             try {
               await apiRequest('POST', '/api/membership/cancel-subscription', { userId });
-              queryClient.invalidateQueries({ queryKey: [`/api/membership/${userId}`] });
+              await queryClient.invalidateQueries({ queryKey: [`/api/membership/${userId}`] });
+              await queryClient.invalidateQueries({ queryKey: ['/api/membership/member-count'] });
+              queryClient.setQueryData([`/api/membership/${userId}`], { tier: 'free', status: 'cancelled' });
               if (Platform.OS !== 'web') {
                 Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
               }
-              Alert.alert('Membership Cancelled', 'Your CulturePass+ membership has been cancelled.');
+              Alert.alert('Membership Cancelled', 'Your CulturePass+ membership has been cancelled. You can re-subscribe anytime.');
             } catch (e: any) {
               Alert.alert('Error', e.message || 'Failed to cancel');
             } finally {

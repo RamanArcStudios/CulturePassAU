@@ -415,11 +415,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.send(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Welcome to CulturePass+</title>
         <style>body{font-family:-apple-system,system-ui,sans-serif;display:flex;justify-content:center;align-items:center;min-height:100vh;margin:0;background:linear-gradient(135deg,#EBF5FB,#D6EAF8);color:#1A5276}
         .container{text-align:center;padding:40px;max-width:400px}.icon{font-size:64px;margin-bottom:16px}.title{font-size:28px;font-weight:700;margin-bottom:8px;background:linear-gradient(135deg,#2E86C1,#1A5276);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
-        .sub{font-size:16px;color:#5D6D7E;line-height:1.5}.badge{display:inline-block;background:linear-gradient(135deg,#2E86C1,#1A5276);color:white;padding:6px 16px;border-radius:20px;font-size:14px;font-weight:600;margin-top:16px}</style>
+        .sub{font-size:16px;color:#5D6D7E;line-height:1.5}.badge{display:inline-block;background:linear-gradient(135deg,#2E86C1,#1A5276);color:white;padding:6px 16px;border-radius:20px;font-size:14px;font-weight:600;margin-top:16px}
+        .close-btn{display:inline-block;margin-top:24px;background:#2E86C1;color:white;padding:12px 32px;border-radius:12px;font-size:16px;font-weight:600;text-decoration:none;cursor:pointer;border:none}</style>
+        <script>setTimeout(function(){try{window.close()}catch(e){}},5000);</script>
         </head><body><div class="container"><div class="icon">&#127758;</div><div class="title">Welcome to CulturePass+</div>
         <div class="sub">Your membership is now active. Enjoy early access, exclusive perks, and cashback rewards.</div>
         <div class="badge">Access. Advantage. Influence.</div>
-        <div class="sub" style="margin-top:24px;font-size:14px">You can close this page and return to the app.</div></div></body></html>`);
+        <button class="close-btn" onclick="try{window.close()}catch(e){history.back()}">Return to App</button>
+        <div class="sub" style="margin-top:16px;font-size:13px">This page will close automatically...</div></div></body></html>`);
     } catch (e: any) {
       console.error('Membership success error:', e);
       res.status(500).send('Error activating membership');
@@ -430,9 +433,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.setHeader("Content-Type", "text/html");
     res.send(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Subscription Cancelled</title>
       <style>body{font-family:-apple-system,system-ui,sans-serif;display:flex;justify-content:center;align-items:center;min-height:100vh;margin:0;background:#fef2f2;color:#991b1b}
-      .container{text-align:center;padding:40px}.icon{font-size:64px;margin-bottom:16px}.title{font-size:24px;font-weight:700;margin-bottom:8px}.sub{font-size:16px;opacity:0.8}</style>
+      .container{text-align:center;padding:40px}.icon{font-size:64px;margin-bottom:16px}.title{font-size:24px;font-weight:700;margin-bottom:8px}.sub{font-size:16px;opacity:0.8}
+      .close-btn{display:inline-block;margin-top:24px;background:#991b1b;color:white;padding:12px 32px;border-radius:12px;font-size:16px;font-weight:600;cursor:pointer;border:none}</style>
+      <script>setTimeout(function(){try{window.close()}catch(e){}},5000);</script>
       </head><body><div class="container"><div class="icon">&#10005;</div><div class="title">Subscription Cancelled</div>
-      <div class="sub">No worries! You can upgrade to CulturePass+ anytime. Close this page and return to the app.</div></div></body></html>`);
+      <div class="sub">No worries! You can upgrade to CulturePass+ anytime.</div>
+      <button class="close-btn" onclick="try{window.close()}catch(e){history.back()}">Return to App</button></div></body></html>`);
   });
 
   app.post("/api/membership/cancel-subscription", async (req: Request, res: Response) => {
@@ -718,9 +724,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.setHeader("Content-Type", "text/html");
       res.send(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Payment Successful</title>
         <style>body{font-family:-apple-system,system-ui,sans-serif;display:flex;justify-content:center;align-items:center;min-height:100vh;margin:0;background:#f0fdf4;color:#166534}
-        .container{text-align:center;padding:40px}.icon{font-size:64px;margin-bottom:16px}.title{font-size:24px;font-weight:700;margin-bottom:8px}.sub{font-size:16px;opacity:0.8}</style>
+        .container{text-align:center;padding:40px}.icon{font-size:64px;margin-bottom:16px}.title{font-size:24px;font-weight:700;margin-bottom:8px}.sub{font-size:16px;opacity:0.8}
+        .close-btn{display:inline-block;margin-top:24px;background:#166534;color:white;padding:12px 32px;border-radius:12px;font-size:16px;font-weight:600;cursor:pointer;border:none}</style>
+        <script>setTimeout(function(){try{window.close()}catch(e){}},5000);</script>
         </head><body><div class="container"><div class="icon">&#10003;</div><div class="title">Payment Successful!</div>
-        <div class="sub">Your ticket has been confirmed. You can close this page and return to the app.</div></div></body></html>`);
+        <div class="sub">Your ticket has been confirmed.</div>
+        <button class="close-btn" onclick="try{window.close()}catch(e){history.back()}">Return to App</button>
+        <div class="sub" style="margin-top:16px;font-size:13px">This page will close automatically...</div></div></body></html>`);
     } catch (e: any) {
       res.status(500).send('Error processing payment confirmation');
     }
@@ -738,9 +748,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.setHeader("Content-Type", "text/html");
     res.send(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Payment Cancelled</title>
       <style>body{font-family:-apple-system,system-ui,sans-serif;display:flex;justify-content:center;align-items:center;min-height:100vh;margin:0;background:#fef2f2;color:#991b1b}
-      .container{text-align:center;padding:40px}.icon{font-size:64px;margin-bottom:16px}.title{font-size:24px;font-weight:700;margin-bottom:8px}.sub{font-size:16px;opacity:0.8}</style>
+      .container{text-align:center;padding:40px}.icon{font-size:64px;margin-bottom:16px}.title{font-size:24px;font-weight:700;margin-bottom:8px}.sub{font-size:16px;opacity:0.8}
+      .close-btn{display:inline-block;margin-top:24px;background:#991b1b;color:white;padding:12px 32px;border-radius:12px;font-size:16px;font-weight:600;cursor:pointer;border:none}</style>
+      <script>setTimeout(function(){try{window.close()}catch(e){}},5000);</script>
       </head><body><div class="container"><div class="icon">&#10005;</div><div class="title">Payment Cancelled</div>
-      <div class="sub">Your ticket purchase was cancelled. You can close this page and return to the app.</div></div></body></html>`);
+      <div class="sub">Your ticket purchase was cancelled.</div>
+      <button class="close-btn" onclick="try{window.close()}catch(e){history.back()}">Return to App</button></div></body></html>`);
   });
 
   app.post("/api/stripe/confirm-payment", async (req: Request, res: Response) => {
