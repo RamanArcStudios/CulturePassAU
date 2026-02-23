@@ -34,6 +34,7 @@ a{color:var(--primary);text-decoration:none}
 .btn-outline:hover{background:var(--bg)}
 .btn-sm{padding:6px 12px;font-size:12px}
 .btn-danger{background:var(--error);color:#FFF}
+.btn-success{background:var(--success);color:#FFF}
 
 .stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:28px}
 .stat-card{background:var(--surface);border-radius:var(--radius);padding:20px;box-shadow:var(--shadow)}
@@ -112,6 +113,28 @@ select.form-input{appearance:none;background:url("data:image/svg+xml,%3Csvg widt
 .login-card h2{font-size:24px;font-weight:700;margin-bottom:4px}
 .login-card p{font-size:14px;color:var(--text2);margin-bottom:24px}
 .login-card .form-group{text-align:left}
+
+.scanner-input-wrap{display:flex;gap:12px;margin-bottom:24px}
+.scanner-input-wrap input{flex:1;font-size:18px;padding:16px 20px;font-family:SFMono-Regular,Menlo,monospace;letter-spacing:1px}
+.scanner-input-wrap button{padding:16px 32px;font-size:15px}
+.scan-result{padding:20px;border-radius:var(--radius);margin-bottom:20px;display:none}
+.scan-result.valid{background:rgba(52,199,89,0.08);border:1px solid rgba(52,199,89,0.3)}
+.scan-result.invalid{background:rgba(255,59,48,0.08);border:1px solid rgba(255,59,48,0.3)}
+.scan-result h4{font-size:15px;font-weight:700;margin-bottom:8px}
+.scan-result.valid h4{color:var(--success)}
+.scan-result.invalid h4{color:var(--error)}
+.scan-result .detail-row{display:flex;justify-content:space-between;padding:4px 0;font-size:13px}
+.scan-result .detail-row .lbl{color:var(--text2)}
+.scan-history-item{display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid var(--border)}
+.scan-history-item:last-child{border-bottom:none}
+.scan-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.scan-dot.valid{background:var(--success)}
+.scan-dot.invalid{background:var(--error)}
+
+.detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px}
+.detail-item{padding:10px 14px;background:var(--bg);border-radius:8px}
+.detail-item .detail-label{font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:0.5px}
+.detail-item .detail-value{font-size:14px;font-weight:600;margin-top:2px}
 </style>
 </head>
 <body>
@@ -151,6 +174,10 @@ Dashboard
 <svg viewBox="0 0 24 24" fill="currentColor"><path d="M22 10V6a2 2 0 00-2-2H4c-1.1 0-1.99.9-1.99 2v4c1.1 0 1.99.9 1.99 2s-.89 2-2 2v4c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2v-4c-1.1 0-2-.9-2-2s.9-2 2-2zm-9 5.5h-2v-2h2v2zm0-4h-2v-2h2v2zm0-4h-2v-2h2v2z"/></svg>
 Tickets
 </div>
+<div class="nav-item" data-page="scanner" onclick="switchPage('scanner',this)">
+<svg viewBox="0 0 24 24" fill="currentColor"><path d="M9.5 6.5v3h-3v-3h3M11 5H5v6h6V5zm-1.5 9.5v3h-3v-3h3M11 13H5v6h6v-6zm6.5-6.5v3h-3v-3h3M19 5h-6v6h6V5zm-6 8h1.5v1.5H13V13zm1.5 1.5H16V16h-1.5v-1.5zM16 13h1.5v1.5H16V13zm-3 3h1.5v1.5H13V16zm1.5 1.5H16V19h-1.5v-1.5zM16 16h1.5v1.5H16V16zm1.5-1.5H19V16h-1.5v-1.5zm0 3H19V19h-1.5v-1.5z"/></svg>
+Scanner
+</div>
 <div class="nav-item" data-page="events" onclick="switchPage('events',this)">
 <svg viewBox="0 0 24 24" fill="currentColor"><path d="M17 12h-5v5h5v-5zM16 1v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19a2 2 0 002 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2h-1V1h-2zm3 18H5V8h14v11z"/></svg>
 Events
@@ -168,6 +195,10 @@ Perks
 <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z"/></svg>
 Analytics
 </div>
+<div class="nav-item" data-page="revenue" onclick="switchPage('revenue',this)">
+<svg viewBox="0 0 24 24" fill="currentColor"><path d="M11.8 10.9c-2.27-.59-3-1.2-3-2.15 0-1.09 1.01-1.85 2.7-1.85 1.78 0 2.44.85 2.5 2.1h2.21c-.07-1.72-1.12-3.3-3.21-3.81V3h-3v2.16c-1.94.42-3.5 1.68-3.5 3.61 0 2.31 1.91 3.46 4.7 4.13 2.5.6 3 1.48 3 2.41 0 .69-.49 1.79-2.7 1.79-2.06 0-2.87-.92-2.98-2.1h-2.2c.12 2.19 1.76 3.42 3.68 3.83V21h3v-2.15c1.95-.37 3.5-1.5 3.5-3.55 0-2.84-2.43-3.81-4.7-4.4z"/></svg>
+Revenue
+</div>
 </nav>
 <div style="padding:16px;border-top:1px solid var(--border)">
 <div class="nav-item" onclick="doLogout()">
@@ -183,7 +214,10 @@ Sign Out
 <div class="topbar">
 <h2>Dashboard</h2>
 <div class="topbar-actions">
-<input type="text" class="search-input" placeholder="Search..." id="global-search">
+<button class="btn btn-outline" onclick="backfillQR()">
+<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M9.5 6.5v3h-3v-3h3M11 5H5v6h6V5zm-1.5 9.5v3h-3v-3h3M11 13H5v6h6v-6zm6.5-6.5v3h-3v-3h3M19 5h-6v6h6V5z"/></svg>
+Backfill QR Codes
+</button>
 <button class="btn btn-primary" onclick="refreshData()">
 <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>
 Refresh
@@ -199,7 +233,7 @@ Refresh
 <div class="card-body no-pad"><table><thead><tr><th>Event</th><th>Code</th><th>Status</th><th>Amount</th></tr></thead><tbody id="recent-tickets"></tbody></table></div>
 </div>
 <div class="card">
-<div class="card-header"><h3>Revenue (7 Days)</h3></div>
+<div class="card-header"><h3>Revenue by Event</h3></div>
 <div class="card-body">
 <div class="chart-bar" id="revenue-chart"></div>
 <div class="chart-labels" id="revenue-labels"></div>
@@ -222,15 +256,49 @@ Refresh
 <select class="form-input" style="width:140px;padding:8px 12px;font-size:13px" id="ticket-filter" onchange="filterTickets()">
 <option value="all">All Status</option>
 <option value="confirmed">Confirmed</option>
-<option value="used">Used</option>
+<option value="used">Scanned</option>
 <option value="cancelled">Cancelled</option>
 </select>
 </div>
 </div>
+<div style="display:flex;gap:12px;margin-bottom:20px">
+<div class="stat-card" style="flex:1"><div class="label">Total</div><div class="value" id="ticket-count-total">0</div></div>
+<div class="stat-card" style="flex:1"><div class="label">Confirmed</div><div class="value" style="color:var(--success)" id="ticket-count-confirmed">0</div></div>
+<div class="stat-card" style="flex:1"><div class="label">Scanned</div><div class="value" style="color:var(--primary)" id="ticket-count-scanned">0</div></div>
+<div class="stat-card" style="flex:1"><div class="label">Cancelled</div><div class="value" style="color:var(--error)" id="ticket-count-cancelled">0</div></div>
+</div>
 <div class="card">
 <div class="card-body no-pad">
-<table><thead><tr><th>Event</th><th>Ticket Code</th><th>Tier</th><th>Qty</th><th>Amount</th><th>Date</th><th>Status</th><th>Actions</th></tr></thead>
+<table><thead><tr><th>Event</th><th>Ticket Code</th><th>Tier</th><th>Qty</th><th>Amount</th><th>Date</th><th>Status</th><th>Scanned</th><th>Actions</th></tr></thead>
 <tbody id="tickets-table"></tbody></table>
+</div>
+</div>
+</div>
+
+<!-- Scanner Page -->
+<div id="page-scanner" class="page-content" style="display:none">
+<div class="topbar">
+<h2>Ticket Scanner</h2>
+</div>
+<div class="card">
+<div class="card-header"><h3>Scan Ticket</h3></div>
+<div class="card-body">
+<div class="scanner-input-wrap">
+<input type="text" id="scan-input" class="form-input" placeholder="Enter ticket code (e.g. TIX-XXXX-XXXX)" onkeydown="if(event.key==='Enter')scanTicket()">
+<button class="btn btn-primary" onclick="scanTicket()" style="white-space:nowrap">
+<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M9.5 6.5v3h-3v-3h3M11 5H5v6h6V5zm-1.5 9.5v3h-3v-3h3M11 13H5v6h6v-6zm6.5-6.5v3h-3v-3h3M19 5h-6v6h6V5z"/></svg>
+Scan Ticket
+</button>
+</div>
+<div id="scan-result" class="scan-result"></div>
+</div>
+</div>
+<div class="card">
+<div class="card-header"><h3>Recent Scans</h3><span class="badge badge-info" id="scan-count">0 scans</span></div>
+<div class="card-body no-pad" id="scan-history">
+<div class="empty-state" style="padding:30px">
+<p>No scans yet this session</p>
+</div>
 </div>
 </div>
 </div>
@@ -291,6 +359,26 @@ Refresh
 </div>
 </div>
 
+<!-- Revenue Page -->
+<div id="page-revenue" class="page-content" style="display:none">
+<div class="topbar"><h2>Revenue Dashboard</h2>
+<div class="topbar-actions">
+<button class="btn btn-primary" onclick="loadRevenuePage()">
+<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>
+Refresh
+</button>
+</div>
+</div>
+<div class="stats-grid" id="revenue-stats"></div>
+<div class="card">
+<div class="card-header"><h3>Revenue by Event</h3></div>
+<div class="card-body no-pad">
+<table><thead><tr><th>Event</th><th>Tickets Sold</th><th>Total Revenue</th><th>Platform Fee (5%)</th><th>Organizer Amount</th><th>Scanned</th></tr></thead>
+<tbody id="revenue-event-table"></tbody></table>
+</div>
+</div>
+</div>
+
 </div>
 </div>
 
@@ -308,22 +396,23 @@ const API = '';
 let allTickets = [];
 let allUsers = [];
 let allPerks = [];
+let dashStats = null;
+let scanHistory = [];
 
 async function api(path) {
   const r = await fetch(API + path);
-  if (!r.ok) throw new Error(`API error: ${r.status}`);
+  if (!r.ok) throw new Error('API error: ' + r.status);
   return r.json();
 }
 
 async function apiPost(path, body) {
   const r = await fetch(API + path, {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
-  if (!r.ok) throw new Error(`API error: ${r.status}`);
-  return r.json();
+  return r.json().then(data => { if (!r.ok) { data._httpStatus = r.status; } return data; });
 }
 
 async function apiPut(path) {
   const r = await fetch(API + path, {method:'PUT'});
-  if (!r.ok) throw new Error(`API error: ${r.status}`);
+  if (!r.ok) throw new Error('API error: ' + r.status);
   return r.json();
 }
 
@@ -370,6 +459,7 @@ function switchPage(page, el) {
   document.getElementById('page-' + page).style.display = 'block';
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   if (el) el.classList.add('active');
+  if (page === 'revenue') loadRevenuePage();
 }
 
 function showToast(msg) {
@@ -385,12 +475,18 @@ function closeModal(id) {
 
 function statusBadge(status) {
   const map = {confirmed:'success',active:'success',used:'neutral',cancelled:'error',expired:'warning',pending:'warning',inactive:'neutral'};
-  return `<span class="badge badge-${map[status]||'neutral'}">${status||'unknown'}</span>`;
+  const label = status === 'used' ? 'Scanned' : (status || 'unknown');
+  return '<span class="badge badge-' + (map[status]||'neutral') + '">' + label + '</span>';
 }
 
 function formatDate(d) {
   if (!d) return '-';
   try { return new Date(d).toLocaleDateString('en-AU',{day:'numeric',month:'short',year:'numeric'}); } catch { return d; }
+}
+
+function formatDateTime(d) {
+  if (!d) return '-';
+  try { return new Date(d).toLocaleString('en-AU',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}); } catch { return d; }
 }
 
 function formatMoney(v) {
@@ -399,11 +495,16 @@ function formatMoney(v) {
 
 async function loadDashboard() {
   try {
-    [allUsers, allPerks] = await Promise.all([api('/api/users'), api('/api/perks')]);
-    if (allUsers.length > 0) {
-      const userId = allUsers[0].id;
-      allTickets = await api('/api/tickets/' + userId);
-    }
+    const [users, perks, tickets, stats] = await Promise.all([
+      api('/api/users'),
+      api('/api/perks'),
+      api('/api/tickets-all'),
+      api('/api/dashboard/stats')
+    ]);
+    allUsers = users;
+    allPerks = perks;
+    allTickets = tickets;
+    dashStats = stats;
     renderOverview();
     renderTicketsPage();
     renderEventsPage();
@@ -413,209 +514,322 @@ async function loadDashboard() {
   } catch(e) { console.error('Dashboard load error:', e); }
 }
 
-function renderOverview() {
-  const confirmed = allTickets.filter(t => t.status === 'confirmed').length;
-  const totalRevenue = allTickets.reduce((s,t) => s + (Number(t.totalPrice)||0), 0);
-  const activePerks = allPerks.filter(p => p.status === 'active').length;
+async function refreshData() {
+  showToast('Refreshing data...');
+  await loadDashboard();
+  showToast('Data refreshed');
+}
 
-  document.getElementById('stats-grid').innerHTML = `
-    <div class="stat-card"><div class="icon" style="background:rgba(0,122,255,0.12)"><svg width="18" height="18" viewBox="0 0 24 24" fill="#007AFF"><path d="M22 10V6a2 2 0 00-2-2H4c-1.1 0-2 .9-2 2v4c1.1 0 2 .9 2 2s-.9 2-2 2v4c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2v-4c-1.1 0-2-.9-2-2s.9-2 2-2z"/></svg></div><div class="label">Total Tickets</div><div class="value">${allTickets.length}</div><div class="change up">${confirmed} active</div></div>
-    <div class="stat-card"><div class="icon" style="background:rgba(52,199,89,0.12)"><svg width="18" height="18" viewBox="0 0 24 24" fill="#34C759"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1.41 16.09V20h-2.67v-1.93c-1.71-.36-3.16-1.46-3.27-3.4h1.96c.1 1.05.82 1.87 2.65 1.87 1.96 0 2.4-.98 2.4-1.59 0-.83-.44-1.61-2.67-2.14-2.48-.6-4.18-1.62-4.18-3.67 0-1.72 1.39-2.84 3.11-3.21V4h2.67v1.95c1.86.45 2.79 1.86 2.85 3.39H14.3c-.05-1.11-.64-1.87-2.22-1.87-1.5 0-2.4.68-2.4 1.64 0 .84.65 1.39 2.67 1.94s4.18 1.36 4.18 3.85c0 1.89-1.44 2.93-3.12 3.19z"/></svg></div><div class="label">Total Revenue</div><div class="value">${formatMoney(totalRevenue)}</div></div>
-    <div class="stat-card"><div class="icon" style="background:rgba(88,86,214,0.12)"><svg width="18" height="18" viewBox="0 0 24 24" fill="#5856D6"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5s-3 1.34-3 3 1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg></div><div class="label">Users</div><div class="value">${allUsers.length}</div></div>
-    <div class="stat-card"><div class="icon" style="background:rgba(255,149,0,0.12)"><svg width="18" height="18" viewBox="0 0 24 24" fill="#FF9500"><path d="M20 6h-2.18c.11-.31.18-.65.18-1a3 3 0 00-5.5-1.65l-.5.67-.5-.68A3 3 0 006 5c0 .35.07.69.18 1H4a2 2 0 00-2 2v11a2 2 0 002 2h16a2 2 0 002-2V8a2 2 0 00-2-2z"/></svg></div><div class="label">Active Perks</div><div class="value">${activePerks}</div></div>
-  `;
+async function backfillQR() {
+  try {
+    const result = await apiPost('/api/tickets/backfill-qr', {});
+    showToast(result.message || 'QR codes backfilled');
+    await refreshData();
+  } catch(e) {
+    showToast('Error backfilling QR codes');
+  }
+}
+
+function renderOverview() {
+  const s = dashStats || {};
+  document.getElementById('stats-grid').innerHTML =
+    '<div class="stat-card"><div class="icon" style="background:rgba(0,122,255,0.12)"><svg width="18" height="18" viewBox="0 0 24 24" fill="#007AFF"><path d="M22 10V6a2 2 0 00-2-2H4c-1.1 0-2 .9-2 2v4c1.1 0 2 .9 2 2s-.9 2-2 2v4c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2v-4c-1.1 0-2-.9-2-2s.9-2 2-2z"/></svg></div><div class="label">Total Tickets</div><div class="value">' + (s.totalTickets||allTickets.length) + '</div><div class="change up">' + (s.confirmedTickets||0) + ' confirmed</div></div>' +
+    '<div class="stat-card"><div class="icon" style="background:rgba(52,199,89,0.12)"><svg width="18" height="18" viewBox="0 0 24 24" fill="#34C759"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg></div><div class="label">Scanned / Attended</div><div class="value">' + (s.scannedTickets||0) + '</div><div class="change up">' + (s.totalTickets ? Math.round((s.scannedTickets||0)/(s.totalTickets)*100) : 0) + '% attendance</div></div>' +
+    '<div class="stat-card"><div class="icon" style="background:rgba(52,199,89,0.12)"><svg width="18" height="18" viewBox="0 0 24 24" fill="#34C759"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1.41 16.09V20h-2.67v-1.93c-1.71-.36-3.16-1.46-3.27-3.4h1.96c.1 1.05.82 1.87 2.65 1.87 1.96 0 2.4-.98 2.4-1.59 0-.83-.44-1.61-2.67-2.14-2.48-.6-4.18-1.62-4.18-3.67 0-1.72 1.39-2.84 3.11-3.21V4h2.67v1.95c1.86.45 2.79 1.86 2.85 3.39H14.3c-.05-1.11-.64-1.87-2.22-1.87-1.5 0-2.4.68-2.4 1.64 0 .84.65 1.39 2.67 1.94s4.18 1.36 4.18 3.85c0 1.89-1.44 2.93-3.12 3.19z"/></svg></div><div class="label">Total Revenue</div><div class="value">' + formatMoney(s.totalRevenue||0) + '</div></div>' +
+    '<div class="stat-card"><div class="icon" style="background:rgba(88,86,214,0.12)"><svg width="18" height="18" viewBox="0 0 24 24" fill="#5856D6"><path d="M11.8 10.9c-2.27-.59-3-1.2-3-2.15 0-1.09 1.01-1.85 2.7-1.85 1.78 0 2.44.85 2.5 2.1h2.21c-.07-1.72-1.12-3.3-3.21-3.81V3h-3v2.16c-1.94.42-3.5 1.68-3.5 3.61 0 2.31 1.91 3.46 4.7 4.13 2.5.6 3 1.48 3 2.41 0 .69-.49 1.79-2.7 1.79-2.06 0-2.87-.92-2.98-2.1h-2.2c.12 2.19 1.76 3.42 3.68 3.83V21h3v-2.15c1.95-.37 3.5-1.5 3.5-3.55 0-2.84-2.43-3.81-4.7-4.4z"/></svg></div><div class="label">Platform Revenue (5%)</div><div class="value">' + formatMoney(s.platformRevenue||0) + '</div></div>';
 
   const tbody = document.getElementById('recent-tickets');
-  tbody.innerHTML = allTickets.slice(0, 5).map(t => `
-    <tr style="cursor:pointer" onclick="showTicketDetail('${t.id}')">
-      <td><strong>${t.eventTitle}</strong></td>
-      <td><span class="ticket-code">${t.ticketCode||'-'}</span></td>
-      <td>${statusBadge(t.status)}</td>
-      <td>${formatMoney(t.totalPrice)}</td>
-    </tr>
-  `).join('') || '<tr><td colspan="4" style="text-align:center;color:var(--text2);padding:20px">No tickets yet</td></tr>';
+  tbody.innerHTML = allTickets.slice(0, 5).map(t =>
+    '<tr style="cursor:pointer" onclick="showTicketDetail(\'' + t.id + '\')">' +
+      '<td><strong>' + (t.eventTitle||'-') + '</strong></td>' +
+      '<td><span class="ticket-code">' + (t.ticketCode||'-') + '</span></td>' +
+      '<td>' + statusBadge(t.status) + '</td>' +
+      '<td>' + formatMoney(t.totalPrice) + '</td>' +
+    '</tr>'
+  ).join('') || '<tr><td colspan="4" style="text-align:center;color:var(--text2);padding:20px">No tickets yet</td></tr>';
 
-  const days = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
-  const values = days.map(() => Math.floor(Math.random() * 80 + 20));
-  const maxVal = Math.max(...values, 1);
-  document.getElementById('revenue-chart').innerHTML = values.map(v => `<div class="bar" style="height:${(v/maxVal)*100}%" title="$${v}"></div>`).join('');
-  document.getElementById('revenue-labels').innerHTML = days.map(d => `<span>${d}</span>`).join('');
+  const breakdown = (s.eventBreakdown || []).slice(0, 7);
+  if (breakdown.length > 0) {
+    const maxVal = Math.max(...breakdown.map(e => e.revenue), 1);
+    document.getElementById('revenue-chart').innerHTML = breakdown.map(e =>
+      '<div class="bar" style="height:' + ((e.revenue/maxVal)*100) + '%" title="' + e.eventTitle + ': ' + formatMoney(e.revenue) + '"></div>'
+    ).join('');
+    document.getElementById('revenue-labels').innerHTML = breakdown.map(e =>
+      '<span>' + (e.eventTitle||'').substring(0,8) + '</span>'
+    ).join('');
+  } else {
+    document.getElementById('revenue-chart').innerHTML = '<div style="text-align:center;color:var(--text3);padding:40px 0;width:100%">No revenue data</div>';
+    document.getElementById('revenue-labels').innerHTML = '';
+  }
 }
 
 function renderTicketsPage() {
+  const confirmed = allTickets.filter(t => t.status === 'confirmed').length;
+  const scanned = allTickets.filter(t => t.status === 'used').length;
+  const cancelled = allTickets.filter(t => t.status === 'cancelled').length;
+  document.getElementById('ticket-count-total').textContent = allTickets.length;
+  document.getElementById('ticket-count-confirmed').textContent = confirmed;
+  document.getElementById('ticket-count-scanned').textContent = scanned;
+  document.getElementById('ticket-count-cancelled').textContent = cancelled;
   filterTickets();
 }
 
 function filterTickets() {
-  const search = (document.getElementById('ticket-search')?.value || '').toLowerCase();
-  const statusFilter = document.getElementById('ticket-filter')?.value || 'all';
-  
-  let filtered = allTickets;
-  if (search) filtered = filtered.filter(t => (t.eventTitle||'').toLowerCase().includes(search) || (t.ticketCode||'').toLowerCase().includes(search));
-  if (statusFilter !== 'all') filtered = filtered.filter(t => t.status === statusFilter);
+  const search = (document.getElementById('ticket-search').value || '').toLowerCase();
+  const filter = document.getElementById('ticket-filter').value;
+  const filtered = allTickets.filter(t => {
+    if (filter !== 'all' && t.status !== filter) return false;
+    if (search && !(t.eventTitle||'').toLowerCase().includes(search) && !(t.ticketCode||'').toLowerCase().includes(search)) return false;
+    return true;
+  });
+  document.getElementById('tickets-table').innerHTML = filtered.map(t =>
+    '<tr>' +
+      '<td><strong>' + (t.eventTitle||'-') + '</strong></td>' +
+      '<td><span class="ticket-code">' + (t.ticketCode||'-') + '</span></td>' +
+      '<td>' + (t.tierName||'General') + '</td>' +
+      '<td>' + (t.quantity||1) + '</td>' +
+      '<td>' + formatMoney(t.totalPrice) + '</td>' +
+      '<td>' + formatDate(t.eventDate) + '</td>' +
+      '<td>' + statusBadge(t.status) + '</td>' +
+      '<td>' + (t.scannedAt ? '<span class="badge badge-info">' + formatDateTime(t.scannedAt) + '</span>' : '<span style="color:var(--text3)">-</span>') + '</td>' +
+      '<td>' +
+        '<button class="btn btn-sm btn-outline" onclick="showTicketDetail(\'' + t.id + '\')">View</button> ' +
+        (t.status === 'confirmed' ? '<button class="btn btn-sm btn-success" onclick="scanTicketById(\'' + t.ticketCode + '\')">Scan</button> ' : '') +
+        (t.status === 'confirmed' ? '<button class="btn btn-sm btn-danger" onclick="cancelTicket(\'' + t.id + '\')">Cancel</button>' : '') +
+      '</td>' +
+    '</tr>'
+  ).join('') || '<tr><td colspan="9" style="text-align:center;color:var(--text2);padding:20px">No tickets found</td></tr>';
+}
 
-  document.getElementById('tickets-table').innerHTML = filtered.map(t => `
-    <tr>
-      <td><strong>${t.eventTitle}</strong></td>
-      <td><span class="ticket-code">${t.ticketCode||'-'}</span></td>
-      <td>${t.tierName||'General'}</td>
-      <td>${t.quantity||1}</td>
-      <td>${formatMoney(t.totalPrice)}</td>
-      <td>${formatDate(t.eventDate)}</td>
-      <td>${statusBadge(t.status)}</td>
-      <td>
-        <button class="btn btn-outline btn-sm" onclick="showTicketDetail('${t.id}')">View</button>
-        ${t.status==='confirmed'?`<button class="btn btn-danger btn-sm" style="margin-left:4px" onclick="cancelTicket('${t.id}')">Cancel</button>`:''}
-      </td>
-    </tr>
-  `).join('') || '<tr><td colspan="8" style="text-align:center;color:var(--text2);padding:40px">No tickets found</td></tr>';
+async function cancelTicket(id) {
+  if (!confirm('Cancel this ticket?')) return;
+  try {
+    await apiPut('/api/tickets/' + id + '/cancel');
+    showToast('Ticket cancelled');
+    await refreshData();
+  } catch(e) { showToast('Error cancelling ticket'); }
+}
+
+async function scanTicketById(code) {
+  if (!code) return;
+  try {
+    const result = await apiPost('/api/tickets/scan', { ticketCode: code, scannedBy: 'admin' });
+    if (result.valid) {
+      showToast('Ticket scanned successfully');
+      addScanHistory(code, true, result.ticket);
+      await refreshData();
+    } else {
+      showToast(result.error || 'Scan failed');
+      addScanHistory(code, false, result.ticket, result.error);
+    }
+  } catch(e) { showToast('Error scanning ticket'); }
 }
 
 function showTicketDetail(id) {
   const t = allTickets.find(x => x.id === id);
   if (!t) return;
-  document.getElementById('ticket-modal-body').innerHTML = `
-    <div style="display:grid;gap:16px">
-      <div style="background:${t.imageColor||'var(--primary)'};color:#FFF;padding:20px;border-radius:var(--radius);text-align:center">
-        <div style="font-size:20px;font-weight:700">${t.eventTitle}</div>
-        <div style="opacity:0.8;margin-top:4px">${statusBadge(t.status).replace('badge-','badge-').replace('color:var','color:#FFF;background:rgba(255,255,255,0.2')}</div>
-      </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
-        <div><div style="font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase">Date</div><div style="font-size:14px;font-weight:600">${formatDate(t.eventDate)}</div></div>
-        <div><div style="font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase">Time</div><div style="font-size:14px;font-weight:600">${t.eventTime||'-'}</div></div>
-        <div><div style="font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase">Venue</div><div style="font-size:14px;font-weight:600">${t.eventVenue||'-'}</div></div>
-        <div><div style="font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase">Tier</div><div style="font-size:14px;font-weight:600">${t.tierName||'General'}</div></div>
-        <div><div style="font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase">Quantity</div><div style="font-size:14px;font-weight:600">${t.quantity||1}</div></div>
-        <div><div style="font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase">Total</div><div style="font-size:14px;font-weight:700;color:var(--primary)">${formatMoney(t.totalPrice)}</div></div>
-      </div>
-      ${t.ticketCode?`<div style="text-align:center;padding:16px;background:var(--bg);border-radius:var(--radius)"><div style="font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;margin-bottom:6px">Ticket Code</div><div style="font-size:24px;font-weight:700;letter-spacing:3px;color:var(--primary);font-family:monospace">${t.ticketCode}</div></div>`:''}
-      <div style="font-size:11px;color:var(--text3)">Ticket ID: ${t.id}<br>Created: ${formatDate(t.createdAt)}</div>
-    </div>
-  `;
+  const platformFee = (Number(t.platformFee) || (Number(t.totalPrice)||0) * 0.05);
+  const stripeFee = (Number(t.totalPrice)||0) * 0.029 + 0.30;
+  const organizerAmount = (Number(t.organizerAmount) || (Number(t.totalPrice)||0) - platformFee);
+
+  let html = '<div class="detail-grid">' +
+    '<div class="detail-item"><div class="detail-label">Event</div><div class="detail-value">' + (t.eventTitle||'-') + '</div></div>' +
+    '<div class="detail-item"><div class="detail-label">Ticket Code</div><div class="detail-value"><span class="ticket-code">' + (t.ticketCode||'-') + '</span></div></div>' +
+    '<div class="detail-item"><div class="detail-label">Tier</div><div class="detail-value">' + (t.tierName||'General') + '</div></div>' +
+    '<div class="detail-item"><div class="detail-label">Quantity</div><div class="detail-value">' + (t.quantity||1) + '</div></div>' +
+    '<div class="detail-item"><div class="detail-label">Venue</div><div class="detail-value">' + (t.eventVenue||'-') + '</div></div>' +
+    '<div class="detail-item"><div class="detail-label">Date</div><div class="detail-value">' + formatDate(t.eventDate) + '</div></div>' +
+    '<div class="detail-item"><div class="detail-label">Status</div><div class="detail-value">' + statusBadge(t.status) + '</div></div>' +
+    '<div class="detail-item"><div class="detail-label">Buyer</div><div class="detail-value">' + (t.buyerName||t.userId||'-') + '</div></div>' +
+  '</div>';
+
+  if (t.qrCode) {
+    html += '<div style="text-align:center;margin-bottom:16px;padding:16px;background:var(--bg);border-radius:8px">' +
+      '<img src="' + t.qrCode + '" alt="QR Code" style="width:160px;height:160px;image-rendering:pixelated">' +
+      '<div style="font-size:11px;color:var(--text2);margin-top:8px">Scan QR code for entry</div>' +
+    '</div>';
+  }
+
+  if (t.status === 'used' || t.scannedAt) {
+    html += '<div style="padding:12px 16px;background:rgba(52,199,89,0.08);border:1px solid rgba(52,199,89,0.2);border-radius:8px;margin-bottom:16px">' +
+      '<div style="font-size:12px;font-weight:600;color:var(--success);text-transform:uppercase;margin-bottom:4px">Scanned</div>' +
+      '<div style="font-size:13px">Scanned at: <strong>' + formatDateTime(t.scannedAt) + '</strong></div>' +
+      '<div style="font-size:13px">Scanned by: <strong>' + (t.scannedBy||'staff') + '</strong></div>' +
+    '</div>';
+  }
+
+  html += '<div style="margin-top:16px"><h4 style="font-size:14px;font-weight:700;margin-bottom:12px">Payment Breakdown</h4>' +
+    '<div class="detail-grid">' +
+      '<div class="detail-item"><div class="detail-label">Total Price</div><div class="detail-value">' + formatMoney(t.totalPrice) + '</div></div>' +
+      '<div class="detail-item"><div class="detail-label">Platform Fee (5%)</div><div class="detail-value">' + formatMoney(platformFee) + '</div></div>' +
+      '<div class="detail-item"><div class="detail-label">Stripe Fee (~2.9%+30c)</div><div class="detail-value">' + formatMoney(stripeFee) + '</div></div>' +
+      '<div class="detail-item"><div class="detail-label">Organizer Amount</div><div class="detail-value">' + formatMoney(organizerAmount) + '</div></div>' +
+    '</div></div>';
+
+  document.getElementById('ticket-modal-body').innerHTML = html;
   document.getElementById('ticket-modal').classList.add('show');
 }
 
-async function cancelTicket(id) {
-  if (!confirm('Are you sure you want to cancel this ticket?')) return;
+async function scanTicket() {
+  const input = document.getElementById('scan-input');
+  const code = input.value.trim();
+  if (!code) { showToast('Please enter a ticket code'); return; }
+
+  const resultEl = document.getElementById('scan-result');
+  resultEl.style.display = 'none';
+
   try {
-    await apiPut('/api/tickets/' + id + '/cancel');
-    showToast('Ticket cancelled successfully');
-    await loadDashboard();
-  } catch(e) { showToast('Error cancelling ticket'); }
+    const result = await apiPost('/api/tickets/scan', { ticketCode: code, scannedBy: 'admin' });
+
+    if (result.valid) {
+      const t = result.ticket || {};
+      resultEl.className = 'scan-result valid';
+      resultEl.innerHTML = '<h4>&#10003; Valid Ticket - Scanned Successfully</h4>' +
+        '<div class="detail-row"><span class="lbl">Event</span><span>' + (t.eventTitle||'-') + '</span></div>' +
+        '<div class="detail-row"><span class="lbl">Tier</span><span>' + (t.tierName||'General') + '</span></div>' +
+        '<div class="detail-row"><span class="lbl">Quantity</span><span>' + (t.quantity||1) + '</span></div>' +
+        '<div class="detail-row"><span class="lbl">Venue</span><span>' + (t.eventVenue||'-') + '</span></div>' +
+        '<div class="detail-row"><span class="lbl">Code</span><span class="ticket-code">' + (t.ticketCode||code) + '</span></div>';
+      resultEl.style.display = 'block';
+      addScanHistory(code, true, t);
+      showToast('Ticket scanned successfully');
+      input.value = '';
+      input.focus();
+      refreshData();
+    } else {
+      resultEl.className = 'scan-result invalid';
+      resultEl.innerHTML = '<h4>&#10007; ' + (result.error||'Invalid Ticket') + '</h4>';
+      if (result.ticket) {
+        const t = result.ticket;
+        resultEl.innerHTML += '<div class="detail-row"><span class="lbl">Event</span><span>' + (t.eventTitle||'-') + '</span></div>' +
+          '<div class="detail-row"><span class="lbl">Status</span><span>' + statusBadge(t.status) + '</span></div>';
+        if (result.scannedAt) {
+          resultEl.innerHTML += '<div class="detail-row"><span class="lbl">Previously Scanned</span><span>' + formatDateTime(result.scannedAt) + '</span></div>';
+        }
+      }
+      resultEl.style.display = 'block';
+      addScanHistory(code, false, result.ticket, result.error);
+    }
+  } catch(e) {
+    resultEl.className = 'scan-result invalid';
+    resultEl.innerHTML = '<h4>&#10007; Error scanning ticket</h4><p style="font-size:13px;color:var(--text2)">' + e.message + '</p>';
+    resultEl.style.display = 'block';
+    addScanHistory(code, false, null, e.message);
+  }
+}
+
+function addScanHistory(code, valid, ticket, error) {
+  scanHistory.unshift({ code, valid, ticket, error, time: new Date() });
+  renderScanHistory();
+}
+
+function renderScanHistory() {
+  document.getElementById('scan-count').textContent = scanHistory.length + ' scans';
+  if (scanHistory.length === 0) {
+    document.getElementById('scan-history').innerHTML = '<div class="empty-state" style="padding:30px"><p>No scans yet this session</p></div>';
+    return;
+  }
+  document.getElementById('scan-history').innerHTML = scanHistory.map(s =>
+    '<div class="scan-history-item">' +
+      '<div class="scan-dot ' + (s.valid ? 'valid' : 'invalid') + '"></div>' +
+      '<div style="flex:1;min-width:0">' +
+        '<div style="font-size:13px;font-weight:600">' + (s.valid ? (s.ticket?.eventTitle||s.code) : (s.error||'Invalid')) + '</div>' +
+        '<div style="font-size:12px;color:var(--text2)">' + s.code + '</div>' +
+      '</div>' +
+      '<span class="badge ' + (s.valid ? 'badge-success' : 'badge-error') + '">' + (s.valid ? 'Valid' : 'Failed') + '</span>' +
+      '<span style="font-size:11px;color:var(--text3);min-width:50px;text-align:right">' + s.time.toLocaleTimeString('en-AU',{hour:'2-digit',minute:'2-digit'}) + '</span>' +
+    '</div>'
+  ).join('');
 }
 
 function renderEventsPage() {
-  document.getElementById('event-stats').innerHTML = `
-    <div class="stat-card"><div class="label">Upcoming Events</div><div class="value">12</div></div>
-    <div class="stat-card"><div class="label">Total Capacity</div><div class="value">5,400</div></div>
-    <div class="stat-card"><div class="label">Avg Attendance</div><div class="value">72%</div></div>
-    <div class="stat-card"><div class="label">Categories</div><div class="value">8</div></div>
-  `;
+  const events = {};
+  allTickets.forEach(t => {
+    if (!events[t.eventId]) events[t.eventId] = { title: t.eventTitle, date: t.eventDate, venue: t.eventVenue, category: t.eventCategory||'-', price: t.tierPrice||t.totalPrice, attending: 0, capacity: t.eventCapacity||'-' };
+    events[t.eventId].attending += (t.quantity || 1);
+  });
+  const evList = Object.values(events);
 
-  const events = [
-    {title:'Diwali Festival 2026',date:'2026-03-15',venue:'Melbourne Convention Centre',category:'Festival',price:'$25',attending:245,capacity:500},
-    {title:'Chinese New Year Gala',date:'2026-02-28',venue:'Sydney Opera House',category:'Cultural',price:'$45',attending:380,capacity:400},
-    {title:'Harmony Week Concert',date:'2026-03-21',venue:'Brisbane City Hall',category:'Music',price:'$35',attending:156,capacity:300},
-    {title:'Greek Food Festival',date:'2026-04-05',venue:'Federation Square',category:'Food',price:'$15',attending:520,capacity:800},
-    {title:'Aboriginal Art Exhibition',date:'2026-03-10',venue:'National Gallery',category:'Art',price:'Free',attending:89,capacity:200},
-    {title:'Bollywood Night',date:'2026-03-28',venue:'Crown Palladium',category:'Entertainment',price:'$55',attending:312,capacity:600},
-  ];
-  document.getElementById('events-table').innerHTML = events.map(e => `
-    <tr>
-      <td><strong>${e.title}</strong></td>
-      <td>${formatDate(e.date)}</td>
-      <td>${e.venue}</td>
-      <td><span class="badge badge-info">${e.category}</span></td>
-      <td>${e.price}</td>
-      <td>${e.attending}</td>
-      <td>${e.capacity}</td>
-    </tr>
-  `).join('');
+  document.getElementById('event-stats').innerHTML =
+    '<div class="stat-card"><div class="label">Total Events</div><div class="value">' + evList.length + '</div></div>' +
+    '<div class="stat-card"><div class="label">Total Attendees</div><div class="value">' + evList.reduce((s,e)=>s+e.attending,0) + '</div></div>' +
+    '<div class="stat-card"><div class="label">Avg Attendance</div><div class="value">' + (evList.length ? Math.round(evList.reduce((s,e)=>s+e.attending,0)/evList.length) : 0) + '</div></div>' +
+    '<div class="stat-card"><div class="label">Revenue</div><div class="value">' + formatMoney(allTickets.reduce((s,t)=>s+(Number(t.totalPrice)||0),0)) + '</div></div>';
+
+  document.getElementById('events-table').innerHTML = evList.map(e =>
+    '<tr><td><strong>' + (e.title||'-') + '</strong></td><td>' + formatDate(e.date) + '</td><td>' + (e.venue||'-') + '</td><td>' + e.category + '</td><td>' + formatMoney(e.price) + '</td><td>' + e.attending + '</td><td>' + e.capacity + '</td></tr>'
+  ).join('') || '<tr><td colspan="7" style="text-align:center;color:var(--text2);padding:20px">No events</td></tr>';
 }
 
 function renderUsersPage() {
-  document.getElementById('users-table').innerHTML = allUsers.map(u => `
-    <tr>
-      <td style="display:flex;align-items:center;gap:10px">
-        <div class="avatar">${(u.displayName||u.username||'?')[0].toUpperCase()}</div>
-        <div><strong>${u.displayName||u.username}</strong><div style="font-size:11px;color:var(--text2)">@${u.username}</div></div>
-      </td>
-      <td>${u.email||'-'}</td>
-      <td>${[u.city,u.country].filter(Boolean).join(', ')||'-'}</td>
-      <td><span class="badge badge-${u.role==='admin'?'info':'neutral'}">${u.role||'user'}</span></td>
-      <td>${u.isVerified?'<span class="badge badge-success">Verified</span>':'<span class="badge badge-neutral">Unverified</span>'}</td>
-      <td>${formatDate(u.createdAt)}</td>
-    </tr>
-  `).join('') || '<tr><td colspan="6" style="text-align:center;padding:40px;color:var(--text2)">No users</td></tr>';
+  document.getElementById('users-table').innerHTML = allUsers.map(u =>
+    '<tr><td><div style="display:flex;align-items:center;gap:10px"><div class="avatar">' + (u.displayName||u.email||'?').charAt(0).toUpperCase() + '</div><div><strong>' + (u.displayName||'-') + '</strong><div style="font-size:12px;color:var(--text2)">@' + (u.username||'-') + '</div></div></div></td>' +
+    '<td>' + (u.email||'-') + '</td><td>' + (u.location||'-') + '</td><td>' + statusBadge(u.role||'user') + '</td>' +
+    '<td>' + (u.verified ? '<span class="badge badge-success">Verified</span>' : '<span class="badge badge-neutral">No</span>') + '</td>' +
+    '<td>' + formatDate(u.createdAt) + '</td></tr>'
+  ).join('') || '<tr><td colspan="6" style="text-align:center;color:var(--text2);padding:20px">No users</td></tr>';
 }
 
 function renderPerksPage() {
-  document.getElementById('perks-table').innerHTML = allPerks.slice(0,5).map(p => `
-    <tr>
-      <td><strong>${p.title}</strong></td>
-      <td><span class="badge badge-info">${(p.perkType||'').replace(/_/g,' ')}</span></td>
-      <td>${p.providerName||'-'}</td>
-      <td>${p.usedCount||0}${p.usageLimit?' / '+p.usageLimit:''}</td>
-      <td>${statusBadge(p.status)}</td>
-    </tr>
-  `).join('') || '<tr><td colspan="5" style="text-align:center;padding:20px;color:var(--text2)">No perks</td></tr>';
+  const renderPerkRow = (p, full) =>
+    '<tr><td><strong>' + (p.title||'-') + '</strong></td><td><span class="badge badge-info">' + (p.type||'-') + '</span></td><td>' + (p.provider||'-') + '</td>' +
+    (full ? '<td>' + (p.discount||'-') + '</td><td>' + (p.redemptionCount||0) + ' / ' + (p.redemptionLimit||'∞') + '</td><td>' + (p.category||'-') + '</td>' : '<td>' + (p.redemptionCount||0) + '</td>') +
+    '<td>' + statusBadge(p.status) + '</td></tr>';
 
-  document.getElementById('perks-full-table').innerHTML = allPerks.map(p => `
-    <tr>
-      <td><strong>${p.title}</strong><div style="font-size:11px;color:var(--text2);max-width:300px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${p.description||''}</div></td>
-      <td><span class="badge badge-info">${(p.perkType||'').replace(/_/g,' ')}</span></td>
-      <td>${p.providerName||'-'}</td>
-      <td>${p.discountPercent?p.discountPercent+'%':p.discountFixedCents?'$'+(p.discountFixedCents/100).toFixed(2):'-'}</td>
-      <td>${p.usedCount||0}${p.usageLimit?' / '+p.usageLimit:' / ∞'}</td>
-      <td><span class="badge badge-neutral">${p.category||'-'}</span></td>
-      <td>${statusBadge(p.status)}</td>
-    </tr>
-  `).join('');
+  document.getElementById('perks-table').innerHTML = allPerks.slice(0,5).map(p => renderPerkRow(p, false)).join('') || '<tr><td colspan="5" style="text-align:center;color:var(--text2);padding:20px">No perks</td></tr>';
+  document.getElementById('perks-full-table').innerHTML = allPerks.map(p => renderPerkRow(p, true)).join('') || '<tr><td colspan="7" style="text-align:center;color:var(--text2);padding:20px">No perks</td></tr>';
 }
 
 function renderAnalytics() {
-  const confirmed = allTickets.filter(t => t.status === 'confirmed').length;
-  const cancelled = allTickets.filter(t => t.status === 'cancelled').length;
-  const used = allTickets.filter(t => t.status === 'used').length;
-  const totalRev = allTickets.reduce((s,t) => s + (Number(t.totalPrice)||0), 0);
-  const avgPrice = allTickets.length ? totalRev / allTickets.length : 0;
+  const s = dashStats || {};
+  const confirmed = s.confirmedTickets || allTickets.filter(t => t.status === 'confirmed').length;
+  const used = s.scannedTickets || allTickets.filter(t => t.status === 'used').length;
+  const cancelled = s.cancelledTickets || allTickets.filter(t => t.status === 'cancelled').length;
+  const total = s.totalTickets || allTickets.length;
+  const revenue = s.totalRevenue || allTickets.reduce((sum,t) => sum + (Number(t.totalPrice)||0), 0);
 
-  document.getElementById('analytics-stats').innerHTML = `
-    <div class="stat-card"><div class="label">Confirmed Tickets</div><div class="value" style="color:var(--success)">${confirmed}</div></div>
-    <div class="stat-card"><div class="label">Cancelled Tickets</div><div class="value" style="color:var(--error)">${cancelled}</div></div>
-    <div class="stat-card"><div class="label">Used Tickets</div><div class="value" style="color:var(--text2)">${used}</div></div>
-    <div class="stat-card"><div class="label">Avg Ticket Price</div><div class="value">${formatMoney(avgPrice)}</div></div>
-  `;
+  document.getElementById('analytics-stats').innerHTML =
+    '<div class="stat-card"><div class="label">Total Tickets</div><div class="value">' + total + '</div></div>' +
+    '<div class="stat-card"><div class="label">Scanned</div><div class="value">' + used + '</div><div class="change up">' + (total ? Math.round(used/total*100) : 0) + '% rate</div></div>' +
+    '<div class="stat-card"><div class="label">Revenue</div><div class="value">' + formatMoney(revenue) + '</div></div>' +
+    '<div class="stat-card"><div class="label">Users</div><div class="value">' + (s.totalUsers || allUsers.length) + '</div></div>';
 
-  const total = confirmed + cancelled + used || 1;
-  document.getElementById('ticket-status-chart').innerHTML = `
-    <div style="display:flex;gap:8px;margin-bottom:16px">
-      <div style="flex:${confirmed};height:32px;background:var(--success);border-radius:6px 0 0 6px;min-width:${confirmed?'20px':'0'}"></div>
-      <div style="flex:${used};height:32px;background:var(--text3);min-width:${used?'20px':'0'}"></div>
-      <div style="flex:${cancelled};height:32px;background:var(--error);border-radius:0 6px 6px 0;min-width:${cancelled?'20px':'0'}"></div>
-    </div>
-    <div style="display:flex;gap:20px;font-size:13px">
-      <div style="display:flex;align-items:center;gap:6px"><div style="width:10px;height:10px;border-radius:3px;background:var(--success)"></div>Confirmed (${confirmed})</div>
-      <div style="display:flex;align-items:center;gap:6px"><div style="width:10px;height:10px;border-radius:3px;background:var(--text3)"></div>Used (${used})</div>
-      <div style="display:flex;align-items:center;gap:6px"><div style="width:10px;height:10px;border-radius:3px;background:var(--error)"></div>Cancelled (${cancelled})</div>
-    </div>
-  `;
+  const maxStatus = Math.max(confirmed, used, cancelled, 1);
+  document.getElementById('ticket-status-chart').innerHTML =
+    '<div style="display:flex;flex-direction:column;gap:12px">' +
+      '<div style="display:flex;align-items:center;gap:12px"><div style="width:80px;font-size:12px;font-weight:600;color:var(--text2)">Confirmed</div><div style="flex:1;height:24px;background:var(--bg);border-radius:6px;overflow:hidden"><div style="width:' + (confirmed/maxStatus*100) + '%;height:100%;background:var(--success);border-radius:6px"></div></div><span style="font-size:13px;font-weight:600;width:40px;text-align:right">' + confirmed + '</span></div>' +
+      '<div style="display:flex;align-items:center;gap:12px"><div style="width:80px;font-size:12px;font-weight:600;color:var(--text2)">Scanned</div><div style="flex:1;height:24px;background:var(--bg);border-radius:6px;overflow:hidden"><div style="width:' + (used/maxStatus*100) + '%;height:100%;background:var(--primary);border-radius:6px"></div></div><span style="font-size:13px;font-weight:600;width:40px;text-align:right">' + used + '</span></div>' +
+      '<div style="display:flex;align-items:center;gap:12px"><div style="width:80px;font-size:12px;font-weight:600;color:var(--text2)">Cancelled</div><div style="flex:1;height:24px;background:var(--bg);border-radius:6px;overflow:hidden"><div style="width:' + (cancelled/maxStatus*100) + '%;height:100%;background:var(--error);border-radius:6px"></div></div><span style="font-size:13px;font-weight:600;width:40px;text-align:right">' + cancelled + '</span></div>' +
+    '</div>';
 
-  const eventMap = {};
-  allTickets.forEach(t => {
-    if (!eventMap[t.eventTitle]) eventMap[t.eventTitle] = {count:0,revenue:0};
-    eventMap[t.eventTitle].count++;
-    eventMap[t.eventTitle].revenue += Number(t.totalPrice)||0;
-  });
-  const topEvents = Object.entries(eventMap).sort((a,b) => b[1].count - a[1].count).slice(0,5);
-  document.getElementById('top-events-table').innerHTML = topEvents.map(([name,d]) => `
-    <tr><td><strong>${name}</strong></td><td>${d.count}</td><td>${formatMoney(d.revenue)}</td></tr>
-  `).join('') || '<tr><td colspan="3" style="text-align:center;padding:20px;color:var(--text2)">No data yet</td></tr>';
+  const breakdown = (s.eventBreakdown || []).slice(0, 10);
+  document.getElementById('top-events-table').innerHTML = breakdown.map(e =>
+    '<tr><td><strong>' + (e.eventTitle||'-') + '</strong></td><td>' + e.tickets + '</td><td>' + formatMoney(e.revenue) + '</td></tr>'
+  ).join('') || '<tr><td colspan="3" style="text-align:center;color:var(--text2);padding:20px">No data</td></tr>';
 }
 
-function refreshData() {
-  showToast('Refreshing data...');
-  loadDashboard();
+async function loadRevenuePage() {
+  try {
+    const stats = await api('/api/dashboard/stats');
+    dashStats = stats;
+    const s = stats;
+    const stripeFees = (s.totalRevenue||0) * 0.029 + (s.totalTickets||0) * 0.30;
+
+    document.getElementById('revenue-stats').innerHTML =
+      '<div class="stat-card"><div class="icon" style="background:rgba(52,199,89,0.12)"><svg width="18" height="18" viewBox="0 0 24 24" fill="#34C759"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1.41 16.09V20h-2.67v-1.93c-1.71-.36-3.16-1.46-3.27-3.4h1.96c.1 1.05.82 1.87 2.65 1.87 1.96 0 2.4-.98 2.4-1.59 0-.83-.44-1.61-2.67-2.14-2.48-.6-4.18-1.62-4.18-3.67 0-1.72 1.39-2.84 3.11-3.21V4h2.67v1.95c1.86.45 2.79 1.86 2.85 3.39H14.3c-.05-1.11-.64-1.87-2.22-1.87-1.5 0-2.4.68-2.4 1.64 0 .84.65 1.39 2.67 1.94s4.18 1.36 4.18 3.85c0 1.89-1.44 2.93-3.12 3.19z"/></svg></div><div class="label">Total Revenue</div><div class="value">' + formatMoney(s.totalRevenue) + '</div></div>' +
+      '<div class="stat-card"><div class="icon" style="background:rgba(0,122,255,0.12)"><svg width="18" height="18" viewBox="0 0 24 24" fill="#007AFF"><path d="M11.8 10.9c-2.27-.59-3-1.2-3-2.15 0-1.09 1.01-1.85 2.7-1.85 1.78 0 2.44.85 2.5 2.1h2.21c-.07-1.72-1.12-3.3-3.21-3.81V3h-3v2.16c-1.94.42-3.5 1.68-3.5 3.61 0 2.31 1.91 3.46 4.7 4.13 2.5.6 3 1.48 3 2.41 0 .69-.49 1.79-2.7 1.79-2.06 0-2.87-.92-2.98-2.1h-2.2c.12 2.19 1.76 3.42 3.68 3.83V21h3v-2.15c1.95-.37 3.5-1.5 3.5-3.55 0-2.84-2.43-3.81-4.7-4.4z"/></svg></div><div class="label">Platform Revenue (5%)</div><div class="value">' + formatMoney(s.platformRevenue) + '</div></div>' +
+      '<div class="stat-card"><div class="icon" style="background:rgba(255,149,0,0.12)"><svg width="18" height="18" viewBox="0 0 24 24" fill="#FF9500"><path d="M21 18v1c0 1.1-.9 2-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h14c1.1 0 2 .9 2 2v1h-9a2 2 0 00-2 2v8a2 2 0 002 2h9zm-9-2h10V8H12v8zm4-2.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/></svg></div><div class="label">Organizer Revenue</div><div class="value">' + formatMoney(s.organizerRevenue) + '</div></div>' +
+      '<div class="stat-card"><div class="icon" style="background:rgba(88,86,214,0.12)"><svg width="18" height="18" viewBox="0 0 24 24" fill="#5856D6"><path d="M20 4H4c-1.11 0-1.99.89-1.99 2L2 18c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V6c0-1.11-.89-2-2-2zm0 14H4v-6h16v6zm0-10H4V6h16v2z"/></svg></div><div class="label">Est. Stripe Fees</div><div class="value">' + formatMoney(stripeFees) + '</div></div>';
+
+    const breakdown = s.eventBreakdown || [];
+    document.getElementById('revenue-event-table').innerHTML = breakdown.map(e => {
+      const platformFee = e.revenue * 0.05;
+      return '<tr><td><strong>' + (e.eventTitle||'-') + '</strong></td><td>' + e.tickets + '</td><td>' + formatMoney(e.revenue) + '</td><td>' + formatMoney(platformFee) + '</td><td>' + formatMoney(e.organizerAmount) + '</td><td>' + e.scanned + '</td></tr>';
+    }).join('') || '<tr><td colspan="6" style="text-align:center;color:var(--text2);padding:20px">No revenue data</td></tr>';
+  } catch(e) {
+    console.error('Revenue load error:', e);
+    showToast('Error loading revenue data');
+  }
 }
 
 if (sessionStorage.getItem('dash_auth') === '1') {
@@ -623,10 +837,6 @@ if (sessionStorage.getItem('dash_auth') === '1') {
   document.getElementById('dashboard').style.display = 'block';
   loadDashboard();
 }
-
-document.getElementById('login-pass').addEventListener('keypress', function(e) {
-  if (e.key === 'Enter') doLogin();
-});
 </script>
 </body>
 </html>
