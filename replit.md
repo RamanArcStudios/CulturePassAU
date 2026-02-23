@@ -32,22 +32,30 @@ Shared types between frontend and backend ensure type consistency. Path aliases 
 
 ## Recent Changes (Feb 2026)
 
-### AI-Powered Discover Feed (Feb 23, 2026)
+### CultureOS Adaptive Cultural Ranking Engine v2 (Feb 23, 2026)
 - Refactored monolithic backend (1172-line routes.ts, 620-line storage.ts) into 15 domain modules under `server/modules/` with separate `.service.ts` and `.routes.ts` files
 - Added 4 new database tables: locations, communities, user_communities, event_communities with PostGIS extension
+- Added `spoken_languages` jsonb field to users table for language-based matching
 - Seeded 27 cities across 5 countries with real coordinates/timezones, 45 communities (diaspora, indigenous, language, religion)
-- Built `GET /api/discover/:userId` endpoint returning 7 personalized sections with weighted scoring:
-  1. Near You - location-based with Haversine distance scoring
+- Added `languageTags` and `nationalSignificance` fields to EventData interface
+- Built `GET /api/discover/:userId` endpoint returning up to 9 personalized sections with normalized 0-1 scoring (Algorithm v2.0):
+  1. Near You - location-based with Haversine distance scoring (normalized 0-1)
   2. Your Communities - expanded tag matching from community memberships to related event tags via getCommunityRelatedTags()
   3. First Nations Spotlight - indigenous events/businesses/activities
   4. From Your Homeland - origin country mapped to diaspora content via getOriginCommunityTags()
-  5. Recommended For You - weighted formula (+5 city, +3 country, +2 community, +1 indigenous, +1 featured)
-  6. Trending Events - sorted by attendance
-  7. Communities to Explore - unjoined communities
+  5. Homeland Moments - local events culturally significant to user's origin country (deduped)
+  6. In Your Language - events matching user's spoken languages (non-English priority)
+  7. Recommended For You - composite weighted score: location(0.25), community(0.20), language(0.15), homeland(0.15), indigenous(0.08), trending(0.07), featured(0.05), nationalSignificance(0.05)
+  8. Trending Events - sorted by attendance
+  9. Communities to Explore - unjoined communities from DB
+- Normalized scoring functions: normalizeLocationScore, normalizeCommunityScore, normalizeLanguageScore, normalizeHomelandScore, normalizeIndigenousScore, normalizeTrendingScore, normalizeFeaturedScore, normalizeNationalSignificanceScore
+- Event deduplication via shownEventIds set prevents same event appearing in multiple sections
+- Language tag inference from communityTag via COMMUNITY_TAG_TO_LANGUAGES mapping
 - Home screen (`app/(tabs)/index.tsx`) now powered by discover API instead of hardcoded mock data
+- Community detail screen (`app/community/[id].tsx`) supports both mock communities (with imageUrl, color, icon) and DB communities (gradient backgrounds, emoji icons, type badges, related events)
 - Featured events extracted from Near You section for hero carousel
 - Compact event cards for sections with 6+ items, full cards for smaller sections
-- Community cards with emoji icons and member counts for explore section
+- Community cards with emoji icons and member counts for explore section, all clickable with haptic feedback
 - Loading state with "Personalising your feed..." indicator
 - Pull-to-refresh triggers discover API refetch
 
