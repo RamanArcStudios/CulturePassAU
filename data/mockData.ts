@@ -24,6 +24,8 @@ export interface EventData {
   country: string;
   city: string;
   indigenousTags?: string[];
+  languageTags?: string[];
+  nationalSignificance?: number;
 }
 
 export interface CommunityData {

@@ -4,6 +4,7 @@ import {
   sampleBusinesses,
   sampleActivities,
   indigenousSpotlights,
+  EventData,
 } from "../../../data/mockData";
 import { getUser } from "../users/users.service";
 import { getUserCommunities, getAllCommunities } from "../communities/communities.service";
@@ -27,13 +28,10 @@ export interface DiscoverFeed {
     country: string;
     generatedAt: string;
     totalItems: number;
+    algorithmVersion: string;
   };
 }
 
-/**
- * Calculates the great-circle distance in kilometres between two
- * geographic coordinates using the Haversine formula.
- */
 function haversineDistance(lat1: number, lng1: number, lat2: number, lng2: number): number {
   const R = 6371;
   const dLat = ((lat2 - lat1) * Math.PI) / 180;
@@ -48,10 +46,6 @@ function haversineDistance(lat1: number, lng1: number, lat2: number, lng2: numbe
   return R * c;
 }
 
-/**
- * Maps a user's origin country name to community tags used in
- * sampleEvents communityTag field for homeland content matching.
- */
 function getOriginCommunityTags(originCountry: string): string[] {
   const mapping: Record<string, string[]> = {
     india: ["Indian", "Tamil", "Malayalee", "Punjabi", "Bengali", "Gujarati", "Telugu"],
@@ -129,21 +123,172 @@ function getCommunityRelatedTags(communityName: string): string[] {
   return mapping[communityName.toLowerCase()] ?? [communityName];
 }
 
-const SECTION_TITLE_MAP: Record<string, string> = {
-  nearYou: "Near You",
-  yourCommunities: "Your Communities",
-  firstNationsSpotlight: "First Nations Spotlight",
-  fromYourHomeland: "From Your Homeland",
-  recommended: "Recommended For You",
-  trending: "Trending Events",
-  explore: "Communities to Explore",
+const COMMUNITY_TAG_TO_LANGUAGES: Record<string, string[]> = {
+  malayalee: ["Malayalam", "Hindi", "English"],
+  tamil: ["Tamil", "English"],
+  punjabi: ["Punjabi", "Hindi", "English"],
+  bengali: ["Bengali", "English"],
+  gujarati: ["Gujarati", "Hindi", "English"],
+  telugu: ["Telugu", "Hindi", "English"],
+  indian: ["Hindi", "English"],
+  chinese: ["Mandarin", "Cantonese", "English"],
+  filipino: ["Tagalog", "English"],
+  vietnamese: ["Vietnamese", "English"],
+  lebanese: ["Arabic", "English"],
+  greek: ["Greek", "English"],
+  italian: ["Italian", "English"],
+  korean: ["Korean", "English"],
+  japanese: ["Japanese", "English"],
+  arabic: ["Arabic", "English"],
+  multicultural: ["English"],
+  "aboriginal & torres strait islander": ["English"],
 };
 
-/**
- * Builds a personalised discover feed for the given user.
- * Combines location, community, indigenous, and homeland signals
- * to rank and return content sections.
- */
+const NATIONAL_SIGNIFICANCE_EVENTS: Record<string, number> = {
+  e1: 0.9,
+  e2: 0.85,
+  ei1: 0.95,
+  ei2: 0.8,
+  ei3: 0.75,
+  ei5: 0.9,
+};
+
+function getEventLanguageTags(event: EventData): string[] {
+  if (event.languageTags && event.languageTags.length > 0) return event.languageTags;
+  const tag = event.communityTag.toLowerCase();
+  return COMMUNITY_TAG_TO_LANGUAGES[tag] || ["English"];
+}
+
+function getEventNationalSignificance(event: EventData): number {
+  if (event.nationalSignificance !== undefined) return event.nationalSignificance;
+  return NATIONAL_SIGNIFICANCE_EVENTS[event.id] || 0;
+}
+
+// --- NORMALIZED SCORING FUNCTIONS (0-1 scale) ---
+
+function normalizeLocationScore(event: EventData, userCity: string, userCountry: string, userLat?: number | null, userLng?: number | null, radiusKm?: number): number {
+  let score = 0;
+  if (userCity && event.city.toLowerCase() === userCity.toLowerCase()) {
+    score = 1.0;
+  } else if (userCountry && event.country.toLowerCase() === userCountry.toLowerCase()) {
+    score = 0.5;
+  }
+
+  if (userLat != null && userLng != null) {
+    const cityCoords = getCityCoords(event.city, event.country);
+    if (cityCoords) {
+      const dist = haversineDistance(userLat, userLng, cityCoords.lat, cityCoords.lng);
+      const radius = radiusKm || 50;
+      if (dist <= radius) {
+        const distScore = 1.0 - (dist / radius);
+        score = Math.max(score, distScore);
+      }
+    }
+  }
+
+  return Math.min(score, 1.0);
+}
+
+function normalizeCommunityScore(event: EventData, relatedTags: string[]): number {
+  if (!relatedTags.length) return 0;
+  const tag = event.communityTag.toLowerCase();
+  const exactMatch = relatedTags.some(t => t === tag);
+  if (exactMatch) return 1.0;
+  const partialMatch = relatedTags.some(t => tag.includes(t) || t.includes(tag));
+  if (partialMatch) return 0.6;
+  return 0;
+}
+
+function normalizeLanguageScore(event: EventData, userLanguages: string[]): number {
+  if (!userLanguages.length) return 0;
+  const eventLangs = getEventLanguageTags(event).map(l => l.toLowerCase());
+  const userLangs = userLanguages.map(l => l.toLowerCase());
+
+  const nonEnglishMatches = userLangs.filter(
+    ul => ul !== "english" && eventLangs.some(el => el === ul)
+  );
+  if (nonEnglishMatches.length > 0) return 1.0;
+
+  const englishMatch = userLangs.includes("english") && eventLangs.includes("english");
+  if (englishMatch) return 0.2;
+
+  return 0;
+}
+
+function normalizeHomelandScore(event: EventData, originTags: string[], userCountry: string): number {
+  if (!originTags.length) return 0;
+  const tag = event.communityTag.toLowerCase();
+  const isHomeland = originTags.some(t => t.toLowerCase() === tag);
+  if (!isHomeland) return 0;
+
+  const isLocal = event.country.toLowerCase() === userCountry.toLowerCase();
+  return isLocal ? 1.0 : 0.7;
+}
+
+function normalizeIndigenousScore(event: EventData, enabled: boolean): number {
+  if (!enabled) return 0;
+  if (event.indigenousTags && event.indigenousTags.length > 0) return 1.0;
+  return 0;
+}
+
+function normalizeTrendingScore(event: EventData, maxAttending: number): number {
+  if (maxAttending === 0) return 0;
+  return event.attending / maxAttending;
+}
+
+function normalizeFeaturedScore(event: EventData): number {
+  return event.isFeatured ? 1.0 : 0;
+}
+
+function normalizeNationalSignificanceScore(event: EventData): number {
+  return getEventNationalSignificance(event);
+}
+
+const WEIGHTS = {
+  location: 0.25,
+  community: 0.20,
+  language: 0.15,
+  homeland: 0.15,
+  indigenous: 0.08,
+  trending: 0.07,
+  featured: 0.05,
+  nationalSignificance: 0.05,
+};
+
+function computeCompositeScore(
+  event: EventData,
+  userCity: string,
+  userCountry: string,
+  relatedTags: string[],
+  userLanguages: string[],
+  originTags: string[],
+  indigenousEnabled: boolean,
+  maxAttending: number,
+  userLat?: number | null,
+  userLng?: number | null,
+  radiusKm?: number,
+): number {
+  const loc = normalizeLocationScore(event, userCity, userCountry, userLat, userLng, radiusKm);
+  const comm = normalizeCommunityScore(event, relatedTags);
+  const lang = normalizeLanguageScore(event, userLanguages);
+  const home = normalizeHomelandScore(event, originTags, userCountry);
+  const indig = normalizeIndigenousScore(event, indigenousEnabled);
+  const trend = normalizeTrendingScore(event, maxAttending);
+  const feat = normalizeFeaturedScore(event);
+  const natSig = normalizeNationalSignificanceScore(event);
+
+  return (
+    WEIGHTS.location * loc +
+    WEIGHTS.community * comm +
+    WEIGHTS.language * lang +
+    WEIGHTS.homeland * home +
+    WEIGHTS.indigenous * indig +
+    WEIGHTS.trending * trend +
+    WEIGHTS.featured * feat +
+    WEIGHTS.nationalSignificance * natSig
+  );
+}
+
 export async function getDiscoverFeed(
   userId: string,
   userCity?: string,
@@ -159,10 +304,14 @@ export async function getDiscoverFeed(
   const homelandContentEnabled = user?.homelandContentEnabled ?? true;
   const userLat = user?.latitude;
   const userLng = user?.longitude;
+  const userLanguages: string[] = (user as any)?.spokenLanguages || [];
 
   const userComms = user ? await getUserCommunities(userId) : [];
   const userCommNames = userComms.map((c) => c.name.toLowerCase());
   const allRelatedTags = userCommNames.flatMap((cn) => getCommunityRelatedTags(cn)).map((t) => t.toLowerCase());
+  const originTags = originCountry ? getOriginCommunityTags(originCountry) : [];
+
+  const maxAttending = Math.max(...sampleEvents.map(e => e.attending), 1);
 
   const sections: DiscoverSection[] = [];
   const shownEventIds = new Set<string>();
@@ -170,17 +319,7 @@ export async function getDiscoverFeed(
   // --- Section 1: Near You (priority 1) ---
   const nearYouScored = sampleEvents
     .map((evt) => {
-      let score = 0;
-      if (city && evt.city.toLowerCase() === city.toLowerCase()) score += 10;
-      else if (country && evt.country.toLowerCase() === country.toLowerCase()) score += 5;
-
-      if (userLat != null && userLng != null) {
-        const cityCoords = getCityCoords(evt.city, evt.country);
-        if (cityCoords) {
-          const dist = haversineDistance(userLat, userLng, cityCoords.lat, cityCoords.lng);
-          if (dist <= radiusKm) score += Math.max(0, 10 - dist / 10);
-        }
-      }
+      const score = normalizeLocationScore(evt, city, country, userLat, userLng, radiusKm);
       return { event: evt, score };
     })
     .filter((e) => e.score > 0)
@@ -257,50 +396,78 @@ export async function getDiscoverFeed(
   }
 
   // --- Section 4: From Your Homeland (priority 4) ---
-  if (homelandContentEnabled && originCountry) {
-    const tags = getOriginCommunityTags(originCountry);
-    if (tags.length > 0) {
-      const homelandEvents = sampleEvents.filter((evt) =>
-        tags.some((tag) => evt.communityTag.toLowerCase() === tag.toLowerCase())
+  if (homelandContentEnabled && originTags.length > 0) {
+    const homelandEvents = sampleEvents.filter((evt) =>
+      originTags.some((tag) => evt.communityTag.toLowerCase() === tag.toLowerCase())
+    );
+    if (homelandEvents.length > 0) {
+      homelandEvents.forEach((e) => shownEventIds.add(e.id));
+      sections.push({
+        title: "From Your Homeland",
+        subtitle: `Content connected to ${originCountry}`,
+        type: "events",
+        items: homelandEvents,
+        priority: 4,
+      });
+    }
+  }
+
+  // --- Section 5: Homeland Moments (priority 5) ---
+  if (homelandContentEnabled && originTags.length > 0 && city) {
+    const homelandMoments = sampleEvents.filter((evt) => {
+      const isOriginCulture = originTags.some(
+        (tag) => evt.communityTag.toLowerCase() === tag.toLowerCase()
       );
-      if (homelandEvents.length > 0) {
-        homelandEvents.forEach((e) => shownEventIds.add(e.id));
+      const isLocal = evt.city.toLowerCase() === city.toLowerCase() ||
+                      evt.country.toLowerCase() === country.toLowerCase();
+      return isOriginCulture && isLocal && !shownEventIds.has(evt.id);
+    });
+    if (homelandMoments.length > 0) {
+      homelandMoments.forEach((e) => shownEventIds.add(e.id));
+      sections.push({
+        title: "Homeland Moments",
+        subtitle: `Your culture, celebrated locally in ${city}`,
+        type: "events",
+        items: homelandMoments,
+        priority: 5,
+      });
+    }
+  }
+
+  // --- Section 6: In Your Language (priority 6) ---
+  if (userLanguages.length > 0) {
+    const nonEnglishLangs = userLanguages.filter(l => l.toLowerCase() !== "english");
+    if (nonEnglishLangs.length > 0) {
+      const langEvents = sampleEvents.filter((evt) => {
+        if (shownEventIds.has(evt.id)) return false;
+        const eventLangs = getEventLanguageTags(evt).map(l => l.toLowerCase());
+        return nonEnglishLangs.some(ul => eventLangs.includes(ul.toLowerCase()));
+      });
+      if (langEvents.length > 0) {
+        const langNames = nonEnglishLangs.slice(0, 2).join(" & ");
+        langEvents.forEach((e) => shownEventIds.add(e.id));
         sections.push({
-          title: "From Your Homeland",
-          subtitle: `Content connected to ${originCountry}`,
+          title: "In Your Language",
+          subtitle: `Events in ${langNames}`,
           type: "events",
-          items: homelandEvents,
-          priority: 4,
+          items: langEvents.slice(0, 10),
+          priority: 6,
         });
       }
     }
   }
 
-  // --- Section 5: Recommended For You (priority 5) ---
+  // --- Section 7: Recommended For You (priority 7) ---
   const unseenEvents = sampleEvents.filter((e) => !shownEventIds.has(e.id));
   const recommendedScored = unseenEvents
-    .map((evt) => {
-      let score = 0;
-      if (city && evt.city.toLowerCase() === city.toLowerCase()) score += 5;
-      if (country && evt.country.toLowerCase() === country.toLowerCase()) score += 3;
-      if (
-        allRelatedTags &&
-        allRelatedTags.some(
-          (tag) =>
-            evt.communityTag.toLowerCase().includes(tag) ||
-            tag.includes(evt.communityTag.toLowerCase())
-        )
-      )
-        score += 2;
-      if (
-        indigenousVisibilityEnabled &&
-        evt.indigenousTags &&
-        evt.indigenousTags.length > 0
-      )
-        score += 1;
-      if (evt.isFeatured) score += 1;
-      return { event: evt, score };
-    })
+    .map((evt) => ({
+      event: evt,
+      score: computeCompositeScore(
+        evt, city, country, allRelatedTags, userLanguages,
+        originTags, indigenousVisibilityEnabled, maxAttending,
+        userLat, userLng, radiusKm
+      ),
+    }))
     .sort((a, b) => b.score - a.score)
     .slice(0, 15);
 
@@ -310,11 +477,11 @@ export async function getDiscoverFeed(
       subtitle: "Personalised picks based on your interests",
       type: "events",
       items: recommendedScored.map((e) => e.event),
-      priority: 5,
+      priority: 7,
     });
   }
 
-  // --- Section 6: Trending Events (priority 6) ---
+  // --- Section 8: Trending Events (priority 8) ---
   const trending = [...sampleEvents]
     .sort((a, b) => b.attending - a.attending)
     .slice(0, 10);
@@ -324,11 +491,11 @@ export async function getDiscoverFeed(
       subtitle: "Most popular right now",
       type: "events",
       items: trending,
-      priority: 6,
+      priority: 8,
     });
   }
 
-  // --- Section 7: Communities to Explore (priority 7) ---
+  // --- Section 9: Communities to Explore (priority 9) ---
   try {
     const allComms = await getAllCommunities();
     const userCommIds = new Set(userComms.map((c) => c.id));
@@ -341,11 +508,10 @@ export async function getDiscoverFeed(
         subtitle: "Discover new groups to join",
         type: "communities",
         items: exploreCommunities,
-        priority: 7,
+        priority: 9,
       });
     }
   } catch {
-    // communities table may not be seeded yet
   }
 
   sections.sort((a, b) => a.priority - b.priority);
@@ -360,14 +526,11 @@ export async function getDiscoverFeed(
       country,
       generatedAt: new Date().toISOString(),
       totalItems,
+      algorithmVersion: "2.0",
     },
   };
 }
 
-/**
- * Simple coordinate lookup for known cities used by the Near You
- * distance scoring when the user has lat/lng set on their profile.
- */
 function getCityCoords(
   city: string,
   country: string
