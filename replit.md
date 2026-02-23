@@ -1,149 +1,40 @@
-# CulturePass - replit.md
+# CulturePass
 
 ## Overview
-
-CulturePass is a cross-platform cultural community and events platform that connects users with cultural communities, events, and local businesses. It is designed to operate across multiple countries, including Australia, New Zealand, UAE, UK, and Canada. The platform features user onboarding, event discovery, community engagement, a business directory, user profiles, a perks and benefits system, sponsorship tools, notifications, and payment/wallet integration. The project aims to become a central hub for cultural interaction and commerce.
+CulturePass is a cross-platform cultural community and events platform designed to connect users with cultural communities, events, and local businesses across Australia, New Zealand, UAE, UK, and Canada. Its main purpose is to serve as a central hub for cultural interaction and commerce, offering features like event discovery, community engagement, a business directory, user profiles, perks and benefits, sponsorship tools, notifications, and payment integration. The project aims to foster cultural understanding and provide a marketplace for cultural experiences.
 
 ## User Preferences
-
 Preferred communication style: Simple, everyday language.
 
 ## System Architecture
 
-### Frontend (Expo / React Native)
+### Frontend
+The frontend is built with Expo SDK 54 and React Native 0.81, supporting iOS, Android, and Web platforms. It utilizes `expo-router` for file-based navigation, including an onboarding flow, main tab navigation (Discover, Calendar, Community, Perks, Profile), and detailed screens. State management uses React Context for global state and AsyncStorage for local persistence, while TanStack React Query handles server state. UI styling leverages React Native StyleSheet with a custom color system and Poppins font. Animations are implemented with `react-native-reanimated`, and `expo-haptics` provides tactile feedback. A global `ErrorBoundary` ensures graceful error handling.
 
-The frontend is built with Expo SDK 54 and React Native 0.81, targeting iOS, Android, and Web. It uses `expo-router` for file-based routing and features a structured navigation system including an onboarding flow, main tab navigation (Discover, Calendar, Community, Perks, Profile), and dedicated detail screens. State management is handled with React Context for app-wide state and AsyncStorage for local persistence. Server state is managed via TanStack React Query. UI and styling rely on React Native StyleSheet with a custom color system and Poppins font. Animations are implemented with `react-native-reanimated`, and `expo-haptics` provides tactile feedback.
-
-### Backend (Express.js)
-
-The backend is an Express.js application running on Node.js, developed with TypeScript. It is organized into 15 domain modules under `server/modules/` (users, profiles, follows, wallet, sponsors, perks, memberships, notifications, tickets, stripe, dashboard, cpid, locations, communities, discover), each with separate `.service.ts` and `.routes.ts` files. All modules are registered in `server/routes.ts`. PostGIS 3.5.3 is enabled for geo-queries. CORS is dynamically configured for Replit environments and local development. In production, the backend also serves the static Expo web bundle.
+### Backend
+The backend is an Express.js application developed with TypeScript on Node.js. It features a modular design with 22 domain modules (e.g., users, events, communities, wallet) organized under `server/modules/`, each containing dedicated service and routing files. These modules are centrally registered in `server/routes.ts`. The backend integrates PostGIS 3.5.3 for geospatial queries and dynamically configures CORS. In production, it also serves the static Expo web bundle. Standardized error handling includes an `AppError` class, error codes, and rate limiting.
 
 ### Data Layer
+PostgreSQL, with PostGIS extension, serves as the primary database, managed by Drizzle ORM. The `shared/schema.ts` defines tables for users, profiles (supporting 9 entity types), follows, likes, reviews, payments, wallets, sponsors, perks, memberships, notifications, tickets, and location-specific data. Key seeded data includes 27 cities across 5 countries, 45 communities (diaspora, indigenous, language, religion), 36 events, and various businesses and cultural content. The schema includes fields for user origin, radius, indigenous visibility, and language preferences.
 
-The application uses PostgreSQL (with PostGIS) as its database, managed via Drizzle ORM. The schema, defined in `shared/schema.ts`, includes tables for users, profiles (supporting 9 entity types like community, organisation, artist), follows, likes, reviews, payment methods, transactions, wallets, sponsors, perks, memberships, notifications, tickets, locations (27 cities across 5 countries with real coordinates/timezones), communities (45 seeded: 18 diaspora, 4 indigenous, 17 language, 6 religion), user_communities, and event_communities. Users table extended with origin_country, origin_city, radius_km, indigenous_visibility_enabled, homeland_content_enabled, preferred_language fields. Events, movies, restaurants, activities, and shopping are sourced from mock data.
+### Discover Engine
+The CultureOS Adaptive Cultural Ranking Engine (v2) powers a personalized `GET /api/discover/:userId` endpoint. This engine generates up to 9 personalized sections (e.g., Near You, Your Communities, First Nations Spotlight, From Your Homeland, In Your Language, Recommended For You) with normalized 0-1 scoring based on factors like location, community memberships, language, indigenous relevance, and user origin. A composite weighted score is used for recommendations.
 
-### Build & Deployment
-
-Development uses parallel processes for the Expo Metro bundler and the Express API server. Production involves building a static web bundle for Expo and bundling the server with esbuild. Replit-specific environment variables are utilized for integration.
-
-### Key Design Patterns
-
-Shared types between frontend and backend ensure type consistency. Path aliases simplify imports. The application includes a global `ErrorBoundary` for graceful error handling. An onboarding gate manages access to the main application. A `useDemoUserId()` hook facilitates testing with a sample user. Entity types are differentiated with unique colors and icons.
-
-## Recent Changes (Feb 2026)
-
-### CultureOS Adaptive Cultural Ranking Engine v2 (Feb 23, 2026)
-- Refactored monolithic backend (1172-line routes.ts, 620-line storage.ts) into 15 domain modules under `server/modules/` with separate `.service.ts` and `.routes.ts` files
-- Added 4 new database tables: locations, communities, user_communities, event_communities with PostGIS extension
-- Added `spoken_languages` jsonb field to users table for language-based matching
-- Seeded 27 cities across 5 countries with real coordinates/timezones, 45 communities (diaspora, indigenous, language, religion)
-- Added `languageTags` and `nationalSignificance` fields to EventData interface
-- Built `GET /api/discover/:userId` endpoint returning up to 9 personalized sections with normalized 0-1 scoring (Algorithm v2.0):
-  1. Near You - location-based with Haversine distance scoring (normalized 0-1)
-  2. Your Communities - expanded tag matching from community memberships to related event tags via getCommunityRelatedTags()
-  3. First Nations Spotlight - indigenous events/businesses/activities
-  4. From Your Homeland - origin country mapped to diaspora content via getOriginCommunityTags()
-  5. Homeland Moments - local events culturally significant to user's origin country (deduped)
-  6. In Your Language - events matching user's spoken languages (non-English priority)
-  7. Recommended For You - composite weighted score: location(0.25), community(0.20), language(0.15), homeland(0.15), indigenous(0.08), trending(0.07), featured(0.05), nationalSignificance(0.05)
-  8. Trending Events - sorted by attendance
-  9. Communities to Explore - unjoined communities from DB
-- Normalized scoring functions: normalizeLocationScore, normalizeCommunityScore, normalizeLanguageScore, normalizeHomelandScore, normalizeIndigenousScore, normalizeTrendingScore, normalizeFeaturedScore, normalizeNationalSignificanceScore
-- Event deduplication via shownEventIds set prevents same event appearing in multiple sections
-- Language tag inference from communityTag via COMMUNITY_TAG_TO_LANGUAGES mapping
-- Home screen (`app/(tabs)/index.tsx`) now powered by discover API instead of hardcoded mock data
-- Community detail screen (`app/community/[id].tsx`) supports both mock communities (with imageUrl, color, icon) and DB communities (gradient backgrounds, emoji icons, type badges, related events)
-- Featured events extracted from Near You section for hero carousel
-- Compact event cards for sections with 6+ items, full cards for smaller sections
-- Community cards with emoji icons and member counts for explore section, all clickable with haptic feedback
-- Loading state with "Personalising your feed..." indicator
-- Pull-to-refresh triggers discover API refetch
-
-### Location Filtering & UI Improvements (Feb 23, 2026)
-- Added country/city fields to all mock data interfaces (EventData, CommunityData, BusinessData, MovieData, RestaurantData, ActivityData, ShoppingData)
-- Expanded mock data to 100+ items across 11 cities in 5 countries (AU, NZ, UAE, UK, CA)
-- Created `hooks/useLocationFilter.ts` hook that reads user's selected country/city from OnboardingContext and filters data
-- Applied location filtering to all screens: Home, Explore, Calendar, Movies, Restaurants, Activities, Shopping, All Events
-- LocationPicker shortens long country names in trigger display (UAE, UK, NZ)
-- Redesigned all filter/category buttons app-wide to pill-shaped capsules (borderRadius: 50) with inline icons, no icon wrapper boxes
-- Consistent filter button styling: active = filled accent color, inactive = white surface with thin border
-
-### Production Hardening (Feb 23, 2026)
-- Standardized error handling: `server/errors.ts` with AppError class, 29 error codes, wrapHandler middleware, in-memory rate limiter
-- Frontend error mapping: `lib/errors.ts` with user-friendly message mapping, extractApiError, showErrorAlert helpers
-- Security: Rate limiting on purchase (5/min) and subscription (3/2min) endpoints, duplicate purchase prevention, QR scan fraud prevention
-- Ticket validation: Checks for already-scanned, cancelled, expired, and unpaid tickets with specific error codes
-- API response format: `{ success: true, data: ... }` or `{ success: false, error: { code, message } }`
-- Database indexes: Added on tickets (userId, eventId, status) and notifications (userId) tables
-- Platform-aware UI: Web layout with maxWidth: 900 centering, cursor: pointer on interactive elements, proper web insets
-
-### Ticket Purchase Flow
-- Full ticket purchase modal on event detail screen (`app/event/[id].tsx`) with Single/Family/Group buying modes
-- Family Pack: 4 tickets with 10% discount, Group: 10% at 5+, 15% at 10+
-- Price summary section with line items, discount breakdown, and total
-- Ticket detail screen (`app/tickets/[id].tsx`) with QR code visualization, event info, share and wallet save options
-- Enhanced tickets list screen (`app/tickets/index.tsx`) with tappable cards, share buttons, and "Add to Wallet" functionality
-- Server-side Apple Wallet (.pkpass) and Google Wallet pass generation endpoints at `/api/tickets/:id/wallet/apple` and `/api/tickets/:id/wallet/google`
-
-### Share Functionality
-- Fixed Share buttons across 14 screens using React Native `Share.share()` API with proper error handling, haptic feedback, and cross-platform `title` + `message` params
-
-### Web Dashboard
-- Admin dashboard at `/dashboard` route (served from `server/templates/dashboard.html`)
-- Login with username "admin" and password from `ADMIN_USER_PASSWORD` env secret (fallback: "admin123")
-- Dashboard sections: Overview (stats, charts), Tickets management, Events, Users, Perks, Indigenous Visibility, Analytics, Revenue
-- Login endpoint: `POST /api/dashboard/login`
-
-### Indigenous Visibility Framework (Feb 2026)
-- Data layer: `indigenousTags` on events/activities, `isIndigenousOwned`/`supplyNationRegistered`/`indigenousCategory` on businesses
-- Traditional Custodian land mapping (`traditionalLands` in mockData) for 12 cities across AU, NZ, CA
-- Acknowledgement of Country text (`acknowledgementOfCountry` in mockData) shown on onboarding when Australia selected
-- 6 Indigenous events (IDs ei1-ei6), 3 Indigenous businesses (IDs bi1-bi3), 2 Indigenous communities, 2 Indigenous activities, Indigenous spotlight data
-- Home screen: Traditional Custodian Land banner (shows for AU/NZ/CA cities), First Nations Spotlight carousel
-- Event detail: Indigenous tag badges (brown/ochre) in hero, Cultural Information education card with NAIDOC/Reconciliation/Ceremony context
-- Business detail: "Indigenous Owned" hero badge, info card with Supply Nation badge
-- Perks: "First Nations" category filter, 3 seeded Indigenous perks (cashback boost, art discount, Welcome to Country)
-- Dashboard: Indigenous Visibility page with stats, Traditional Custodian coverage, events table, Acknowledgement card
-
-### Stripe Payment Integration (Feb 2026)
-- Replaced wallet-based payment with Stripe Checkout for ticket purchases
-- Server creates Stripe Checkout Session, frontend opens it via `expo-web-browser`
-- On payment success, ticket status updated to confirmed via redirect callback
-- Stripe refund support for ticket cancellations via `/api/stripe/refund`
-- Stripe initialization on server startup with `stripe-replit-sync` for schema and webhook management
-- `server/stripeClient.ts` handles Stripe credential fetching from Replit connectors API
-- `server/webhookHandlers.ts` processes Stripe webhooks for data sync
-- Tickets table extended with `stripePaymentIntentId`, `stripeRefundId`, `paymentStatus` columns
-- Free tickets bypass Stripe and are created directly via `/api/tickets`
-
-### API Endpoints Added
-- `POST /api/dashboard/login` - Dashboard admin authentication
-- `GET /api/tickets/:id/wallet/apple` - Apple Wallet pass data
-- `GET /api/tickets/:id/wallet/google` - Google Wallet pass data
-- `GET /api/stripe/publishable-key` - Get Stripe publishable key
-- `POST /api/stripe/create-payment-intent` - Create Stripe Payment Intent
-- `POST /api/stripe/create-checkout-session` - Create Stripe Checkout Session (used by frontend)
-- `POST /api/stripe/confirm-payment` - Confirm payment status
-- `POST /api/stripe/refund` - Refund and cancel ticket
-- `GET /api/stripe/checkout-success` - Checkout success redirect handler
-- `GET /api/stripe/checkout-cancel` - Checkout cancel redirect handler
-- `POST /api/tickets/:id/scan` - QR code scan validation with fraud prevention
-- `GET /api/discover/:userId` - Personalized discover feed with 7 scored sections
-- `GET /api/locations` - List all locations (countries/cities)
-- `GET /api/locations/:id` - Get location by ID
-- `GET /api/communities` - List all communities
-- `GET /api/communities/:id` - Get community by ID
-- `POST /api/communities/:id/join` - Join a community
-- `POST /api/communities/:id/leave` - Leave a community
-- `GET /api/users/:userId/communities` - Get user's communities
+### Key Features
+-   **Indigenous Visibility Framework:** Integrates indigenous-focused data, content, and acknowledgements across the platform, including specific tags, owned business indicators, and Traditional Custodian land mapping.
+-   **Ticket Purchase Flow:** Features a comprehensive ticket purchase modal with various buying modes (Single/Family/Group), discounts, and price summaries. Supports QR code visualization, sharing, and "Add to Wallet" functionality with server-side Apple/Google Wallet pass generation.
+-   **Stripe Payment Integration:** Replaced wallet-based payments with Stripe Checkout for ticket purchases, including support for refunds and webhook-based data synchronization. Free tickets bypass Stripe.
+-   **Location Filtering:** Implemented a `useLocationFilter` hook that applies user-selected country/city preferences to filter data across all content screens.
+-   **Web Dashboard:** An administrative dashboard at `/dashboard` provides tools for managing tickets, events, users, perks, indigenous visibility, and viewing analytics.
 
 ## External Dependencies
 
--   **PostgreSQL Database**: Primary database, configured via `DATABASE_URL`.
--   **Expo**: Core framework for cross-platform development.
--   **expo-router**: For declarative, file-based routing in Expo applications.
--   **drizzle-orm** and **drizzle-kit**: ORM for PostgreSQL and schema migration tools.
--   **@tanstack/react-query**: For efficient server state management.
--   **express**: Node.js web application framework for the backend API.
--   **pg**: PostgreSQL client for Node.js.
--   **zod** and **drizzle-zod**: Used for schema validation and type inference.
+-   **PostgreSQL Database:** Primary data store, utilizing `DATABASE_URL` for configuration.
+-   **Expo:** Core framework for cross-platform application development.
+-   **expo-router:** File-based routing for Expo applications.
+-   **drizzle-orm** and **drizzle-kit:** ORM and schema migration tools for PostgreSQL.
+-   **@tanstack/react-query:** For managing server state and data fetching.
+-   **express:** Node.js framework for building the backend API.
+-   **pg:** PostgreSQL client for Node.js.
+-   **zod** and **drizzle-zod:** For schema validation and type inference.
+-   **Stripe:** Payment gateway for processing transactions.
