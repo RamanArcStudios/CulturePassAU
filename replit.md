@@ -16,11 +16,11 @@ The frontend is built with Expo SDK 54 and React Native 0.81, targeting iOS, And
 
 ### Backend (Express.js)
 
-The backend is an Express.js application running on Node.js, developed with TypeScript. It provides over 30 RESTful API endpoints for managing users, profiles, interactions (follows, likes, reviews), payments, sponsorships, perks, memberships, notifications, and tickets. CORS is dynamically configured for Replit environments and local development. In production, the backend also serves the static Expo web bundle.
+The backend is an Express.js application running on Node.js, developed with TypeScript. It is organized into 15 domain modules under `server/modules/` (users, profiles, follows, wallet, sponsors, perks, memberships, notifications, tickets, stripe, dashboard, cpid, locations, communities, discover), each with separate `.service.ts` and `.routes.ts` files. All modules are registered in `server/routes.ts`. PostGIS 3.5.3 is enabled for geo-queries. CORS is dynamically configured for Replit environments and local development. In production, the backend also serves the static Expo web bundle.
 
 ### Data Layer
 
-The application uses PostgreSQL as its database, managed via Drizzle ORM. The schema, defined in `shared/schema.ts`, includes tables for users, profiles (supporting 9 entity types like community, organisation, artist), follows, likes, reviews, payment methods, transactions, wallets, sponsors, perks, memberships, notifications, and tickets. Frontend data for events, movies, restaurants, activities, and shopping is currently sourced from mock data, while profiles, sponsors, perks, payments, and notifications are backed by the PostgreSQL database.
+The application uses PostgreSQL (with PostGIS) as its database, managed via Drizzle ORM. The schema, defined in `shared/schema.ts`, includes tables for users, profiles (supporting 9 entity types like community, organisation, artist), follows, likes, reviews, payment methods, transactions, wallets, sponsors, perks, memberships, notifications, tickets, locations (27 cities across 5 countries with real coordinates/timezones), communities (45 seeded: 18 diaspora, 4 indigenous, 17 language, 6 religion), user_communities, and event_communities. Users table extended with origin_country, origin_city, radius_km, indigenous_visibility_enabled, homeland_content_enabled, preferred_language fields. Events, movies, restaurants, activities, and shopping are sourced from mock data.
 
 ### Build & Deployment
 
@@ -31,6 +31,25 @@ Development uses parallel processes for the Expo Metro bundler and the Express A
 Shared types between frontend and backend ensure type consistency. Path aliases simplify imports. The application includes a global `ErrorBoundary` for graceful error handling. An onboarding gate manages access to the main application. A `useDemoUserId()` hook facilitates testing with a sample user. Entity types are differentiated with unique colors and icons.
 
 ## Recent Changes (Feb 2026)
+
+### AI-Powered Discover Feed (Feb 23, 2026)
+- Refactored monolithic backend (1172-line routes.ts, 620-line storage.ts) into 15 domain modules under `server/modules/` with separate `.service.ts` and `.routes.ts` files
+- Added 4 new database tables: locations, communities, user_communities, event_communities with PostGIS extension
+- Seeded 27 cities across 5 countries with real coordinates/timezones, 45 communities (diaspora, indigenous, language, religion)
+- Built `GET /api/discover/:userId` endpoint returning 7 personalized sections with weighted scoring:
+  1. Near You - location-based with Haversine distance scoring
+  2. Your Communities - expanded tag matching from community memberships to related event tags via getCommunityRelatedTags()
+  3. First Nations Spotlight - indigenous events/businesses/activities
+  4. From Your Homeland - origin country mapped to diaspora content via getOriginCommunityTags()
+  5. Recommended For You - weighted formula (+5 city, +3 country, +2 community, +1 indigenous, +1 featured)
+  6. Trending Events - sorted by attendance
+  7. Communities to Explore - unjoined communities
+- Home screen (`app/(tabs)/index.tsx`) now powered by discover API instead of hardcoded mock data
+- Featured events extracted from Near You section for hero carousel
+- Compact event cards for sections with 6+ items, full cards for smaller sections
+- Community cards with emoji icons and member counts for explore section
+- Loading state with "Personalising your feed..." indicator
+- Pull-to-refresh triggers discover API refetch
 
 ### Location Filtering & UI Improvements (Feb 23, 2026)
 - Added country/city fields to all mock data interfaces (EventData, CommunityData, BusinessData, MovieData, RestaurantData, ActivityData, ShoppingData)
@@ -101,6 +120,14 @@ Shared types between frontend and backend ensure type consistency. Path aliases 
 - `GET /api/stripe/checkout-success` - Checkout success redirect handler
 - `GET /api/stripe/checkout-cancel` - Checkout cancel redirect handler
 - `POST /api/tickets/:id/scan` - QR code scan validation with fraud prevention
+- `GET /api/discover/:userId` - Personalized discover feed with 7 scored sections
+- `GET /api/locations` - List all locations (countries/cities)
+- `GET /api/locations/:id` - Get location by ID
+- `GET /api/communities` - List all communities
+- `GET /api/communities/:id` - Get community by ID
+- `POST /api/communities/:id/join` - Join a community
+- `POST /api/communities/:id/leave` - Leave a community
+- `GET /api/users/:userId/communities` - Get user's communities
 
 ## External Dependencies
 
