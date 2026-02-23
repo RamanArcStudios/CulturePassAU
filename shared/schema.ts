@@ -85,6 +85,13 @@ export const users = pgTable(
     latitude: doublePrecision("latitude"),
     longitude: doublePrecision("longitude"),
 
+    originCountry: text("origin_country"),
+    originCity: text("origin_city"),
+    radiusKm: integer("radius_km").default(50),
+    indigenousVisibilityEnabled: boolean("indigenous_visibility_enabled").default(true),
+    homelandContentEnabled: boolean("homeland_content_enabled").default(true),
+    preferredLanguage: text("preferred_language").default("en"),
+
     isVerified: boolean("is_verified").default(false),
 
     followersCount: integer("followers_count").default(0),
@@ -497,6 +504,137 @@ export const cpidRegistry = pgTable(
 );
 
 /* ======================================================
+   LOCATION TYPES
+====================================================== */
+
+export const locationTypeEnum = pgEnum("location_type", [
+  "country",
+  "state",
+  "city",
+]);
+
+/* ======================================================
+   LOCATIONS (countries / states / cities hierarchy)
+====================================================== */
+
+export const locations = pgTable(
+  "locations",
+  {
+    id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+    name: text("name").notNull(),
+    slug: text("slug").notNull(),
+    locationType: locationTypeEnum("location_type").notNull(),
+    parentId: varchar("parent_id"),
+    countryCode: varchar("country_code", { length: 3 }),
+    latitude: doublePrecision("latitude"),
+    longitude: doublePrecision("longitude"),
+    timezone: text("timezone"),
+    population: integer("population"),
+    metadata: jsonb("metadata").$type<Record<string, any>>(),
+    createdAt: timestamp("created_at").defaultNow(),
+  },
+  (table) => ({
+    slugIdx: uniqueIndex("locations_slug_idx").on(table.slug),
+    parentIdx: index("locations_parent_idx").on(table.parentId),
+    typeIdx: index("locations_type_idx").on(table.locationType),
+    countryCodeIdx: index("locations_country_code_idx").on(table.countryCode),
+  })
+);
+
+/* ======================================================
+   COMMUNITY TYPES
+====================================================== */
+
+export const communityTypeEnum = pgEnum("community_type", [
+  "language",
+  "diaspora",
+  "indigenous",
+  "religion",
+  "cultural",
+  "interest",
+]);
+
+/* ======================================================
+   COMMUNITIES (language / diaspora / indigenous / religion groups)
+====================================================== */
+
+export const communities = pgTable(
+  "communities",
+  {
+    id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+    name: text("name").notNull(),
+    slug: text("slug").notNull(),
+    communityType: communityTypeEnum("community_type").notNull(),
+    description: text("description"),
+    iconEmoji: text("icon_emoji"),
+    countryOfOrigin: varchar("country_of_origin"),
+    languageCode: varchar("language_code", { length: 10 }),
+    isIndigenous: boolean("is_indigenous").default(false),
+    parentCommunityId: varchar("parent_community_id"),
+    metadata: jsonb("metadata").$type<Record<string, any>>(),
+    verified: boolean("verified").default(false),
+    memberCount: integer("member_count").default(0),
+    createdAt: timestamp("created_at").defaultNow(),
+  },
+  (table) => ({
+    slugIdx: uniqueIndex("communities_slug_idx").on(table.slug),
+    typeIdx: index("communities_type_idx").on(table.communityType),
+    indigenousIdx: index("communities_indigenous_idx").on(table.isIndigenous),
+  })
+);
+
+/* ======================================================
+   USER ↔ COMMUNITY (many-to-many)
+====================================================== */
+
+export const userCommunities = pgTable(
+  "user_communities",
+  {
+    id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+    userId: varchar("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    communityId: varchar("community_id")
+      .notNull()
+      .references(() => communities.id, { onDelete: "cascade" }),
+    joinedAt: timestamp("joined_at").defaultNow(),
+  },
+  (table) => ({
+    userIdx: index("uc_user_idx").on(table.userId),
+    communityIdx: index("uc_community_idx").on(table.communityId),
+    uniqueUserCommunity: uniqueIndex("unique_user_community").on(
+      table.userId,
+      table.communityId
+    ),
+  })
+);
+
+/* ======================================================
+   EVENT ↔ COMMUNITY (many-to-many)
+====================================================== */
+
+export const eventCommunities = pgTable(
+  "event_communities",
+  {
+    id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+    eventId: varchar("event_id").notNull(),
+    communityId: varchar("community_id")
+      .notNull()
+      .references(() => communities.id, { onDelete: "cascade" }),
+    relevanceScore: doublePrecision("relevance_score").default(1.0),
+    createdAt: timestamp("created_at").defaultNow(),
+  },
+  (table) => ({
+    eventIdx: index("ec_event_idx").on(table.eventId),
+    communityIdx: index("ec_community_idx").on(table.communityId),
+    uniqueEventCommunity: uniqueIndex("unique_event_community").on(
+      table.eventId,
+      table.communityId
+    ),
+  })
+);
+
+/* ======================================================
    TYPES
 ====================================================== */
 
@@ -517,6 +655,10 @@ export type PerkRedemption = typeof perkRedemptions.$inferSelect;
 export type Notification = typeof notifications.$inferSelect;
 export type Ticket = typeof tickets.$inferSelect;
 export type CpidRegistry = typeof cpidRegistry.$inferSelect;
+export type Location = typeof locations.$inferSelect;
+export type Community = typeof communities.$inferSelect;
+export type UserCommunity = typeof userCommunities.$inferSelect;
+export type EventCommunity = typeof eventCommunities.$inferSelect;
 
 /* ======================================================
    INSERT SCHEMAS
@@ -574,6 +716,16 @@ export const insertTicketSchema = createInsertSchema(tickets).omit({
   createdAt: true,
 });
 
+export const insertLocationSchema = createInsertSchema(locations).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertCommunitySchema = createInsertSchema(communities).omit({
+  id: true,
+  createdAt: true,
+});
+
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type InsertTransaction = z.infer<typeof insertTransactionSchema>;
 export type InsertMembership = z.infer<typeof insertMembershipSchema>;
@@ -581,6 +733,8 @@ export type InsertProfile = z.infer<typeof insertProfileSchema>;
 export type InsertReview = z.infer<typeof insertReviewSchema>;
 export type InsertPaymentMethod = z.infer<typeof insertPaymentMethodSchema>;
 export type InsertSponsor = z.infer<typeof insertSponsorSchema>;
+export type InsertLocation = z.infer<typeof insertLocationSchema>;
+export type InsertCommunity = z.infer<typeof insertCommunitySchema>;
 export type InsertPerk = z.infer<typeof insertPerkSchema>;
 export type InsertNotification = z.infer<typeof insertNotificationSchema>;
 export type InsertTicket = z.infer<typeof insertTicketSchema>;
