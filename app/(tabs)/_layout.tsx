@@ -15,13 +15,13 @@ export default function TabLayout() {
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: Colors.primary,
-        tabBarInactiveTintColor: Colors.tabIconDefault,
+        tabBarActiveTintColor: '#007AFF',
+        tabBarInactiveTintColor: '#636366',
         tabBarStyle: {
           position: "absolute",
-          backgroundColor: isIOS ? "transparent" : isDark ? Colors.dark.tabBar : Colors.light.tabBar,
+          backgroundColor: isIOS ? "transparent" : "#0A0A0F",
           borderTopWidth: StyleSheet.hairlineWidth,
-          borderTopColor: isDark ? Colors.dark.divider : Colors.light.divider,
+          borderTopColor: '#1A1A22',
           elevation: 0,
           ...(isWeb ? { height: 84 } : {}),
         },
@@ -34,14 +34,14 @@ export default function TabLayout() {
           isIOS ? (
             <BlurView
               intensity={80}
-              tint={isDark ? "dark" : "light"}
+              tint="dark"
               style={StyleSheet.absoluteFill}
             />
           ) : isWeb ? (
             <View
               style={[
                 StyleSheet.absoluteFill,
-                { backgroundColor: isDark ? Colors.dark.tabBar : Colors.light.tabBar },
+                { backgroundColor: "#0A0A0F" },
               ]}
             />
           ) : null,

@@ -4,13 +4,12 @@ import {
   Pressable,
   StyleSheet,
   ScrollView,
-  Dimensions,
   Platform,
-  FlatList,
   Share,
   RefreshControl,
   Image,
   ActivityIndicator,
+  Dimensions,
 } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -18,7 +17,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useOnboarding } from '@/contexts/OnboardingContext';
 import { useSaved } from '@/contexts/SavedContext';
 import { LinearGradient } from 'expo-linear-gradient';
-import Colors from '@/constants/colors';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 import { useQuery } from '@tanstack/react-query';
@@ -27,6 +25,12 @@ import { getQueryFn, getApiUrl } from '@/lib/query-client';
 import { useMemo, useCallback, useState } from 'react';
 import { LocationPicker } from '@/components/LocationPicker';
 import { fetch } from 'expo/fetch';
+import EventCard from '@/components/Discover/EventCard';
+import CategoryCard from '@/components/Discover/CategoryCard';
+import CommunityCard from '@/components/Discover/CommunityCard';
+import CityCard from '@/components/Discover/CityCard';
+
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 const superAppSections = [
   { id: 'movies', label: 'Movies', icon: 'film', color: '#C0392B', route: '/movies' },
@@ -37,9 +41,6 @@ const superAppSections = [
   { id: 'directory', label: 'Directory', icon: 'storefront', color: '#3498DB', route: '/directory' },
 ];
 
-const { width } = Dimensions.get('window');
-const CARD_WIDTH = width - 40;
-
 const SECTION_ROUTES: Record<string, string> = {
   movies: '/movies',
   restaurants: '/restaurants',
@@ -48,6 +49,28 @@ const SECTION_ROUTES: Record<string, string> = {
   events: '/(tabs)/explore',
   directory: '/(tabs)/directory',
 };
+
+const browseCategories = [
+  { id: 'c1', label: 'Music', icon: 'musical-notes', color: '#FF6B6B' },
+  { id: 'c2', label: 'Dance', icon: 'body', color: '#4ECDC4' },
+  { id: 'c3', label: 'Food', icon: 'restaurant', color: '#FFD93D' },
+  { id: 'c4', label: 'Art', icon: 'color-palette', color: '#A855F7' },
+  { id: 'c5', label: 'Wellness', icon: 'heart', color: '#FF6B8A' },
+  { id: 'c6', label: 'Film', icon: 'film', color: '#2196F3' },
+  { id: 'c7', label: 'Workshop', icon: 'construct', color: '#FF9800' },
+  { id: 'c8', label: 'Heritage', icon: 'library', color: '#8B4513' },
+];
+
+const FEATURED_CITIES = [
+  { name: 'Sydney', country: 'Australia' },
+  { name: 'Melbourne', country: 'Australia' },
+  { name: 'Auckland', country: 'New Zealand' },
+  { name: 'Dubai', country: 'UAE' },
+  { name: 'London', country: 'United Kingdom' },
+  { name: 'Toronto', country: 'Canada' },
+  { name: 'Vancouver', country: 'Canada' },
+  { name: 'Brisbane', country: 'Australia' },
+];
 
 interface DiscoverSection {
   title: string;
@@ -68,272 +91,56 @@ interface DiscoverFeed {
   };
 }
 
-function formatDate(dateStr: string): string {
-  const [year, month, day] = dateStr.split('-').map(Number);
-  if (!year || !month || !day) return dateStr;
-  const d = new Date(year, month - 1, day);
-  return d.toLocaleDateString('en-AU', { day: 'numeric', month: 'short' });
-}
-
 function useDemoUserId() {
   const { data } = useQuery<{ id: string }[]>({ queryKey: ['/api/users'] });
   return data?.[0]?.id;
 }
 
-function EventCard({ event, compact }: { event: any; compact?: boolean }) {
-  const { isEventSaved, toggleSaveEvent } = useSaved();
-  const saved = isEventSaved(event.id);
-
-  const handleShare = useCallback(async (e: any) => {
-    e?.stopPropagation?.();
-    try {
-      await Share.share({
-        message: `Check out ${event.title} on CulturePass! ${event.venue}`,
-      });
-    } catch {}
-  }, [event.title, event.venue]);
-
-  const handleSave = useCallback((e: any) => {
-    e?.stopPropagation?.();
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    toggleSaveEvent(event.id);
-  }, [event.id, toggleSaveEvent]);
-
-  if (compact) {
-    return (
-      <Pressable
-        style={[styles.compactCard, Platform.OS === 'web' && { cursor: 'pointer' as any }]}
-        onPress={() => router.push({ pathname: '/event/[id]', params: { id: event.id } })}
-      >
-        <Image source={{ uri: event.imageUrl }} style={styles.compactImage} />
-        <View style={styles.compactInfo}>
-          <View style={styles.compactCommunityRow}>
-            <Text style={styles.compactCommunityTag}>{event.communityTag}</Text>
-          </View>
-          <Text style={styles.compactTitle} numberOfLines={2}>{event.title}</Text>
-          <View style={styles.compactMeta}>
-            <Ionicons name="calendar-outline" size={12} color={Colors.textSecondary} />
-            <Text style={styles.compactMetaText}>{formatDate(event.date)}</Text>
-          </View>
-          <Text style={styles.compactPrice}>{event.priceLabel}</Text>
-        </View>
-      </Pressable>
-    );
-  }
-
+function SectionHeader({ title, subtitle, onSeeAll }: { title: string; subtitle?: string; onSeeAll?: () => void }) {
   return (
-    <View style={styles.featuredCardOuter}>
-      <Pressable
-        style={[styles.featuredCard, Platform.OS === 'web' && { cursor: 'pointer' as any }]}
-        onPress={() =>
-          router.push({ pathname: '/event/[id]', params: { id: event.id } })
-        }
-      >
-        <Image source={{ uri: event.imageUrl }} style={styles.featuredCardImage} />
-        <View style={styles.featuredOverlay}>
-          <View style={styles.featuredTop}>
-            <View style={styles.featuredBadge}>
-              <Ionicons name="star" size={11} color="#FF9F0A" />
-              <Text style={styles.featuredBadgeText}>Featured</Text>
-            </View>
-            <View style={styles.featuredActions}>
-              <Pressable onPress={handleShare} hitSlop={8} style={styles.featuredActionBtn}>
-                <Ionicons name="share-outline" size={18} color="#FFF" />
-              </Pressable>
-              <Pressable onPress={handleSave} hitSlop={8} style={styles.featuredActionBtn}>
-                <Ionicons
-                  name={saved ? 'bookmark' : 'bookmark-outline'}
-                  size={18}
-                  color="#FFF"
-                />
-              </Pressable>
-            </View>
-          </View>
-
-          <View style={styles.featuredBottom}>
-            <View style={styles.communityPill}>
-              <Text style={styles.communityPillText}>{event.communityTag}</Text>
-            </View>
-            <Text style={styles.featuredTitle} numberOfLines={2}>
-              {event.title}
-            </Text>
-            <View style={styles.featuredMeta}>
-              <View style={styles.metaItem}>
-                <Ionicons name="calendar" size={13} color="rgba(255,255,255,0.85)" />
-                <Text style={styles.metaText}>{formatDate(event.date)}</Text>
-              </View>
-              <View style={styles.metaItem}>
-                <Ionicons name="location" size={13} color="rgba(255,255,255,0.85)" />
-                <Text style={styles.metaText} numberOfLines={1}>
-                  {event.venue}
-                </Text>
-              </View>
-            </View>
-            <View style={styles.featuredFooter}>
-              <Text style={styles.priceTag}>{event.priceLabel}</Text>
-              <View style={styles.attendingBadge}>
-                <Ionicons name="people" size={13} color="rgba(255,255,255,0.9)" />
-                <Text style={styles.attendingText}>{event.attending}+ going</Text>
-              </View>
-            </View>
-          </View>
-        </View>
-      </Pressable>
+    <View style={styles.sectionHeader}>
+      <View style={{ flex: 1 }}>
+        <Text style={styles.sectionTitle}>{title}</Text>
+        {subtitle ? <Text style={styles.sectionSubtitle}>{subtitle}</Text> : null}
+      </View>
+      {onSeeAll && (
+        <Pressable onPress={onSeeAll} hitSlop={8}>
+          <Text style={styles.seeAll}>See all</Text>
+        </Pressable>
+      )}
     </View>
   );
 }
 
-function CommunityCard({ community }: { community: any }) {
-  const name = community.name;
-  const desc = community.description;
-  const members = community.memberCount || community.members || 0;
-  const emoji = community.iconEmoji || '';
-  const color = community.color || Colors.primary;
-
+function SpotlightCard({ item, index = 0 }: { item: any; index?: number }) {
   return (
-    <Pressable
-      style={[styles.communityCard, Platform.OS === 'web' && { cursor: 'pointer' as any }]}
-      onPress={() => {
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-        router.push({ pathname: '/community/[id]', params: { id: community.id } });
-      }}
-    >
-      <View style={[styles.communityIconWrap, { backgroundColor: color + '15' }]}>
-        {emoji ? (
-          <Text style={{ fontSize: 22 }}>{emoji}</Text>
-        ) : (
-          <Ionicons name={(community.icon || 'people') as any} size={22} color={color} />
-        )}
-      </View>
-      <Text style={styles.communityName} numberOfLines={1}>{name}</Text>
-      <Text style={styles.communityMembers}>{members} members</Text>
-      {desc ? <Text style={styles.communityDesc} numberOfLines={2}>{desc}</Text> : null}
-    </Pressable>
-  );
-}
-
-function SpotlightCard({ item }: { item: any }) {
-  const hasIndigenousTags = item.indigenousTags && item.indigenousTags.length > 0;
-
-  return (
-    <Pressable
-      style={[styles.spotlightCard, Platform.OS === 'web' && { cursor: 'pointer' as any }]}
-      onPress={() => {
-        if (item.venue) {
-          router.push({ pathname: '/event/[id]', params: { id: item.id } });
-        } else if (item.services) {
-          router.push({ pathname: '/business/[id]', params: { id: item.id } });
-        } else if (item.priceLabel) {
-          router.push({ pathname: '/activities/[id]', params: { id: item.id } });
-        }
-      }}
-    >
-      <LinearGradient
-        colors={['#5D4037', '#8B4513']}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 0 }}
-        style={styles.spotlightBanner}
+    <Animated.View entering={FadeInDown.delay((index || 0) * 80 + 100).duration(500)}>
+      <Pressable
+        style={[styles.spotlightCard, Platform.OS === 'web' && { cursor: 'pointer' as any }]}
+        onPress={() => {
+          if (item.type === 'event') router.push({ pathname: '/event/[id]', params: { id: item.id } });
+        }}
       >
+        <Image
+          source={{ uri: item.imageUrl }}
+          style={StyleSheet.absoluteFillObject}
+          resizeMode="cover"
+        />
+        <LinearGradient
+          colors={['transparent', 'rgba(93, 64, 55, 0.95)']}
+          style={StyleSheet.absoluteFillObject}
+        />
         <View style={styles.spotlightBadge}>
+          <Ionicons name="earth" size={10} color="#FFF" />
           <Text style={styles.spotlightBadgeText}>First Nations</Text>
         </View>
-      </LinearGradient>
-      <View style={styles.spotlightBody}>
-        <Text style={styles.spotlightTitle} numberOfLines={2}>{item.title || item.name}</Text>
-        {hasIndigenousTags && (
-          <View style={styles.spotlightNation}>
-            <Text style={styles.spotlightNationText}>{item.indigenousTags[0]}</Text>
-          </View>
-        )}
-        <Text style={styles.spotlightDesc} numberOfLines={2}>
-          {item.description || item.venue || ''}
-        </Text>
-        {item.date && (
-          <View style={styles.spotlightDateRow}>
-            <Ionicons name="calendar-outline" size={11} color={Colors.textSecondary} />
-            <Text style={styles.spotlightDateText}>{formatDate(item.date)}</Text>
-          </View>
-        )}
-      </View>
-    </Pressable>
+        <View style={styles.spotlightContent}>
+          <Text style={styles.spotlightTitle} numberOfLines={2}>{item.title}</Text>
+          <Text style={styles.spotlightDesc} numberOfLines={2}>{item.description}</Text>
+        </View>
+      </Pressable>
+    </Animated.View>
   );
-}
-
-function DiscoverSectionRenderer({ section }: { section: DiscoverSection }) {
-  if (section.type === 'events' || section.type === 'mixed') {
-    const events = section.items.filter((i: any) => !!i.venue);
-    const communities = section.items.filter((i: any) => !i.venue && (i.color || i.iconEmoji));
-    const useCompact = events.length > 6;
-
-    return (
-      <View style={styles.section}>
-        <View style={styles.sectionHeaderRow}>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.sectionTitle}>{section.title}</Text>
-            {section.subtitle && <Text style={styles.sectionSubtitle}>{section.subtitle}</Text>}
-          </View>
-        </View>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={{ paddingHorizontal: 20, gap: 12 }}
-        >
-          {events.slice(0, 15).map((event: any) => (
-            <EventCard key={event.id} event={event} compact={useCompact} />
-          ))}
-          {communities.map((c: any) => (
-            <CommunityCard key={c.id} community={c} />
-          ))}
-        </ScrollView>
-      </View>
-    );
-  }
-
-  if (section.type === 'spotlight') {
-    return (
-      <View style={styles.section}>
-        <View style={styles.sectionHeaderRow}>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.sectionTitle}>{section.title}</Text>
-            {section.subtitle && <Text style={styles.sectionSubtitle}>{section.subtitle}</Text>}
-          </View>
-        </View>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={{ paddingHorizontal: 20, gap: 12 }}
-        >
-          {section.items.slice(0, 10).map((item: any) => (
-            <SpotlightCard key={item.id} item={item} />
-          ))}
-        </ScrollView>
-      </View>
-    );
-  }
-
-  if (section.type === 'communities') {
-    return (
-      <View style={styles.section}>
-        <View style={styles.sectionHeaderRow}>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.sectionTitle}>{section.title}</Text>
-            {section.subtitle && <Text style={styles.sectionSubtitle}>{section.subtitle}</Text>}
-          </View>
-        </View>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={{ paddingHorizontal: 20, gap: 12 }}
-        >
-          {section.items.slice(0, 10).map((c: any) => (
-            <CommunityCard key={c.id} community={c} />
-          ))}
-        </ScrollView>
-      </View>
-    );
-  }
-
-  return null;
 }
 
 export default function HomeScreen() {
@@ -352,6 +159,39 @@ export default function HomeScreen() {
     queryFn: async () => {
       const base = getApiUrl();
       const res = await fetch(`${base}api/indigenous/traditional-lands`);
+      if (!res.ok) throw new Error(`${res.status}`);
+      return res.json();
+    },
+  });
+
+  const { data: allEvents = [] } = useQuery<any[]>({
+    queryKey: ['/api/events', state.country, state.city],
+    queryFn: async () => {
+      const base = getApiUrl();
+      const params = new URLSearchParams();
+      if (state.country) params.append('country', state.country);
+      if (state.city) params.append('city', state.city);
+      const res = await fetch(`${base}api/events?${params.toString()}`);
+      if (!res.ok) throw new Error(`${res.status}`);
+      return res.json();
+    },
+  });
+
+  const { data: allCommunities = [] } = useQuery<any[]>({
+    queryKey: ['/api/communities'],
+    queryFn: async () => {
+      const base = getApiUrl();
+      const res = await fetch(`${base}api/communities`);
+      if (!res.ok) throw new Error(`${res.status}`);
+      return res.json();
+    },
+  });
+
+  const { data: spotlights = [] } = useQuery<any[]>({
+    queryKey: ['/api/indigenous/spotlights'],
+    queryFn: async () => {
+      const base = getApiUrl();
+      const res = await fetch(`${base}api/indigenous/spotlights`);
       if (!res.ok) throw new Error(`${res.status}`);
       return res.json();
     },
@@ -384,8 +224,28 @@ export default function HomeScreen() {
 
   const sections = discoverFeed?.sections ?? [];
   const nearYou = sections.find(s => s.title === 'Near You');
-  const featuredFromNearYou = nearYou?.items.filter((e: any) => e.isFeatured).slice(0, 5) ?? [];
+  const popularEvents = nearYou?.items.filter((e: any) => !!e.venue).slice(0, 12) ?? [];
+  const featuredEvent = allEvents.find((e: any) => e.isFeatured) || allEvents[0];
   const otherSections = sections.filter(s => s.title !== 'Near You');
+
+  const cultureCards = useMemo(() => {
+    const types: Record<string, { id: string; label: string; color: string; emoji?: string; icon: string }[]> = {};
+    allCommunities.forEach((c: any) => {
+      const key = c.type || 'other';
+      if (!types[key]) types[key] = [];
+      if (types[key].length < 8) {
+        types[key].push({
+          id: c.id,
+          label: c.name?.split(' ')[0] || c.name,
+          color: c.color || '#007AFF',
+          emoji: c.iconEmoji,
+          icon: 'people',
+        });
+      }
+    });
+    const all = Object.values(types).flat();
+    return all.slice(0, 10);
+  }, [allCommunities]);
 
   const [refreshing, setRefreshing] = useState(false);
   const handleRefresh = useCallback(async () => {
@@ -394,37 +254,21 @@ export default function HomeScreen() {
     setRefreshing(false);
   }, [refetch]);
 
-  const keyExtractor = useCallback((item: any) => item.id, []);
-  const renderFeaturedEvent = useCallback(
-    ({ item }: { item: any }) => <EventCard event={item} />,
-    [],
-  );
+  const land = traditionalLandsData.find((l: any) => l.city === state.city);
 
   return (
     <View style={[styles.container, { paddingTop: topInset }]}>
       <View style={[styles.topBar, Platform.OS === 'web' && { maxWidth: 900, alignSelf: 'center', width: '100%' }]}>
         <LocationPicker />
         <View style={styles.topBarRight}>
-          <Pressable
-            style={styles.iconButton}
-            hitSlop={8}
-            onPress={() => router.push('/search')}
-          >
-            <Ionicons name="search" size={22} color={Colors.text} />
+          <Pressable style={styles.iconButton} hitSlop={8} onPress={() => router.push('/search')}>
+            <Ionicons name="search" size={22} color="#FFF" />
           </Pressable>
-          <Pressable
-            style={styles.iconButton}
-            hitSlop={8}
-            onPress={() => router.push('/saved')}
-          >
-            <Ionicons name="bookmark" size={22} color={Colors.text} />
+          <Pressable style={styles.iconButton} hitSlop={8} onPress={() => router.push('/saved')}>
+            <Ionicons name="bookmark-outline" size={22} color="#FFF" />
           </Pressable>
-          <Pressable
-            style={styles.iconButton}
-            hitSlop={8}
-            onPress={() => router.push('/notifications')}
-          >
-            <Ionicons name="notifications" size={22} color={Colors.text} />
+          <Pressable style={styles.iconButton} hitSlop={8} onPress={() => router.push('/notifications')}>
+            <Ionicons name="notifications-outline" size={22} color="#FFF" />
             <View style={styles.notifDot} />
           </Pressable>
         </View>
@@ -433,29 +277,43 @@ export default function HomeScreen() {
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={[
-          { paddingBottom: 100 },
-          Platform.OS === 'web' && { maxWidth: 900, alignSelf: 'center', width: '100%' }
+          { paddingBottom: 120 },
+          Platform.OS === 'web' && { maxWidth: 900, alignSelf: 'center', width: '100%' },
         ]}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={Colors.primary} colors={[Colors.primary]} />}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+            tintColor="#FFD700"
+            colors={['#FFD700']}
+          />
+        }
       >
-        <Animated.View entering={FadeInDown.delay(100).duration(500)} style={styles.greetSection}>
-          <Text style={styles.greeting}>{timeGreeting},</Text>
-          <Text style={styles.heroTitle}>{firstName}</Text>
+        <Animated.View entering={FadeInDown.delay(100).duration(500)} style={styles.heroSection}>
+          <Text style={styles.heroSubtitle}>{timeGreeting}, {firstName}</Text>
+          <Text style={styles.heroTitle}>
+            What's happening in{'\n'}your culture this week?
+          </Text>
+          <Text style={styles.heroMeta}>
+            Curated for you{state.city ? ` in ${state.city}` : ''}
+          </Text>
         </Animated.View>
 
-        {(() => {
-          const land = traditionalLandsData.find((l: any) => l.city === state.city);
-          if (!land) return null;
-          return (
-            <Animated.View entering={FadeInDown.delay(120).duration(500)} style={styles.landBanner}>
-              <View style={styles.landBannerContent}>
-                <Ionicons name="earth" size={14} color="#8B4513" />
-                <Text style={styles.landBannerTitle}>You are on {land.landName}</Text>
-              </View>
-              <Text style={styles.landBannerSub}>Traditional Custodians: {land.traditionalCustodians}</Text>
-            </Animated.View>
-          );
-        })()}
+        {land && (
+          <Animated.View entering={FadeInDown.delay(120).duration(500)} style={styles.landBanner}>
+            <LinearGradient
+              colors={['rgba(139,69,19,0.15)', 'rgba(139,69,19,0.05)']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={StyleSheet.absoluteFillObject}
+            />
+            <View style={styles.landBannerContent}>
+              <Ionicons name="earth" size={14} color="#D4A574" />
+              <Text style={styles.landBannerTitle}>You are on {land.landName}</Text>
+            </View>
+            <Text style={styles.landBannerSub}>Traditional Custodians: {land.traditionalCustodians}</Text>
+          </Animated.View>
+        )}
 
         <Animated.View entering={FadeInDown.delay(150).duration(500)}>
           <ScrollView
@@ -466,14 +324,14 @@ export default function HomeScreen() {
             {superAppSections.map(sec => (
               <Pressable
                 key={sec.id}
-                style={styles.quickPill}
+                style={[styles.quickPill, Platform.OS === 'web' && { cursor: 'pointer' as any }]}
                 onPress={() => {
                   Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                   router.push(SECTION_ROUTES[sec.id] as any);
                 }}
               >
-                <View style={[styles.quickPillIcon, { backgroundColor: sec.color + '15' }]}>
-                  <Ionicons name={sec.icon as any} size={18} color={sec.color} />
+                <View style={[styles.quickPillIcon, { backgroundColor: sec.color + '20' }]}>
+                  <Ionicons name={sec.icon as any} size={16} color={sec.color} />
                 </View>
                 <Text style={styles.quickPillLabel}>{sec.label}</Text>
               </Pressable>
@@ -483,60 +341,172 @@ export default function HomeScreen() {
 
         {discoverLoading && (
           <View style={styles.loadingWrap}>
-            <ActivityIndicator size="large" color={Colors.primary} />
+            <ActivityIndicator size="large" color="#FFD700" />
             <Text style={styles.loadingText}>Personalising your feed...</Text>
           </View>
         )}
 
-        {featuredFromNearYou.length > 0 && (
-          <Animated.View entering={FadeInDown.delay(200).duration(500)}>
-            <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>Featured Near You</Text>
-            </View>
+        {featuredEvent && (
+          <Animated.View entering={FadeInDown.delay(200).duration(500)} style={{ paddingHorizontal: 20, marginBottom: 28 }}>
+            <SectionHeader title="Cultural Highlight" subtitle="Don't miss this week" />
+            <EventCard event={featuredEvent} highlight index={0} />
           </Animated.View>
         )}
-        {featuredFromNearYou.length > 0 && (
-          <FlatList
-            data={featuredFromNearYou}
+
+        {popularEvents.length > 0 && (
+          <Animated.View entering={FadeInDown.delay(250).duration(500)} style={{ marginBottom: 28 }}>
+            <View style={{ paddingHorizontal: 20 }}>
+              <SectionHeader
+                title="Popular Near You"
+                onSeeAll={() => router.push('/(tabs)/explore')}
+              />
+            </View>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={{ paddingHorizontal: 20, gap: 14 }}
+            >
+              {popularEvents.map((event: any, i: number) => (
+                <EventCard key={event.id} event={event} index={i} />
+              ))}
+            </ScrollView>
+          </Animated.View>
+        )}
+
+        {cultureCards.length > 0 && (
+          <Animated.View entering={FadeInDown.delay(300).duration(500)} style={{ marginBottom: 28 }}>
+            <View style={{ paddingHorizontal: 20 }}>
+              <SectionHeader title="Explore Your Culture" />
+            </View>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={{ paddingHorizontal: 20, gap: 10 }}
+            >
+              {cultureCards.map((item: any) => (
+                <CategoryCard
+                  key={item.id}
+                  item={item}
+                  onPress={() => router.push({ pathname: '/community/[id]', params: { id: item.id } })}
+                />
+              ))}
+            </ScrollView>
+          </Animated.View>
+        )}
+
+        <Animated.View entering={FadeInDown.delay(320).duration(500)} style={{ marginBottom: 28 }}>
+          <View style={{ paddingHorizontal: 20 }}>
+            <SectionHeader title="Browse Categories" />
+          </View>
+          <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
-            snapToInterval={CARD_WIDTH + 12}
-            decelerationRate="fast"
-            contentContainerStyle={{ paddingHorizontal: 20, gap: 12 }}
-            scrollEnabled={featuredFromNearYou.length > 0}
-            renderItem={renderFeaturedEvent}
-            keyExtractor={keyExtractor}
-            style={{ marginBottom: 32 }}
-            nestedScrollEnabled
-          />
+            contentContainerStyle={{ paddingHorizontal: 20, gap: 10 }}
+          >
+            {browseCategories.map(cat => (
+              <CategoryCard
+                key={cat.id}
+                item={cat}
+                onPress={() => router.push('/(tabs)/explore')}
+              />
+            ))}
+          </ScrollView>
+        </Animated.View>
+
+        {spotlights.length > 0 && (
+          <Animated.View entering={FadeInDown.delay(340).duration(500)} style={{ marginBottom: 28 }}>
+            <View style={{ paddingHorizontal: 20 }}>
+              <SectionHeader title="First Nations Spotlight" subtitle="Celebrating Indigenous culture" />
+            </View>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={{ paddingHorizontal: 20, gap: 14 }}
+            >
+              {spotlights.map((item: any, i: number) => (
+                <SpotlightCard key={item.id} item={item} index={i} />
+              ))}
+            </ScrollView>
+          </Animated.View>
         )}
 
-        {nearYou && nearYou.items.length > 0 && (
-          <DiscoverSectionRenderer section={{
-            ...nearYou,
-            title: 'Near You',
-            items: nearYou.items.filter((e: any) => !e.isFeatured).slice(0, 10),
-          }} />
+        {allCommunities.length > 0 && (
+          <Animated.View entering={FadeInDown.delay(360).duration(500)} style={{ marginBottom: 28 }}>
+            <View style={{ paddingHorizontal: 20 }}>
+              <SectionHeader
+                title="Cultural Communities"
+                subtitle="Connect with your people"
+                onSeeAll={() => router.push('/(tabs)/communities')}
+              />
+            </View>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={{ paddingHorizontal: 20, gap: 12 }}
+            >
+              {allCommunities.slice(0, 10).map((c: any, i: number) => (
+                <CommunityCard key={c.id} community={c} index={i} />
+              ))}
+            </ScrollView>
+          </Animated.View>
         )}
 
-        {otherSections.map((section) => (
-          <DiscoverSectionRenderer key={section.title} section={section} />
+        {otherSections.filter(s => s.type === 'events' || s.type === 'mixed').map((section) => (
+          <Animated.View key={section.title} entering={FadeInDown.delay(380).duration(500)} style={{ marginBottom: 28 }}>
+            <View style={{ paddingHorizontal: 20 }}>
+              <SectionHeader title={section.title} subtitle={section.subtitle} />
+            </View>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={{ paddingHorizontal: 20, gap: 14 }}
+            >
+              {section.items.filter((e: any) => !!e.venue).slice(0, 10).map((event: any, i: number) => (
+                <EventCard key={event.id} event={event} index={i} />
+              ))}
+            </ScrollView>
+          </Animated.View>
         ))}
 
-        <Animated.View entering={FadeInDown.delay(380).duration(500)}>
+        <Animated.View entering={FadeInDown.delay(400).duration(500)} style={{ marginBottom: 28 }}>
+          <View style={{ paddingHorizontal: 20 }}>
+            <SectionHeader title="Explore Cities" subtitle="Discover culture worldwide" />
+          </View>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={{ paddingHorizontal: 20, gap: 12 }}
+          >
+            {FEATURED_CITIES.map((city, i) => (
+              <CityCard
+                key={city.name}
+                city={city}
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                }}
+              />
+            ))}
+          </ScrollView>
+        </Animated.View>
+
+        <Animated.View entering={FadeInDown.delay(420).duration(500)} style={styles.bannerWrap}>
           <Pressable
             style={[styles.plusBanner, Platform.OS === 'web' && { cursor: 'pointer' as any }]}
             onPress={() => router.push('/membership/upgrade')}
           >
+            <LinearGradient
+              colors={['#1A3A5C', '#0D2540']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={StyleSheet.absoluteFillObject}
+            />
             <View style={styles.plusBannerLeft}>
-              <View style={styles.plusBannerIcon}>
-                <Ionicons name="star" size={20} color="#FFF" />
+              <View style={styles.plusBannerIconWrap}>
+                <Ionicons name="star" size={20} color="#FFD700" />
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={styles.plusBannerTitle}>CulturePass+</Text>
-                <Text style={styles.plusBannerSub}>
-                  2% cashback, early access & exclusive perks
-                </Text>
+                <Text style={styles.plusBannerSub}>2% cashback, early access & exclusive perks</Text>
               </View>
             </View>
             <View style={styles.plusBannerCta}>
@@ -545,36 +515,43 @@ export default function HomeScreen() {
           </Pressable>
         </Animated.View>
 
-        <Animated.View entering={FadeInDown.delay(400).duration(500)}>
-          <Pressable style={[styles.perksBanner, Platform.OS === 'web' && { cursor: 'pointer' as any }]} onPress={() => router.push('/perks')}>
-            <View style={styles.perksBannerLeft}>
-              <View style={styles.perksBannerIcon}>
+        <Animated.View entering={FadeInDown.delay(440).duration(500)} style={styles.bannerWrap}>
+          <Pressable
+            style={[styles.perksBanner, Platform.OS === 'web' && { cursor: 'pointer' as any }]}
+            onPress={() => router.push('/perks')}
+          >
+            <LinearGradient
+              colors={['#5856D6', '#3634A3']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={StyleSheet.absoluteFillObject}
+            />
+            <View style={styles.plusBannerLeft}>
+              <View style={styles.perksBannerIconWrap}>
                 <Ionicons name="gift" size={22} color="#FFF" />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={styles.perksBannerTitle}>Perks & Benefits</Text>
-                <Text style={styles.perksBannerSub}>
-                  Exclusive discounts and rewards
-                </Text>
+                <Text style={styles.plusBannerTitle}>Perks & Benefits</Text>
+                <Text style={styles.plusBannerSub}>Exclusive discounts and rewards</Text>
               </View>
             </View>
-            <Ionicons name="chevron-forward" size={18} color="rgba(255,255,255,0.7)" />
+            <Ionicons name="chevron-forward" size={18} color="rgba(255,255,255,0.6)" />
           </Pressable>
         </Animated.View>
 
-        <Animated.View entering={FadeInDown.delay(450).duration(500)}>
+        <Animated.View entering={FadeInDown.delay(460).duration(500)} style={styles.bannerWrap}>
           <Pressable
             style={[styles.exploreCta, Platform.OS === 'web' && { cursor: 'pointer' as any }]}
             onPress={() => router.push('/allevents')}
           >
             <View style={styles.exploreCtaIcon}>
-              <Ionicons name="compass" size={24} color={Colors.primary} />
+              <Ionicons name="compass" size={24} color="#007AFF" />
             </View>
             <View style={{ flex: 1 }}>
               <Text style={styles.exploreCtaTitle}>Explore All Events</Text>
               <Text style={styles.exploreCtaSub}>Discover what's happening near you</Text>
             </View>
-            <Ionicons name="chevron-forward" size={18} color={Colors.textTertiary} />
+            <Ionicons name="chevron-forward" size={18} color="#636366" />
           </Pressable>
         </Animated.View>
       </ScrollView>
@@ -583,16 +560,23 @@ export default function HomeScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
+  container: {
+    flex: 1,
+    backgroundColor: '#0A0A0F',
+  },
   topBar: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 20,
     paddingVertical: 10,
-    backgroundColor: Colors.background,
+    backgroundColor: '#0A0A0F',
   },
-  topBarRight: { flexDirection: 'row', alignItems: 'center', gap: 2 },
+  topBarRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+  },
   iconButton: {
     width: 38,
     height: 38,
@@ -607,275 +591,41 @@ const styles = StyleSheet.create({
     width: 7,
     height: 7,
     borderRadius: 3.5,
-    backgroundColor: Colors.error,
+    backgroundColor: '#FF3B30',
   },
-  greetSection: { paddingHorizontal: 20, marginBottom: 20, marginTop: 4 },
-  greeting: { fontSize: 16, fontFamily: 'Poppins_400Regular', color: Colors.textSecondary },
-  heroTitle: { fontSize: 34, fontFamily: 'Poppins_700Bold', color: Colors.text, letterSpacing: 0.37 },
-  quickRow: { paddingHorizontal: 20, gap: 8, paddingBottom: 24 },
-  quickPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    backgroundColor: Colors.surface,
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    ...Colors.shadow.small,
-  },
-  quickPillIcon: { width: 36, height: 36, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
-  quickPillLabel: { fontSize: 14, fontFamily: 'Poppins_600SemiBold', color: Colors.text },
-  sectionHeader: {
+  heroSection: {
     paddingHorizontal: 20,
-    marginBottom: 14,
+    marginBottom: 20,
+    marginTop: 4,
   },
-  sectionHeaderRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    marginBottom: 14,
+  heroSubtitle: {
+    fontSize: 15,
+    fontFamily: 'Poppins_400Regular',
+    color: '#8E8E93',
+    marginBottom: 6,
   },
-  sectionTitle: { fontSize: 22, fontFamily: 'Poppins_700Bold', color: Colors.text, letterSpacing: 0.35 },
-  sectionSubtitle: { fontSize: 13, fontFamily: 'Poppins_400Regular', color: Colors.textSecondary, marginTop: 2 },
-  seeAll: { fontSize: 15, fontFamily: 'Poppins_600SemiBold', color: Colors.primary },
-  section: { marginBottom: 32 },
-  loadingWrap: { alignItems: 'center', paddingVertical: 40, gap: 12 },
-  loadingText: { fontSize: 14, fontFamily: 'Poppins_400Regular', color: Colors.textSecondary },
-  featuredCardOuter: { ...Colors.shadow.medium },
-  featuredCard: { width: CARD_WIDTH, height: 260, borderRadius: 16, overflow: 'hidden' },
-  featuredCardImage: { position: 'absolute', width: '100%', height: '100%' },
-  featuredOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.25)',
-    padding: 16,
-    justifyContent: 'space-between',
-  },
-  featuredTop: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-  },
-  featuredActions: { flexDirection: 'row', gap: 4 },
-  featuredActionBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: 'rgba(0,0,0,0.3)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  featuredBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: 'rgba(0,0,0,0.4)',
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 20,
-  },
-  featuredBadgeText: { fontSize: 12, fontFamily: 'Poppins_600SemiBold', color: '#FFF' },
-  featuredBottom: { gap: 6 },
-  communityPill: {
-    alignSelf: 'flex-start',
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    paddingHorizontal: 10,
-    paddingVertical: 3,
-    borderRadius: 8,
-  },
-  communityPillText: { fontSize: 11, fontFamily: 'Poppins_600SemiBold', color: '#FFF' },
-  featuredTitle: {
-    fontSize: 20,
+  heroTitle: {
+    fontSize: 26,
     fontFamily: 'Poppins_700Bold',
-    color: '#FFF',
-    lineHeight: 26,
+    color: '#FFFFFF',
+    lineHeight: 34,
+    letterSpacing: 0.2,
   },
-  featuredMeta: { flexDirection: 'row', gap: 14 },
-  metaItem: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  metaText: { fontSize: 12, fontFamily: 'Poppins_400Regular', color: 'rgba(255,255,255,0.9)' },
-  featuredFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginTop: 2,
+  heroMeta: {
+    fontSize: 13,
+    fontFamily: 'Poppins_400Regular',
+    color: '#636366',
+    marginTop: 8,
   },
-  priceTag: {
-    fontSize: 17,
-    fontFamily: 'Poppins_700Bold',
-    color: '#FFF',
-  },
-  attendingBadge: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  attendingText: { fontSize: 12, fontFamily: 'Poppins_500Medium', color: 'rgba(255,255,255,0.9)' },
-  compactCard: {
-    width: 200,
-    backgroundColor: Colors.surface,
-    borderRadius: 14,
-    overflow: 'hidden',
-    ...Colors.shadow.small,
-  },
-  compactImage: { width: '100%', height: 110 },
-  compactInfo: { padding: 10, gap: 4 },
-  compactCommunityRow: { flexDirection: 'row' },
-  compactCommunityTag: {
-    fontSize: 10,
-    fontFamily: 'Poppins_600SemiBold',
-    color: Colors.primary,
-    backgroundColor: Colors.primaryGlow,
-    paddingHorizontal: 7,
-    paddingVertical: 2,
-    borderRadius: 6,
-    overflow: 'hidden',
-  },
-  compactTitle: { fontSize: 14, fontFamily: 'Poppins_600SemiBold', color: Colors.text, lineHeight: 18 },
-  compactMeta: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  compactMetaText: { fontSize: 11, fontFamily: 'Poppins_400Regular', color: Colors.textSecondary },
-  compactPrice: { fontSize: 14, fontFamily: 'Poppins_700Bold', color: Colors.primary },
-  communityCard: {
-    width: 160,
-    backgroundColor: Colors.surface,
+  landBanner: {
     borderRadius: 14,
     padding: 14,
-    alignItems: 'center',
-    gap: 6,
-    ...Colors.shadow.small,
-  },
-  communityIconWrap: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 4,
-  },
-  communityName: { fontSize: 14, fontFamily: 'Poppins_600SemiBold', color: Colors.text, textAlign: 'center' },
-  communityMembers: { fontSize: 12, fontFamily: 'Poppins_400Regular', color: Colors.textSecondary },
-  communityDesc: { fontSize: 11, fontFamily: 'Poppins_400Regular', color: Colors.textTertiary, textAlign: 'center', lineHeight: 15 },
-  spotlightCard: {
-    width: 260,
-    borderRadius: 16,
-    backgroundColor: Colors.surface,
-    overflow: 'hidden',
-    ...Colors.shadow.small,
-  },
-  spotlightBanner: {
-    height: 40,
-    justifyContent: 'flex-end',
-    paddingHorizontal: 10,
-    paddingBottom: 6,
-  },
-  spotlightBadge: {
-    alignSelf: 'flex-start',
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 6,
-  },
-  spotlightBadgeText: {
-    fontSize: 10,
-    fontFamily: 'Poppins_600SemiBold',
-    color: '#FFF',
-  },
-  spotlightBody: {
-    padding: 12,
-  },
-  spotlightTitle: {
-    fontSize: 15,
-    fontFamily: 'Poppins_700Bold',
-    color: Colors.text,
-  },
-  spotlightNation: {
-    alignSelf: 'flex-start',
-    backgroundColor: '#F5EDE3',
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 8,
-    marginTop: 4,
-  },
-  spotlightNationText: {
-    fontSize: 11,
-    fontFamily: 'Poppins_600SemiBold',
-    color: '#8B4513',
-  },
-  spotlightDesc: {
-    fontSize: 12,
-    fontFamily: 'Poppins_400Regular',
-    color: Colors.textSecondary,
-    marginTop: 6,
-    lineHeight: 17,
-  },
-  spotlightDateRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    marginTop: 4,
-  },
-  spotlightDateText: {
-    fontSize: 11,
-    fontFamily: 'Poppins_400Regular',
-    color: Colors.textSecondary,
-  },
-  plusBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: '#1A5276',
-    borderRadius: 16,
-    paddingHorizontal: 18,
-    paddingVertical: 16,
-    marginHorizontal: 20,
-    marginBottom: 12,
-    ...Colors.shadow.medium,
-  },
-  plusBannerLeft: { flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 },
-  plusBannerIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#2E86C1',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  plusBannerTitle: { fontSize: 16, fontFamily: 'Poppins_700Bold', color: '#FFF' },
-  plusBannerSub: { fontSize: 12, fontFamily: 'Poppins_400Regular', color: 'rgba(255,255,255,0.75)', marginTop: 1 },
-  plusBannerCta: {
-    backgroundColor: '#2E86C1',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
-  },
-  plusBannerCtaText: { fontSize: 13, fontFamily: 'Poppins_700Bold', color: '#FFF' },
-  perksBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: Colors.secondary,
-    borderRadius: 16,
-    paddingHorizontal: 18,
-    paddingVertical: 18,
-    marginHorizontal: 20,
-    marginBottom: 12,
-    ...Colors.shadow.medium,
-  },
-  perksBannerLeft: { flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 },
-  perksBannerIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  perksBannerTitle: { fontSize: 16, fontFamily: 'Poppins_700Bold', color: '#FFF' },
-  perksBannerSub: { fontSize: 13, fontFamily: 'Poppins_400Regular', color: 'rgba(255,255,255,0.8)' },
-  landBanner: {
-    backgroundColor: '#F5EDE3',
-    borderRadius: 12,
-    padding: 12,
-    paddingLeft: 14,
+    paddingLeft: 16,
     borderLeftWidth: 3,
-    borderLeftColor: '#8B4513',
+    borderLeftColor: '#D4A574',
     marginHorizontal: 20,
-    marginBottom: 16,
+    marginBottom: 20,
+    overflow: 'hidden',
   },
   landBannerContent: {
     flexDirection: 'row',
@@ -884,36 +634,210 @@ const styles = StyleSheet.create({
   },
   landBannerTitle: {
     fontSize: 13,
-    fontFamily: 'Poppins_700Bold',
-    color: '#3E2723',
+    fontFamily: 'Poppins_600SemiBold',
+    color: '#D4A574',
   },
   landBannerSub: {
     fontSize: 11,
     fontFamily: 'Poppins_400Regular',
-    color: '#6D4C41',
-    marginTop: 2,
+    color: '#8B7355',
+    marginTop: 3,
     marginLeft: 20,
+  },
+  quickRow: {
+    paddingHorizontal: 20,
+    gap: 8,
+    paddingBottom: 24,
+  },
+  quickPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#1A1A22',
+    borderRadius: 14,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+  },
+  quickPillIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  quickPillLabel: {
+    fontSize: 13,
+    fontFamily: 'Poppins_500Medium',
+    color: '#FFFFFF',
+  },
+  loadingWrap: {
+    alignItems: 'center',
+    paddingVertical: 40,
+    gap: 12,
+  },
+  loadingText: {
+    fontSize: 14,
+    fontFamily: 'Poppins_400Regular',
+    color: '#636366',
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    marginBottom: 16,
+  },
+  sectionTitle: {
+    fontSize: 20,
+    fontFamily: 'Poppins_700Bold',
+    color: '#FFFFFF',
+    letterSpacing: 0.3,
+  },
+  sectionSubtitle: {
+    fontSize: 13,
+    fontFamily: 'Poppins_400Regular',
+    color: '#636366',
+    marginTop: 2,
+  },
+  seeAll: {
+    fontSize: 14,
+    fontFamily: 'Poppins_500Medium',
+    color: '#007AFF',
+    marginTop: 2,
+  },
+  spotlightCard: {
+    width: 260,
+    height: 160,
+    borderRadius: 20,
+    overflow: 'hidden',
+    backgroundColor: '#1A1A22',
+  },
+  spotlightBadge: {
+    position: 'absolute',
+    top: 12,
+    left: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: 'rgba(139,69,19,0.8)',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 10,
+  },
+  spotlightBadgeText: {
+    fontSize: 10,
+    fontFamily: 'Poppins_600SemiBold',
+    color: '#FFF',
+  },
+  spotlightContent: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    padding: 14,
+  },
+  spotlightTitle: {
+    fontSize: 15,
+    fontFamily: 'Poppins_700Bold',
+    color: '#FFF',
+    marginBottom: 4,
+  },
+  spotlightDesc: {
+    fontSize: 11,
+    fontFamily: 'Poppins_400Regular',
+    color: 'rgba(255,255,255,0.7)',
+    lineHeight: 16,
+  },
+  bannerWrap: {
+    paddingHorizontal: 20,
+    marginBottom: 12,
+  },
+  plusBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderRadius: 18,
+    paddingHorizontal: 18,
+    paddingVertical: 18,
+    overflow: 'hidden',
+  },
+  plusBannerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    flex: 1,
+  },
+  plusBannerIconWrap: {
+    width: 42,
+    height: 42,
+    borderRadius: 14,
+    backgroundColor: 'rgba(255,215,0,0.15)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  plusBannerTitle: {
+    fontSize: 16,
+    fontFamily: 'Poppins_700Bold',
+    color: '#FFF',
+  },
+  plusBannerSub: {
+    fontSize: 12,
+    fontFamily: 'Poppins_400Regular',
+    color: 'rgba(255,255,255,0.6)',
+    marginTop: 1,
+  },
+  plusBannerCta: {
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    borderRadius: 10,
+  },
+  plusBannerCtaText: {
+    fontSize: 13,
+    fontFamily: 'Poppins_700Bold',
+    color: '#FFF',
+  },
+  perksBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderRadius: 18,
+    paddingHorizontal: 18,
+    paddingVertical: 18,
+    overflow: 'hidden',
+  },
+  perksBannerIconWrap: {
+    width: 42,
+    height: 42,
+    borderRadius: 14,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   exploreCta: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
-    backgroundColor: Colors.surface,
-    borderRadius: 16,
+    gap: 14,
+    backgroundColor: '#1A1A22',
+    borderRadius: 18,
     paddingHorizontal: 18,
-    paddingVertical: 16,
-    marginHorizontal: 20,
-    marginBottom: 28,
-    ...Colors.shadow.small,
+    paddingVertical: 18,
   },
   exploreCtaIcon: {
     width: 44,
     height: 44,
-    borderRadius: 12,
-    backgroundColor: Colors.primaryGlow,
+    borderRadius: 14,
+    backgroundColor: 'rgba(0,122,255,0.12)',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  exploreCtaTitle: { fontSize: 16, fontFamily: 'Poppins_700Bold', color: Colors.text },
-  exploreCtaSub: { fontSize: 13, fontFamily: 'Poppins_400Regular', color: Colors.textSecondary },
+  exploreCtaTitle: {
+    fontSize: 16,
+    fontFamily: 'Poppins_700Bold',
+    color: '#FFFFFF',
+  },
+  exploreCtaSub: {
+    fontSize: 13,
+    fontFamily: 'Poppins_400Regular',
+    color: '#636366',
+  },
 });

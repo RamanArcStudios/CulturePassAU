@@ -183,12 +183,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: Colors.surface,
+    backgroundColor: '#1A1A22',
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 50,
     borderWidth: 1,
-    borderColor: Colors.borderLight,
+    borderColor: '#2A2A35',
   },
   triggerDot: {
     width: 24,
@@ -201,7 +201,7 @@ const styles = StyleSheet.create({
   triggerText: {
     fontSize: 14,
     fontFamily: 'Poppins_600SemiBold',
-    color: Colors.text,
+    color: '#FFFFFF',
     maxWidth: 170,
   },
   modal: {
