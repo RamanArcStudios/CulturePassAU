@@ -4,6 +4,7 @@ import { registerRoutes } from "./routes";
 import { WebhookHandlers } from "./webhookHandlers";
 import { runMigrations } from "stripe-replit-sync";
 import { getStripeSync } from "./stripeClient";
+import { seedAllData } from "./seed-data";
 import * as fs from "fs";
 import * as path from "path";
 
@@ -300,6 +301,7 @@ function setupErrorHandler(app: express.Application) {
   configureExpoAndLanding(app);
 
   await initStripe();
+  await seedAllData();
 
   const server = await registerRoutes(app);
 
