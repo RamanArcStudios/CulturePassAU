@@ -17,10 +17,6 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useOnboarding } from '@/contexts/OnboardingContext';
 import { useSaved } from '@/contexts/SavedContext';
-import {
-  superAppSections,
-  traditionalLands,
-} from '@/data/mockData';
 import { LinearGradient } from 'expo-linear-gradient';
 import Colors from '@/constants/colors';
 import Animated, { FadeInDown } from 'react-native-reanimated';
@@ -31,6 +27,15 @@ import { getQueryFn, getApiUrl } from '@/lib/query-client';
 import { useMemo, useCallback, useState } from 'react';
 import { LocationPicker } from '@/components/LocationPicker';
 import { fetch } from 'expo/fetch';
+
+const superAppSections = [
+  { id: 'movies', label: 'Movies', icon: 'film', color: '#C0392B', route: '/movies' },
+  { id: 'restaurants', label: 'Restaurants', icon: 'restaurant', color: '#E85D3A', route: '/restaurants' },
+  { id: 'activities', label: 'Activities', icon: 'compass', color: '#F2A93B', route: '/activities' },
+  { id: 'shopping', label: 'Shopping', icon: 'bag-handle', color: '#9B59B6', route: '/shopping' },
+  { id: 'events', label: 'Events', icon: 'calendar', color: '#1A7A6D', route: '/explore' },
+  { id: 'directory', label: 'Directory', icon: 'storefront', color: '#3498DB', route: '/directory' },
+];
 
 const { width } = Dimensions.get('window');
 const CARD_WIDTH = width - 40;
@@ -342,6 +347,16 @@ export default function HomeScreen() {
     queryFn: getQueryFn({ on401: 'returnNull' }),
   });
 
+  const { data: traditionalLandsData = [] } = useQuery({
+    queryKey: ['/api/indigenous/traditional-lands'],
+    queryFn: async () => {
+      const base = getApiUrl();
+      const res = await fetch(`${base}api/indigenous/traditional-lands`);
+      if (!res.ok) throw new Error(`${res.status}`);
+      return res.json();
+    },
+  });
+
   const { data: discoverFeed, isLoading: discoverLoading, refetch } = useQuery<DiscoverFeed>({
     queryKey: ['/api/discover', userId],
     queryFn: async () => {
@@ -429,7 +444,7 @@ export default function HomeScreen() {
         </Animated.View>
 
         {(() => {
-          const land = traditionalLands.find(l => l.city === state.city);
+          const land = traditionalLandsData.find((l: any) => l.city === state.city);
           if (!land) return null;
           return (
             <Animated.View entering={FadeInDown.delay(120).duration(500)} style={styles.landBanner}>

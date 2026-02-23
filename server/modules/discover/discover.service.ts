@@ -1,11 +1,7 @@
-import {
-  sampleEvents,
-  sampleCommunities,
-  sampleBusinesses,
-  sampleActivities,
-  indigenousSpotlights,
-  EventData,
-} from "../../../data/mockData";
+import { getAllEvents } from "../events/events.service";
+import { getAllBusinesses } from "../businesses/businesses.service";
+import { getAllActivities } from "../activities/activities.service";
+import { getAllSpotlights } from "../indigenous/indigenous.service";
 import { getUser } from "../users/users.service";
 import { getUserCommunities, getAllCommunities } from "../communities/communities.service";
 import { getLocationById, getCitiesByCountry } from "../locations/locations.service";
@@ -153,29 +149,29 @@ const NATIONAL_SIGNIFICANCE_EVENTS: Record<string, number> = {
   ei5: 0.9,
 };
 
-function getEventLanguageTags(event: EventData): string[] {
+function getEventLanguageTags(event: any): string[] {
   if (event.languageTags && event.languageTags.length > 0) return event.languageTags;
-  const tag = event.communityTag.toLowerCase();
+  const tag = (event.communityTag || '').toLowerCase();
   return COMMUNITY_TAG_TO_LANGUAGES[tag] || ["English"];
 }
 
-function getEventNationalSignificance(event: EventData): number {
+function getEventNationalSignificance(event: any): number {
   if (event.nationalSignificance !== undefined) return event.nationalSignificance;
   return NATIONAL_SIGNIFICANCE_EVENTS[event.id] || 0;
 }
 
 // --- NORMALIZED SCORING FUNCTIONS (0-1 scale) ---
 
-function normalizeLocationScore(event: EventData, userCity: string, userCountry: string, userLat?: number | null, userLng?: number | null, radiusKm?: number): number {
+function normalizeLocationScore(event: any, userCity: string, userCountry: string, userLat?: number | null, userLng?: number | null, radiusKm?: number): number {
   let score = 0;
-  if (userCity && event.city.toLowerCase() === userCity.toLowerCase()) {
+  if (userCity && (event.city || '').toLowerCase() === userCity.toLowerCase()) {
     score = 1.0;
-  } else if (userCountry && event.country.toLowerCase() === userCountry.toLowerCase()) {
+  } else if (userCountry && (event.country || '').toLowerCase() === userCountry.toLowerCase()) {
     score = 0.5;
   }
 
   if (userLat != null && userLng != null) {
-    const cityCoords = getCityCoords(event.city, event.country);
+    const cityCoords = getCityCoords(event.city || '', event.country || '');
     if (cityCoords) {
       const dist = haversineDistance(userLat, userLng, cityCoords.lat, cityCoords.lng);
       const radius = radiusKm || 50;
@@ -189,9 +185,9 @@ function normalizeLocationScore(event: EventData, userCity: string, userCountry:
   return Math.min(score, 1.0);
 }
 
-function normalizeCommunityScore(event: EventData, relatedTags: string[]): number {
+function normalizeCommunityScore(event: any, relatedTags: string[]): number {
   if (!relatedTags.length) return 0;
-  const tag = event.communityTag.toLowerCase();
+  const tag = (event.communityTag || '').toLowerCase();
   const exactMatch = relatedTags.some(t => t === tag);
   if (exactMatch) return 1.0;
   const partialMatch = relatedTags.some(t => tag.includes(t) || t.includes(tag));
@@ -199,7 +195,7 @@ function normalizeCommunityScore(event: EventData, relatedTags: string[]): numbe
   return 0;
 }
 
-function normalizeLanguageScore(event: EventData, userLanguages: string[]): number {
+function normalizeLanguageScore(event: any, userLanguages: string[]): number {
   if (!userLanguages.length) return 0;
   const eventLangs = getEventLanguageTags(event).map(l => l.toLowerCase());
   const userLangs = userLanguages.map(l => l.toLowerCase());
@@ -215,32 +211,32 @@ function normalizeLanguageScore(event: EventData, userLanguages: string[]): numb
   return 0;
 }
 
-function normalizeHomelandScore(event: EventData, originTags: string[], userCountry: string): number {
+function normalizeHomelandScore(event: any, originTags: string[], userCountry: string): number {
   if (!originTags.length) return 0;
-  const tag = event.communityTag.toLowerCase();
+  const tag = (event.communityTag || '').toLowerCase();
   const isHomeland = originTags.some(t => t.toLowerCase() === tag);
   if (!isHomeland) return 0;
 
-  const isLocal = event.country.toLowerCase() === userCountry.toLowerCase();
+  const isLocal = (event.country || '').toLowerCase() === userCountry.toLowerCase();
   return isLocal ? 1.0 : 0.7;
 }
 
-function normalizeIndigenousScore(event: EventData, enabled: boolean): number {
+function normalizeIndigenousScore(event: any, enabled: boolean): number {
   if (!enabled) return 0;
   if (event.indigenousTags && event.indigenousTags.length > 0) return 1.0;
   return 0;
 }
 
-function normalizeTrendingScore(event: EventData, maxAttending: number): number {
+function normalizeTrendingScore(event: any, maxAttending: number): number {
   if (maxAttending === 0) return 0;
-  return event.attending / maxAttending;
+  return (event.attending ?? 0) / maxAttending;
 }
 
-function normalizeFeaturedScore(event: EventData): number {
+function normalizeFeaturedScore(event: any): number {
   return event.isFeatured ? 1.0 : 0;
 }
 
-function normalizeNationalSignificanceScore(event: EventData): number {
+function normalizeNationalSignificanceScore(event: any): number {
   return getEventNationalSignificance(event);
 }
 
@@ -256,7 +252,7 @@ const WEIGHTS = {
 };
 
 function computeCompositeScore(
-  event: EventData,
+  event: any,
   userCity: string,
   userCountry: string,
   relatedTags: string[],
@@ -296,6 +292,12 @@ export async function getDiscoverFeed(
 ): Promise<DiscoverFeed> {
   const user = await getUser(userId);
 
+  const allEvents = await getAllEvents();
+  const allBusinesses = await getAllBusinesses();
+  const allActivities = await getAllActivities();
+  const allSpotlights = await getAllSpotlights();
+  const allCommsForMixed = await getAllCommunities();
+
   const city = user?.city || userCity || "";
   const country = user?.country || userCountry || "";
   const originCountry = user?.originCountry || "";
@@ -311,13 +313,13 @@ export async function getDiscoverFeed(
   const allRelatedTags = userCommNames.flatMap((cn) => getCommunityRelatedTags(cn)).map((t) => t.toLowerCase());
   const originTags = originCountry ? getOriginCommunityTags(originCountry) : [];
 
-  const maxAttending = Math.max(...sampleEvents.map(e => e.attending), 1);
+  const maxAttending = Math.max(...allEvents.map(e => e.attending ?? 0), 1);
 
   const sections: DiscoverSection[] = [];
   const shownEventIds = new Set<string>();
 
   // --- Section 1: Near You (priority 1) ---
-  const nearYouScored = sampleEvents
+  const nearYouScored = allEvents
     .map((evt) => {
       const score = normalizeLocationScore(evt, city, country, userLat, userLng, radiusKm);
       return { event: evt, score };
@@ -340,14 +342,14 @@ export async function getDiscoverFeed(
 
   // --- Section 2: Your Communities (priority 2) ---
   if (userCommNames.length > 0) {
-    const commEvents = sampleEvents.filter((evt) =>
+    const commEvents = allEvents.filter((evt) =>
       allRelatedTags.some(
         (tag) =>
-          evt.communityTag.toLowerCase().includes(tag) ||
-          tag.includes(evt.communityTag.toLowerCase())
+          (evt.communityTag || '').toLowerCase().includes(tag) ||
+          tag.includes((evt.communityTag || '').toLowerCase())
       )
     );
-    const commCommunities = sampleCommunities.filter((c) =>
+    const commCommunities = allCommsForMixed.filter((c) =>
       allRelatedTags.some(
         (tag) =>
           c.name.toLowerCase().includes(tag) || tag.includes(c.name.toLowerCase())
@@ -368,18 +370,18 @@ export async function getDiscoverFeed(
 
   // --- Section 3: First Nations Spotlight (priority 3) ---
   if (indigenousVisibilityEnabled) {
-    const indigenousEvents = sampleEvents.filter(
+    const indigenousEvents = allEvents.filter(
       (evt) => evt.indigenousTags && evt.indigenousTags.length > 0
     );
-    const indigenousBusinesses = sampleBusinesses.filter(
+    const indigenousBusinesses = allBusinesses.filter(
       (b) => b.isIndigenousOwned || b.id.startsWith("bi")
     );
-    const indigenousActivities = sampleActivities.filter(
+    const indigenousActivities = allActivities.filter(
       (a) => a.indigenousTags && a.indigenousTags.length > 0
     );
     const spotlightItems = [
       ...indigenousEvents,
-      ...indigenousSpotlights,
+      ...allSpotlights,
       ...indigenousBusinesses,
       ...indigenousActivities,
     ];
@@ -397,8 +399,8 @@ export async function getDiscoverFeed(
 
   // --- Section 4: From Your Homeland (priority 4) ---
   if (homelandContentEnabled && originTags.length > 0) {
-    const homelandEvents = sampleEvents.filter((evt) =>
-      originTags.some((tag) => evt.communityTag.toLowerCase() === tag.toLowerCase())
+    const homelandEvents = allEvents.filter((evt) =>
+      originTags.some((tag) => (evt.communityTag || '').toLowerCase() === tag.toLowerCase())
     );
     if (homelandEvents.length > 0) {
       homelandEvents.forEach((e) => shownEventIds.add(e.id));
@@ -414,12 +416,12 @@ export async function getDiscoverFeed(
 
   // --- Section 5: Homeland Moments (priority 5) ---
   if (homelandContentEnabled && originTags.length > 0 && city) {
-    const homelandMoments = sampleEvents.filter((evt) => {
+    const homelandMoments = allEvents.filter((evt) => {
       const isOriginCulture = originTags.some(
-        (tag) => evt.communityTag.toLowerCase() === tag.toLowerCase()
+        (tag) => (evt.communityTag || '').toLowerCase() === tag.toLowerCase()
       );
-      const isLocal = evt.city.toLowerCase() === city.toLowerCase() ||
-                      evt.country.toLowerCase() === country.toLowerCase();
+      const isLocal = (evt.city || '').toLowerCase() === city.toLowerCase() ||
+                      (evt.country || '').toLowerCase() === country.toLowerCase();
       return isOriginCulture && isLocal && !shownEventIds.has(evt.id);
     });
     if (homelandMoments.length > 0) {
@@ -438,7 +440,7 @@ export async function getDiscoverFeed(
   if (userLanguages.length > 0) {
     const nonEnglishLangs = userLanguages.filter(l => l.toLowerCase() !== "english");
     if (nonEnglishLangs.length > 0) {
-      const langEvents = sampleEvents.filter((evt) => {
+      const langEvents = allEvents.filter((evt) => {
         if (shownEventIds.has(evt.id)) return false;
         const eventLangs = getEventLanguageTags(evt).map(l => l.toLowerCase());
         return nonEnglishLangs.some(ul => eventLangs.includes(ul.toLowerCase()));
@@ -458,7 +460,7 @@ export async function getDiscoverFeed(
   }
 
   // --- Section 7: Recommended For You (priority 7) ---
-  const unseenEvents = sampleEvents.filter((e) => !shownEventIds.has(e.id));
+  const unseenEvents = allEvents.filter((e) => !shownEventIds.has(e.id));
   const recommendedScored = unseenEvents
     .map((evt) => ({
       event: evt,
@@ -482,8 +484,8 @@ export async function getDiscoverFeed(
   }
 
   // --- Section 8: Trending Events (priority 8) ---
-  const trending = [...sampleEvents]
-    .sort((a, b) => b.attending - a.attending)
+  const trending = [...allEvents]
+    .sort((a, b) => (b.attending ?? 0) - (a.attending ?? 0))
     .slice(0, 10);
   if (trending.length > 0) {
     sections.push({
