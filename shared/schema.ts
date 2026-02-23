@@ -91,6 +91,7 @@ export const users = pgTable(
     indigenousVisibilityEnabled: boolean("indigenous_visibility_enabled").default(true),
     homelandContentEnabled: boolean("homeland_content_enabled").default(true),
     preferredLanguage: text("preferred_language").default("en"),
+    spokenLanguages: jsonb("spoken_languages").$type<string[]>().default(sql`'[]'::jsonb`),
 
     isVerified: boolean("is_verified").default(false),
 

@@ -1,6 +1,6 @@
 import React from 'react';
 import {
-  StyleSheet, Text, View, ScrollView, Pressable, Platform, Image,
+  StyleSheet, Text, View, ScrollView, Pressable, Platform, Image, ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -11,6 +11,9 @@ import { LinearGradient } from 'expo-linear-gradient';
 import Colors, { shadows } from '@/constants/colors';
 import { useSaved } from '@/contexts/SavedContext';
 import { sampleCommunities, sampleEvents } from '@/data/mockData';
+import { useQuery } from '@tanstack/react-query';
+import { getQueryFn } from '@/lib/query-client';
+import { Community } from '@shared/schema';
 
 function formatNumber(num: number): string {
   if (num >= 1000) return (num / 1000).toFixed(1) + 'k';
@@ -24,6 +27,20 @@ function formatDate(dateStr: string): string {
   return d.toLocaleDateString('en-AU', { day: 'numeric', month: 'short' });
 }
 
+const COMMUNITY_TYPE_COLORS: Record<string, string> = {
+  diaspora: '#2E86C1',
+  indigenous: '#8B4513',
+  language: '#7B1FA2',
+  religion: '#00897B',
+};
+
+const COMMUNITY_TYPE_ICONS: Record<string, string> = {
+  diaspora: 'earth',
+  indigenous: 'leaf',
+  language: 'chatbubbles',
+  religion: 'heart',
+};
+
 export default function CommunityDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const insets = useSafeAreaInsets();
@@ -31,19 +48,212 @@ export default function CommunityDetailScreen() {
   const bottomInset = Platform.OS === 'web' ? 34 : insets.bottom;
   const { isCommunityJoined, toggleJoinCommunity } = useSaved();
 
-  const community = sampleCommunities.find(c => c.id === id);
+  const mockCommunity = sampleCommunities.find(c => c.id === id);
 
-  if (!community) {
+  const { data: dbCommunity, isLoading } = useQuery<Community>({
+    queryKey: ['/api/communities', id],
+    queryFn: getQueryFn({ on401: 'returnNull' }),
+    enabled: !mockCommunity && !!id,
+  });
+
+  if (!mockCommunity && isLoading) {
     return (
       <View style={[styles.container, { paddingTop: topInset + 20, alignItems: 'center', justifyContent: 'center' }]}>
-        <Text style={styles.errorText}>Community not found</Text>
-        <Pressable onPress={() => router.back()}>
-          <Text style={styles.backLink}>Go Back</Text>
-        </Pressable>
+        <ActivityIndicator size="large" color={Colors.primary} />
       </View>
     );
   }
 
+  if (mockCommunity) {
+    return <MockCommunityView community={mockCommunity} topInset={topInset} bottomInset={bottomInset} />;
+  }
+
+  if (dbCommunity) {
+    return <DbCommunityView community={dbCommunity} topInset={topInset} bottomInset={bottomInset} />;
+  }
+
+  return (
+    <View style={[styles.container, { paddingTop: topInset + 20, alignItems: 'center', justifyContent: 'center' }]}>
+      <Text style={styles.errorText}>Community not found</Text>
+      <Pressable onPress={() => router.back()}>
+        <Text style={styles.backLink}>Go Back</Text>
+      </Pressable>
+    </View>
+  );
+}
+
+function DbCommunityView({ community, topInset, bottomInset }: { community: Community; topInset: number; bottomInset: number }) {
+  const { isCommunityJoined, toggleJoinCommunity } = useSaved();
+  const joined = isCommunityJoined(community.id);
+  const color = COMMUNITY_TYPE_COLORS[community.communityType] || Colors.primary;
+  const icon = COMMUNITY_TYPE_ICONS[community.communityType] || 'people';
+
+  const relatedTags = getRelatedTagsForDb(community);
+  const relatedEvents = sampleEvents.filter(e =>
+    relatedTags.some(tag =>
+      e.communityTag.toLowerCase().includes(tag) || tag.includes(e.communityTag.toLowerCase())
+    )
+  );
+
+  return (
+    <View style={styles.container}>
+      <View style={[styles.hero, { height: 240 + topInset }]}>
+        <LinearGradient
+          colors={[color, color + 'CC']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={{ position: 'absolute', width: '100%', height: '100%' }}
+        />
+        <View style={[styles.heroOverlay, { paddingTop: topInset + 8, backgroundColor: 'rgba(0,0,0,0.15)' }]}>
+          <Pressable style={styles.backButton} onPress={() => router.back()}>
+            <Ionicons name="arrow-back" size={22} color="#FFF" />
+          </Pressable>
+          <View style={styles.heroBottom}>
+            <View style={[styles.heroIconWrap, { backgroundColor: 'rgba(255,255,255,0.2)' }]}>
+              {community.iconEmoji ? (
+                <Text style={{ fontSize: 30 }}>{community.iconEmoji}</Text>
+              ) : (
+                <Ionicons name={icon as any} size={28} color="#FFF" />
+              )}
+            </View>
+            <Text style={styles.heroTitle}>{community.name}</Text>
+            <View style={{ flexDirection: 'row', gap: 8 }}>
+              <View style={styles.dbTypeBadge}>
+                <Text style={styles.dbTypeBadgeText}>{community.communityType}</Text>
+              </View>
+              {community.isIndigenous && (
+                <View style={[styles.dbTypeBadge, { backgroundColor: '#8B451330' }]}>
+                  <Text style={[styles.dbTypeBadgeText, { color: '#F5EDE3' }]}>Indigenous</Text>
+                </View>
+              )}
+            </View>
+          </View>
+        </View>
+      </View>
+
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 110 }}>
+        <Animated.View entering={FadeInDown.delay(100).duration(500)} style={styles.statsRow}>
+          <View style={styles.statCard}>
+            <View style={[styles.statIconBg, { backgroundColor: color + '12' }]}>
+              <Ionicons name="people" size={18} color={color} />
+            </View>
+            <Text style={styles.statNum}>{formatNumber(community.memberCount ?? 0)}</Text>
+            <Text style={styles.statLabel}>Members</Text>
+          </View>
+          <View style={styles.statCard}>
+            <View style={[styles.statIconBg, { backgroundColor: Colors.secondary + '12' }]}>
+              <Ionicons name="calendar" size={18} color={Colors.secondary} />
+            </View>
+            <Text style={styles.statNum}>{relatedEvents.length}</Text>
+            <Text style={styles.statLabel}>Events</Text>
+          </View>
+          {community.countryOfOrigin && (
+            <View style={styles.statCard}>
+              <View style={[styles.statIconBg, { backgroundColor: Colors.accent + '15' }]}>
+                <Ionicons name="globe" size={18} color={Colors.accent} />
+              </View>
+              <Text style={[styles.statNum, { fontSize: 14 }]}>{community.countryOfOrigin}</Text>
+              <Text style={styles.statLabel}>Origin</Text>
+            </View>
+          )}
+        </Animated.View>
+
+        <Animated.View entering={FadeInDown.delay(200).duration(500)} style={styles.section}>
+          <Text style={styles.sectionTitle}>About</Text>
+          <Text style={styles.description}>{community.description || 'A vibrant cultural community connecting people through shared heritage and traditions.'}</Text>
+        </Animated.View>
+
+        {relatedEvents.length > 0 && (
+          <>
+            <View style={styles.sectionDivider}>
+              <View style={styles.accentBar} />
+            </View>
+            <Animated.View entering={FadeInDown.delay(300).duration(500)} style={styles.section}>
+              <Text style={styles.sectionTitle}>Related Events</Text>
+              {relatedEvents.slice(0, 5).map(event => (
+                <Pressable
+                  key={event.id}
+                  style={styles.eventCard}
+                  onPress={() => router.push({ pathname: '/event/[id]', params: { id: event.id } })}
+                >
+                  <Image source={{ uri: event.imageUrl }} style={styles.eventImage} />
+                  <View style={styles.eventInfo}>
+                    <Text style={styles.eventTitle} numberOfLines={1}>{event.title}</Text>
+                    <Text style={styles.eventDate}>{formatDate(event.date)} - {event.time}</Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={18} color={Colors.textTertiary} />
+                </Pressable>
+              ))}
+            </Animated.View>
+          </>
+        )}
+
+        <View style={styles.sectionDivider}>
+          <View style={styles.accentBar} />
+        </View>
+
+        <Animated.View entering={FadeInDown.delay(400).duration(500)} style={styles.section}>
+          <Text style={styles.sectionTitle}>Wellbeing & Support</Text>
+          <View style={styles.wellbeingCard}>
+            <View style={styles.wellbeingIconBg}>
+              <Ionicons name="heart-circle" size={28} color={Colors.secondary} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.wellbeingTitle}>Mental Health & Belonging</Text>
+              <Text style={styles.wellbeingDesc}>
+                Community support resources, cultural counselling, and wellbeing programs are available for all members.
+              </Text>
+            </View>
+          </View>
+        </Animated.View>
+      </ScrollView>
+
+      <View style={[styles.bottomBar, { paddingBottom: bottomInset + 14 }]}>
+        <Pressable
+          style={({ pressed }) => [
+            styles.joinButton,
+            joined && styles.joinedButton,
+            pressed && { opacity: 0.9, transform: [{ scale: 0.97 }] },
+          ]}
+          onPress={() => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+            toggleJoinCommunity(community.id);
+          }}
+        >
+          <Ionicons
+            name={joined ? 'checkmark-circle' : 'add-circle'}
+            size={22}
+            color={joined ? Colors.secondary : '#FFF'}
+          />
+          <Text style={[styles.joinText, joined && styles.joinedText]}>
+            {joined ? 'Joined Community' : 'Join Community'}
+          </Text>
+        </Pressable>
+      </View>
+    </View>
+  );
+}
+
+function getRelatedTagsForDb(community: Community): string[] {
+  const name = community.name.toLowerCase();
+  const tags = [name];
+  if (name.includes('indian')) tags.push('indian', 'tamil', 'malayalee', 'punjabi', 'bengali', 'gujarati', 'telugu');
+  if (name.includes('chinese')) tags.push('chinese', 'cantonese', 'mandarin');
+  if (name.includes('filipino')) tags.push('filipino');
+  if (name.includes('vietnamese')) tags.push('vietnamese');
+  if (name.includes('lebanese')) tags.push('lebanese', 'arabic');
+  if (name.includes('greek')) tags.push('greek');
+  if (name.includes('italian')) tags.push('italian');
+  if (name.includes('korean')) tags.push('korean');
+  if (name.includes('aboriginal') || name.includes('torres strait') || name.includes('māori') || name.includes('first nations')) {
+    tags.push('aboriginal', 'indigenous', 'first nations', 'aboriginal & torres strait islander');
+  }
+  if (name.includes('punjabi') || name.includes('sikh')) tags.push('punjabi');
+  return tags;
+}
+
+function MockCommunityView({ community, topInset, bottomInset }: { community: any; topInset: number; bottomInset: number }) {
+  const { isCommunityJoined, toggleJoinCommunity } = useSaved();
   const joined = isCommunityJoined(community.id);
   const communityEvents = sampleEvents.filter(e => e.organizerId === community.id);
 
@@ -109,7 +319,7 @@ export default function CommunityDetailScreen() {
 
         <Animated.View entering={FadeInDown.delay(300).duration(500)} style={styles.section}>
           <Text style={styles.sectionTitle}>Community Leaders</Text>
-          {community.leaders.map((leader, idx) => (
+          {community.leaders.map((leader: string, idx: number) => (
             <View key={idx} style={styles.leaderRow}>
               <View style={[styles.leaderAvatar, { backgroundColor: community.color + '15' }]}>
                 <Ionicons name="person" size={18} color={community.color} />
@@ -341,4 +551,16 @@ const styles = StyleSheet.create({
   },
   joinText: { fontSize: 16, fontFamily: 'Poppins_700Bold', color: '#FFF' },
   joinedText: { color: Colors.secondary },
+  dbTypeBadge: {
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+    borderRadius: 10,
+  },
+  dbTypeBadgeText: {
+    fontSize: 12,
+    fontFamily: 'Poppins_600SemiBold',
+    color: '#FFF',
+    textTransform: 'capitalize',
+  },
 });

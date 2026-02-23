@@ -1,0 +1,356 @@
+Excellent. Now we’re designing something truly intelligent.
+
+You’re describing a system that:
+
+• Prioritises local relevance
+• Elevates homeland significance
+• Detects national-importance signals (e.g. Prime Minister visit)
+• Respects language identity
+• Remains computationally efficient
+
+Let’s upgrade Tier 5 properly.
+
+---
+
+# 🧠 CultureOS Adaptive Cultural Ranking Engine v2
+
+## Homeland + Significance-Aware Model
+
+---
+
+# 1️⃣ Refined Tier System (Efficient Candidate Pooling)
+
+We keep strict candidate filtering before scoring.
+
+### Tier 1 — City + Community Match
+
+Exact city + at least one shared community.
+
+### Tier 2 — City Radius
+
+Within radius (PostGIS).
+
+### Tier 3 — State Match
+
+### Tier 4 — Community Match (Country-wide)
+
+### Tier 5 — Homeland-Triggered Local Events (NEW LOGIC)
+
+This is NOT “events in homeland country.”
+
+It is:
+
+> Events happening near the user that are culturally significant to their homeland.
+
+Example:
+User:
+
+* Primary: Sydney
+* Homeland: India
+
+If:
+• Onam in Sydney
+• Diwali in NSW
+• Indian Independence Day (August 15) in Parramatta
+• Indian Prime Minister visits Sydney
+
+These events should surge in ranking.
+
+We do NOT scan India events.
+We scan Sydney events tagged as:
+
+```ts
+homeland_tags: ['india']
+national_significance: true
+festival_type: 'independence_day'
+```
+
+Now you still only score 200–500 events.
+
+Efficient.
+
+---
+
+# 2️⃣ New Data Fields Required
+
+## 👤 users table additions
+
+```ts
+homeland_country_id
+homeland_state_id (optional)
+
+spoken_languages text[]
+
+national_importance_boost_enabled boolean
+```
+
+Collected during onboarding.
+
+Editable in Profile Settings.
+
+---
+
+## 🎟 events table additions
+
+```ts
+homeland_tags text[]         // e.g. ['india']
+national_significance boolean
+dignitary_level enum('none','state','prime_minister','president')
+festival_key text             // e.g. 'onam','diwali','independence_day'
+language_tags text[]
+```
+
+This makes the algorithm AI-readable and deterministic.
+
+---
+
+# 3️⃣ Language Matching Layer (NEW PRIORITY SIGNAL)
+
+During sign-up:
+
+Ask:
+
+"What languages do you speak?"
+
+Examples:
+• Malayalam
+• Hindi
+• Tamil
+• English
+
+Store as:
+
+```ts
+spoken_languages[]
+```
+
+Language Score:
+
+```ts
+language_score =
+  matched_languages / total_spoken_languages
+```
+
+This allows:
+
+Malayalam-speaking user → Malayalam events in Sydney boosted.
+
+No guesswork.
+
+---
+
+# 4️⃣ National Importance Detection (High-Impact Events)
+
+If:
+
+```ts
+event.national_significance = true
+```
+
+OR
+
+```ts
+event.dignitary_level IN ('prime_minister','president')
+```
+
+Apply:
+
+```ts
+importance_multiplier = 1.3
+```
+
+If homeland match:
+
+```ts
+importance_multiplier = 1.6
+```
+
+Example:
+
+If Indian Prime Minister visits Sydney:
+
+* Narendra Modi
+* Sydney
+
+Users with homeland = India get massive relevance boost.
+
+But still local.
+Still efficient.
+Still in the 200–500 pool.
+
+---
+
+# 5️⃣ Improved Final Scoring Model
+
+Normalized features (0–1):
+
+```ts
+final_score =
+  0.28 * geo_score +
+  0.18 * community_score +
+  0.12 * language_score +
+  0.12 * homeland_local_score +
+  0.10 * behaviour_score +
+  0.10 * time_score +
+  0.10 * popularity_score
+```
+
+Then:
+
+```ts
+if indigenous_flag && user.country == 'Australia'
+  final_score *= 1.15
+
+if national_significance
+  final_score *= importance_multiplier
+```
+
+Homeland local score:
+
+```ts
+homeland_local_score =
+  event.homeland_tags.includes(user.homeland_country)
+    ? 1
+    : 0
+```
+
+Clean.
+Explainable.
+AI-tunable.
+
+---
+
+# 6️⃣ Discover Page Updates (Critical UX Upgrade)
+
+After login:
+
+---
+
+## 🏠 Happening Near You
+
+Pure geo relevance.
+
+---
+
+## 🌐 Your Communities
+
+Community-tag match.
+
+---
+
+## 🇮🇳 Homeland Moments (Dynamic Section)
+
+If homeland_country_id exists:
+
+Show:
+
+• Festivals happening locally
+• Cultural days
+• National days
+• Dignitary visits
+• Major homeland-linked celebrations
+
+Example:
+
+“Indian Independence Events in NSW”
+“Onam Celebrations Near You”
+
+---
+
+## 🗣 In Your Language
+
+If spoken_languages exists:
+
+Show:
+
+“Malayalam Events in Sydney”
+“Hindi Cultural Programs”
+
+---
+
+## 🖤 First Nations Spotlight (Australia Only)
+
+Boost during:
+
+* NAIDOC Week
+* National Reconciliation Week
+
+---
+
+## 🎯 Recommended For You
+
+Blended high-score results.
+
+---
+
+# 7️⃣ Onboarding Flow Update
+
+## Step 1 — Primary Location
+
+Country → State → City
+
+## Step 2 — Homeland
+
+“Which country do you feel connected to?”
+
+Optional state selection.
+
+## Step 3 — Cultural Communities (Multi-select)
+
+## Step 4 — Languages Spoken (Multi-select)
+
+## Step 5 — Radius Preference
+
+---
+
+# 8️⃣ Why This Algorithm Is Better
+
+It now detects:
+
+✔ Local cultural relevance
+✔ Diaspora significance
+✔ Language alignment
+✔ National importance
+✔ Political/diplomatic high-impact events
+✔ Indigenous priority
+✔ Time sensitivity
+
+And still only ranks 200–500 candidates.
+
+Efficient.
+Scalable.
+Human-intelligent.
+
+---
+
+# 9️⃣ Long-Term Upgrade Path (Optional)
+
+Later:
+
+• Use embedding similarity (OpenAI vectors)
+• Detect event descriptions mentioning homeland keywords
+• Auto-tag dignitary events via news integration
+• Predict festival recurrence patterns
+
+---
+
+# 🔥 What You’ve Just Built
+
+Not an event feed.
+
+But:
+
+> A Cultural Identity-Aware Relevance Engine.
+
+This is what makes CulturePass by CultureOS fundamentally different.
+
+---
+
+If you want next:
+
+* I can write the full SQL implementation
+* Build the discover endpoint logic
+* Design the onboarding UI screens
+* Or optimise this for Stripe-sponsored high-priority events
+
+What do we implement next?

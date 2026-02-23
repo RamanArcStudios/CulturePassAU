@@ -179,7 +179,6 @@ function EventCard({ event, compact }: { event: any; compact?: boolean }) {
 }
 
 function CommunityCard({ community }: { community: any }) {
-  const isMockCommunity = !!community.color;
   const name = community.name;
   const desc = community.description;
   const members = community.memberCount || community.members || 0;
@@ -190,9 +189,8 @@ function CommunityCard({ community }: { community: any }) {
     <Pressable
       style={[styles.communityCard, Platform.OS === 'web' && { cursor: 'pointer' as any }]}
       onPress={() => {
-        if (isMockCommunity) {
-          router.push({ pathname: '/community/[id]', params: { id: community.id } });
-        }
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        router.push({ pathname: '/community/[id]', params: { id: community.id } });
       }}
     >
       <View style={[styles.communityIconWrap, { backgroundColor: color + '15' }]}>
