@@ -72,7 +72,7 @@ export default function ContactDetailScreen() {
       return;
     }
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    router.push({ pathname: '/profile/[id]', params: { id: contact.userId } });
+    router.push({ pathname: '/user/[id]', params: { id: contact.userId } });
   }, [contact]);
 
   const handleOpenLocation = useCallback(() => {
