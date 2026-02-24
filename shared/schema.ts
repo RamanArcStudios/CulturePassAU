@@ -246,7 +246,7 @@ export const memberships = pgTable(
     stripeSubscriptionId: varchar("stripe_subscription_id"),
     stripeCustomerId: varchar("stripe_customer_id"),
 
-    status: text("status").default("active"),
+    status: statusEnum("status").default("active"),
 
     startDate: timestamp("start_date").defaultNow(),
     endDate: timestamp("end_date"),
@@ -351,7 +351,7 @@ export const sponsors = pgTable(
     country: text("country"),
     sponsorType: text("sponsor_type"),
     contactEmail: text("contact_email"),
-    status: text("status").default("active"),
+    status: statusEnum("status").default("active"),
     createdAt: timestamp("created_at").defaultNow(),
     culturePassId: varchar("culture_pass_id"),
   }
@@ -408,7 +408,7 @@ export const perks = pgTable(
     usedCount: integer("used_count").default(0),
     isMembershipRequired: boolean("is_membership_required").default(false),
     requiredMembershipTier: text("required_membership_tier"),
-    status: text("status").default("active"),
+    status: statusEnum("status").default("active"),
     category: text("category"),
     imageUrl: text("image_url"),
     culturePassId: varchar("culture_pass_id").unique(),
@@ -467,7 +467,7 @@ export const tickets = pgTable(
     eventVenue: text("event_venue"),
     tierName: text("tier_name"),
     quantity: integer("quantity").default(1),
-    totalPrice: doublePrecision("total_price").default(0),
+    totalPriceCents: integer("total_price_cents").default(0),
     currency: text("currency").default("AUD"),
     status: text("status").default("confirmed"),
     ticketCode: text("ticket_code"),
@@ -494,9 +494,7 @@ export const tickets = pgTable(
 export const cpidRegistry = pgTable(
   "cpid_registry",
   {
-    id: text("id")
-      .primaryKey()
-      .$defaultFn(() => crypto.randomUUID()),
+    id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
     culturePassId: varchar("culture_pass_id").unique().notNull(),
     targetId: varchar("target_id").unique().notNull(),
     entityType: text("entity_type").notNull(),
@@ -651,7 +649,7 @@ export const events = pgTable(
     time: text("time"),
     venue: text("venue"),
     address: text("address"),
-    price: doublePrecision("price").default(0),
+    priceCents: integer("price_cents").default(0),
     priceLabel: text("price_label"),
     category: text("category"),
     communityTag: text("community_tag"),
@@ -800,7 +798,7 @@ export const activities = pgTable(
     category: text("category"),
     description: text("description"),
     location: text("location"),
-    price: doublePrecision("price").default(0),
+    priceCents: integer("price_cents").default(0),
     priceLabel: text("price_label"),
     rating: doublePrecision("rating").default(0),
     reviews: integer("reviews").default(0),

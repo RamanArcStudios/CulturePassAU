@@ -1,0 +1,121 @@
+Here is a review of the code you shared. You have a very solid foundation here! The architecture between Expo, Express, and Drizzle ORM is well thought out.
+
+However, looking closely at how these files interact (especially between the React Native frontend and the Node.js backend), I found a few critical bugs and edge cases that will cause crashes or data issues in production.
+
+Here are the bugs and errors I found, organized by severity:
+
+### 🚨 Critical Bugs (Will cause crashes)
+
+#### 1. React Native Crash: `crypto.randomUUID()` is not defined
+
+**File:** `shared/schema.ts`
+**The Issue:** In your `cpidRegistry` table, you are using Node's native `crypto` to generate a default ID:
+
+```typescript
+export const cpidRegistry = pgTable(
+  "cpid_registry",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()), // <-- BUG
+
+```
+
+Because this is a `shared/` folder, your React Native app likely imports this file to access TypeScript types (like `User`, `Event`) and Zod schemas (`insertUserSchema`). **React Native does not have `crypto.randomUUID()` built-in.** The moment the app launches and evaluates this file, it will throw a fatal `ReferenceError: crypto is not defined` and crash.
+**The Fix:** Use the Postgres SQL function `gen_random_uuid()` like you brilliantly did in all your other tables!
+
+```typescript
+export const cpidRegistry = pgTable(
+  "cpid_registry",
+  {
+    id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+
+```
+
+### ⚠️ Data & Schema Issues
+
+#### 2. Floating-Point Currency Errors
+
+**File:** `shared/schema.ts`
+**The Issue:** You are handling money across different tables, but using inconsistent and dangerous data types. In `events` and `activities`, you use `doublePrecision` (e.g., `price: doublePrecision("price").default(0)`). Floating-point numbers cannot accurately represent base-10 decimals, which leads to arithmetic bugs (e.g., `0.1 + 0.2 = 0.30000000000000004`).
+**The Fix:** You correctly used `integer("price_cents")` in `memberships`, and `numeric(12, 2)` in `transactions`. You should standardize on one of those for `events` and `activities`. Storing currency as integer cents is highly recommended, especially since you are using Stripe!
+
+#### 3. Defined Enums are Ignored
+
+**File:** `shared/schema.ts`
+**The Issue:** You went through the effort of defining a great Postgres enum for status:
+
+```typescript
+export const statusEnum = pgEnum("status_enum", ["active", "inactive", "pending", "completed", "cancelled"]);
+
+```
+
+But in most of your tables (`memberships`, `sponsors`, `perks`, `tickets`), you are just using plain text fields:
+
+```typescript
+status: text("status").default("active"), // No type safety!
+
+```
+
+**The Fix:** Apply your enum to these tables to enforce database-level validation:
+
+```typescript
+status: statusEnum("status").default("active"),
+
+```
+
+### 🐛 Backend / Server Issues
+
+#### 4. Memory Leak & Log Bloat in Request Logging
+
+**File:** `server/index.ts`
+**The Issue:** In your `setupRequestLogging` middleware, you are overriding `res.json` to capture the entire response payload so you can log it:
+
+```typescript
+res.json = function (bodyJson, ...args) {
+  capturedJsonResponse = bodyJson; // Stores entire JSON payload in memory
+  return originalResJson.apply(res, [bodyJson, ...args]);
+};
+
+```
+
+If your app requests a large list of events or communities, you are printing massive JSON objects directly to the console on every single request. This will quickly pollute your logs and degrade server performance (stringifying massive objects blocks the Node event loop).
+**The Fix:** It is safer to log just the response size or limit the payload logging to error statuses. At the very least, truncate it heavily:
+
+```typescript
+// Replace: logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
+// With:
+if (capturedJsonResponse && res.statusCode >= 400) {
+   logLine += ` :: Error Payload: ${JSON.stringify(capturedJsonResponse).substring(0, 200)}`;
+}
+
+```
+
+### 📱 Frontend / Auth Issues
+
+#### 5. Silent Failures in AsyncStorage
+
+**File:** `lib/auth.tsx`
+**The Issue:** When bootstrapping the app, you parse the user from storage:
+
+```typescript
+try {
+  setUser(JSON.parse(stored));
+} catch {}
+
+```
+
+While swallowing the error prevents a crash, if the cached JSON is corrupted or structural changes happen to the `AuthUser` interface in future updates, the user gets stuck in a broken state without the ability to clear it.
+**The Fix:** Clear the corrupted data if parsing fails so the user is cleanly logged out:
+
+```typescript
+try {
+  setUser(JSON.parse(stored));
+} catch (error) {
+  console.error("Failed to parse stored user, clearing cache.");
+  AsyncStorage.removeItem(AUTH_STORAGE_KEY);
+}
+
+```
+
+If you fix the `crypto.randomUUID()` bug right away, your React Native app will safely boot, and addressing the currency and logging bugs will make your system production-ready! Let me know if you want help rewriting any of those specific blocks.

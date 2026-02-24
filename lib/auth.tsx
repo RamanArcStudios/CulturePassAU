@@ -42,7 +42,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (stored) {
           try {
             setUser(JSON.parse(stored));
-          } catch {}
+          } catch (error) {
+            console.error("Failed to parse stored user, clearing cache.");
+            AsyncStorage.removeItem(AUTH_STORAGE_KEY);
+          }
         }
       })
       .finally(() => setIsLoading(false));
