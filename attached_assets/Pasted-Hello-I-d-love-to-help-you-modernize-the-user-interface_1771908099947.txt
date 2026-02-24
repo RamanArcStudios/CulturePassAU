@@ -1,0 +1,586 @@
+Hello! I'd love to help you modernize the user interface and experience of your app. You have a fantastic foundation here with React Native, Reanimated, and your custom design system.
+
+To give it that premium, modern "Apple-style" feel, we can introduce a few key UX/UI upgrades:
+
+1. **Glassmorphism (Blur Effects):** Using `expo-blur` on card overlays instead of flat dark gradients makes the UI feel native and deep.
+2. **Snappy Carousels:** Adding `snapToInterval` to your horizontal `ScrollView`s makes swiping feel precise and buttery smooth.
+3. **Elevated Interactions:** Applying your custom shadows from `colors.ts` and refining the "Quick Actions" grid to look like floating, tactile buttons.
+4. **Premium Whitespace & Typography:** Tweaking the line heights, border radii, and padding to give the content room to breathe.
+
+Here is how we can upgrade your `EventCard` and the main `Home` screen.
+
+### 1. Modernizing `EventCard.tsx` (Adding Glassmorphism & Shadows)
+
+Let's replace the basic black gradient with a sleek `BlurView` overlay for the text area. This makes the text highly readable while letting the vibrant event image shine through.
+
+```tsx
+// components/Discover/EventCard.tsx
+import { View, Text, Pressable, StyleSheet, Image, Platform } from 'react-native';
+import { router } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
+import { BlurView } from 'expo-blur'; // Added for modern glassmorphism
+import Animated, { FadeInDown } from 'react-native-reanimated';
+import Colors from '@/constants/colors';
+
+interface EventCardProps {
+  event: {
+    id: string;
+    title: string;
+    date: string;
+    venue?: string;
+    city?: string;
+    imageUrl?: string;
+    communityTag?: string;
+    attending?: number;
+    priceLabel?: string;
+    isFeatured?: boolean;
+  };
+  highlight?: boolean;
+  index?: number;
+}
+
+function formatDate(dateStr: string): string {
+  const parts = dateStr.split('-');
+  if (parts.length !== 3) return dateStr;
+  const day = parseInt(parts[2], 10);
+  const monthIndex = parseInt(parts[1], 10) - 1;
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  return `${day} ${months[monthIndex] || ''}`;
+}
+
+export default function EventCard({ event, highlight, index = 0 }: EventCardProps) {
+  return (
+    <Animated.View entering={FadeInDown.delay((index || 0) * 80 + 100).duration(500)}>
+      <Pressable
+        style={({ pressed }) => [
+          styles.card,
+          highlight && styles.highlight,
+          pressed && { opacity: 0.9, transform: [{ scale: 0.98 }] }, // Tactile feedback
+          Platform.OS === 'web' && { cursor: 'pointer' as any },
+          Colors.shadows.medium, // Utilizing your design system shadows
+        ]}
+        onPress={() => router.push({ pathname: '/event/[id]', params: { id: event.id } })}
+      >
+        <Image
+          source={{ uri: event.imageUrl }}
+          style={StyleSheet.absoluteFillObject}
+          resizeMode="cover"
+        />
+        
+        {/* Modern Glassmorphism Overlay */}
+        <BlurView intensity={80} tint="dark" style={styles.blurContainer}>
+          <Text style={[styles.date, highlight && styles.dateHighlight]}>
+            {formatDate(event.date)}
+          </Text>
+          <Text style={[styles.title, highlight && styles.titleHighlight]} numberOfLines={2}>
+            {event.title}
+          </Text>
+          
+          <View style={styles.metaRow}>
+            <Ionicons name="location" size={14} color="#E5E5EA" />
+            <Text style={styles.location} numberOfLines={1}>
+              {event.venue || event.city}
+            </Text>
+          </View>
+
+          {event.communityTag ? (
+            <View style={styles.culturePill}>
+              <Text style={styles.culturePillText}>{event.communityTag}</Text>
+            </View>
+          ) : null}
+        </BlurView>
+      </Pressable>
+    </Animated.View>
+  );
+}
+
+const styles = StyleSheet.create({
+  card: {
+    width: 280,
+    height: 300, // Slightly taller for a more modern portrait aspect ratio
+    borderRadius: 24, // Softer, more modern corners
+    overflow: 'hidden',
+    backgroundColor: Colors.surfaceSecondary,
+  },
+  highlight: {
+    width: 320,
+    height: 340,
+    borderWidth: 1.5,
+    borderColor: 'rgba(255, 215, 0, 0.5)', // Subtle gold border
+  },
+  blurContainer: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    padding: 20,
+    paddingTop: 30, // Fades up smoothly
+    borderTopColor: 'rgba(255,255,255,0.1)',
+    borderTopWidth: StyleSheet.hairlineWidth,
+  },
+  date: {
+    fontSize: 13,
+    fontFamily: 'Poppins_600SemiBold',
+    color: '#FFD700', // Making the date pop consistently
+    marginBottom: 6,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  dateHighlight: {
+    fontSize: 14,
+  },
+  title: {
+    fontSize: 18,
+    fontFamily: 'Poppins_700Bold',
+    color: '#FFFFFF',
+    marginBottom: 10,
+    lineHeight: 24,
+  },
+  titleHighlight: {
+    fontSize: 22,
+    lineHeight: 28,
+  },
+  metaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 12,
+  },
+  location: {
+    fontSize: 13,
+    fontFamily: 'Poppins_500Medium',
+    color: '#E5E5EA',
+    flex: 1,
+  },
+  culturePill: {
+    alignSelf: 'flex-start',
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(255,255,255,0.2)',
+  },
+  culturePillText: {
+    fontSize: 11,
+    fontFamily: 'Poppins_600SemiBold',
+    color: '#FFFFFF',
+    letterSpacing: 0.3,
+  },
+});
+
+```
+
+### 2. Upgrading the Home Screen (`app/(tabs)/index.tsx`)
+
+Here we will add **Snapping Carousels**, elevate the quick action buttons to make them look like premium app icons, and refine the headers and spacing.
+
+```tsx
+// app/(tabs)/index.tsx
+import {
+  View,
+  Text,
+  Pressable,
+  StyleSheet,
+  ScrollView,
+  Platform,
+  RefreshControl,
+  Image,
+  ActivityIndicator,
+} from 'react-native';
+import { router } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useOnboarding } from '@/contexts/OnboardingContext';
+import { LinearGradient } from 'expo-linear-gradient';
+import Animated, { FadeInDown } from 'react-native-reanimated';
+import * as Haptics from 'expo-haptics';
+import { useQuery } from '@tanstack/react-query';
+import { User } from '@shared/schema';
+import { getQueryFn, getApiUrl } from '@/lib/query-client';
+import { useMemo, useCallback, useState } from 'react';
+import { LocationPicker } from '@/components/LocationPicker';
+import { fetch } from 'expo/fetch';
+import EventCard from '@/components/Discover/EventCard';
+import CategoryCard from '@/components/Discover/CategoryCard';
+import CommunityCard from '@/components/Discover/CommunityCard';
+import CityCard from '@/components/Discover/CityCard';
+import Colors from '@/constants/colors';
+
+const isWeb = Platform.OS === 'web';
+
+const superAppSections = [
+  { id: 'movies', label: 'Movies', icon: 'film', color: '#FF3B30', route: '/movies' },
+  { id: 'restaurants', label: 'Dining', icon: 'restaurant', color: '#FF9500', route: '/restaurants' },
+  { id: 'activities', label: 'Activities', icon: 'compass', color: '#34C759', route: '/activities' },
+  { id: 'shopping', label: 'Shopping', icon: 'bag-handle', color: '#AF52DE', route: '/shopping' },
+  { id: 'events', label: 'Events', icon: 'calendar', color: '#007AFF', route: '/explore' },
+  { id: 'directory', label: 'Directory', icon: 'storefront', color: '#5856D6', route: '/directory' },
+];
+
+const SECTION_ROUTES: Record<string, string> = {
+  movies: '/movies',
+  restaurants: '/restaurants',
+  activities: '/activities',
+  shopping: '/shopping',
+  events: '/(tabs)/explore',
+  directory: '/(tabs)/directory',
+};
+
+// ... (Keep your existing constants: browseCategories, FEATURED_CITIES, interfaces, and hooks)
+// For brevity, I am omitting the duplicate setup code, but keep it exactly as it is in your file.
+
+function SectionHeader({ title, subtitle, onSeeAll }: { title: string; subtitle?: string; onSeeAll?: () => void }) {
+  return (
+    <View style={styles.sectionHeader}>
+      <View style={{ flex: 1 }}>
+        <Text style={styles.sectionTitle}>{title}</Text>
+        {subtitle ? <Text style={styles.sectionSubtitle}>{subtitle}</Text> : null}
+      </View>
+      {onSeeAll && (
+        <Pressable 
+          style={styles.seeAllButton} 
+          onPress={onSeeAll} 
+          hitSlop={12}
+        >
+          <Text style={styles.seeAll}>See all</Text>
+          <Ionicons name="chevron-forward" size={14} color={Colors.tint} />
+        </Pressable>
+      )}
+    </View>
+  );
+}
+
+// ... (Keep SpotlightCard and useDemoUserId as is)
+
+export default function HomeScreen() {
+  // ... (Keep all your existing data fetching logic and useMemos)
+
+  return (
+    <View style={[styles.container, { paddingTop: topInset }]}>
+      <View style={[styles.topBar, Platform.OS === 'web' && { maxWidth: 900, alignSelf: 'center', width: '100%' }]}>
+        <LocationPicker />
+        <View style={styles.topBarRight}>
+          <Pressable style={styles.iconButton} onPress={() => router.push('/search')}>
+            <Ionicons name="search" size={24} color={Colors.text} />
+          </Pressable>
+          <Pressable style={styles.iconButton} onPress={() => router.push('/map' as any)}>
+            <Ionicons name="map-outline" size={24} color={Colors.text} />
+          </Pressable>
+          <Pressable style={styles.iconButton} onPress={() => router.push('/notifications')}>
+            <Ionicons name="notifications-outline" size={24} color={Colors.text} />
+            <View style={styles.notifDot} />
+          </Pressable>
+        </View>
+      </View>
+
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={[
+          { paddingBottom: 120 },
+          Platform.OS === 'web' && { maxWidth: 900, alignSelf: 'center', width: '100%' },
+        ]}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={Colors.tint} />
+        }
+      >
+        <Animated.View entering={isWeb ? undefined : FadeInDown.delay(100).duration(500)} style={styles.heroSection}>
+          <Text style={styles.heroSubtitle}>{timeGreeting}, {firstName}</Text>
+          <Text style={styles.heroTitle}>
+            What's happening in{'\n'}your culture this week?
+          </Text>
+        </Animated.View>
+
+        {/* ... (Keep land banner if it exists) */}
+
+        {/* Modernized Quick Grid */}
+        <Animated.View entering={isWeb ? undefined : FadeInDown.delay(150).duration(500)} style={styles.quickGrid}>
+          {superAppSections.map((sec) => (
+            <Pressable
+              key={sec.id}
+              style={({ pressed }) => [
+                styles.quickBtn,
+                pressed && { transform: [{ scale: 0.95 }] },
+                Platform.OS === 'web' && { cursor: 'pointer' as any }
+              ]}
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                router.push(SECTION_ROUTES[sec.id] as any);
+              }}
+            >
+              <View style={[styles.quickBtnIconWrapper, Colors.shadows.small, { backgroundColor: Colors.surface }]}>
+                <View style={[styles.quickBtnIcon, { backgroundColor: sec.color + '15' }]}>
+                  <Ionicons name={sec.icon as any} size={24} color={sec.color} />
+                </View>
+              </View>
+              <Text style={styles.quickBtnLabel}>{sec.label}</Text>
+            </Pressable>
+          ))}
+        </Animated.View>
+
+        {/* ... (Keep discover loading state) */}
+
+        {popularEvents.length > 0 && (
+          <Animated.View entering={isWeb ? undefined : FadeInDown.delay(220).duration(500)} style={{ marginBottom: 32 }}>
+            <View style={{ paddingHorizontal: 20 }}>
+              <SectionHeader
+                title="Popular Near You"
+                onSeeAll={() => router.push('/(tabs)/explore')}
+              />
+            </View>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={{ paddingHorizontal: 20, gap: 16 }}
+              decelerationRate="fast"
+              snapToInterval={296} // Width of card (280) + gap (16)
+              snapToAlignment="start"
+            >
+              {popularEvents.map((event: any, i: number) => (
+                <EventCard key={event.id} event={event} index={i} />
+              ))}
+            </ScrollView>
+          </Animated.View>
+        )}
+
+        {/* ... (Apply similar snapToInterval logic to other Horizontal ScrollViews!) */}
+
+        {/* Upgraded Premium Banner */}
+        <Animated.View entering={isWeb ? undefined : FadeInDown.delay(420).duration(500)} style={styles.bannerWrap}>
+          <Pressable
+            style={({ pressed }) => [
+              styles.plusBanner,
+              pressed && { opacity: 0.9, transform: [{ scale: 0.98 }] },
+              Platform.OS === 'web' && { cursor: 'pointer' as any }
+            ]}
+            onPress={() => router.push('/membership/upgrade')}
+          >
+            <LinearGradient
+              colors={['#111111', '#1A1A24']} // Sleeker dark gradient
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={StyleSheet.absoluteFillObject}
+            />
+            {/* Decorative background shapes for depth */}
+            <View style={styles.bannerDecoration1} />
+            <View style={styles.bannerDecoration2} />
+
+            <View style={styles.plusBannerLeft}>
+              <View style={styles.plusBannerIconWrap}>
+                <Ionicons name="star" size={20} color="#FFD700" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.plusBannerTitle}>CulturePass <Text style={{ color: '#FFD700' }}>PRO</Text></Text>
+                <Text style={styles.plusBannerSub}>2% cashback & exclusive VIP access</Text>
+              </View>
+            </View>
+            <View style={styles.plusBannerCta}>
+              <Text style={styles.plusBannerCtaText}>Explore</Text>
+            </View>
+          </Pressable>
+        </Animated.View>
+
+      </ScrollView>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: Colors.backgroundSecondary, // Using a pure white/black background for a cleaner look
+  },
+  topBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+  },
+  topBarRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8, // Increased gap slightly
+  },
+  iconButton: {
+    width: 40,
+    height: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: Colors.surfaceSecondary,
+    borderRadius: 20,
+  },
+  notifDot: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: Colors.error,
+    borderWidth: 1.5,
+    borderColor: Colors.surfaceSecondary,
+  },
+  heroSection: {
+    paddingHorizontal: 20,
+    marginBottom: 28,
+    marginTop: 8,
+  },
+  heroSubtitle: {
+    fontSize: 16,
+    fontFamily: 'Poppins_500Medium',
+    color: Colors.tint, // Make greeting colorful
+    marginBottom: 4,
+  },
+  heroTitle: {
+    fontSize: 32,
+    fontFamily: 'Poppins_700Bold',
+    color: Colors.text,
+    lineHeight: 40,
+    letterSpacing: -0.5,
+  },
+  quickGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    paddingHorizontal: 20,
+    justifyContent: 'space-between',
+    marginBottom: 36,
+    gap: 12,
+  },
+  quickBtn: {
+    width: '30%',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  quickBtnIconWrapper: {
+    width: 64,
+    height: 64,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 8,
+  },
+  quickBtnIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  quickBtnLabel: {
+    fontSize: 13,
+    fontFamily: 'Poppins_500Medium',
+    color: Colors.text,
+    textAlign: 'center',
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    justifyContent: 'space-between',
+    marginBottom: 16,
+  },
+  sectionTitle: {
+    fontSize: 22,
+    fontFamily: 'Poppins_700Bold',
+    color: Colors.text,
+    letterSpacing: -0.3,
+  },
+  sectionSubtitle: {
+    fontSize: 14,
+    fontFamily: 'Poppins_400Regular',
+    color: Colors.textSecondary,
+    marginTop: 4,
+  },
+  seeAllButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+    paddingBottom: 4,
+  },
+  seeAll: {
+    fontSize: 15,
+    fontFamily: 'Poppins_600SemiBold',
+    color: Colors.tint,
+  },
+  bannerWrap: {
+    paddingHorizontal: 20,
+    marginBottom: 16,
+  },
+  plusBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderRadius: 24,
+    paddingHorizontal: 20,
+    paddingVertical: 24,
+    overflow: 'hidden',
+    ...Colors.shadows.large,
+  },
+  bannerDecoration1: {
+    position: 'absolute',
+    top: -40,
+    right: -20,
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: 'rgba(255, 215, 0, 0.08)',
+  },
+  bannerDecoration2: {
+    position: 'absolute',
+    bottom: -30,
+    right: 40,
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: 'rgba(255, 215, 0, 0.05)',
+  },
+  plusBannerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+    flex: 1,
+  },
+  plusBannerIconWrap: {
+    width: 48,
+    height: 48,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255,215,0,0.15)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255,215,0,0.3)',
+  },
+  plusBannerTitle: {
+    fontSize: 18,
+    fontFamily: 'Poppins_700Bold',
+    color: '#FFF',
+  },
+  plusBannerSub: {
+    fontSize: 13,
+    fontFamily: 'Poppins_400Regular',
+    color: 'rgba(255,255,255,0.7)',
+    marginTop: 2,
+  },
+  plusBannerCta: {
+    backgroundColor: '#FFD700',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 14,
+  },
+  plusBannerCtaText: {
+    fontSize: 14,
+    fontFamily: 'Poppins_700Bold',
+    color: '#000',
+  },
+});
+
+```
+
+### Key UI/UX Concepts Applied:
+
+* **Tactile Feedback**: Added `scale` transforms when elements like cards or buttons are `pressed`. This makes the app feel highly responsive.
+* **Snapping Behavior**: Notice `snapToInterval={296}` on the horizontal scroll views. This makes it perform like a high-end carousel rather than a free-scrolling list.
+* **Larger Tap Targets & Rounded Corners**: Upped the radius on icons and cards (e.g., `borderRadius: 24`). This mimics modern iOS 17/18 and Android Material You aesthetics.
+* **Depth and Layering**: Utilizing `BlurView` combined with the soft custom drop shadows (`Colors.shadows.medium`) provides excellent hierarchy.
+
+Let me know if you would like to apply these snapping carousels to the remaining sections, or if you'd like to look at modernizing another specific screen!
