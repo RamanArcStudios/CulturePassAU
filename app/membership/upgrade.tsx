@@ -25,9 +25,9 @@ function useDemoUserId() {
   return data?.[0]?.id;
 }
 
-const PLUS_COLOR = '#1A5276';
-const PLUS_ACCENT = '#2E86C1';
-const PLUS_GRADIENT_BG = '#EBF5FB';
+const PLUS_COLOR = Colors.primary;
+const PLUS_ACCENT = Colors.primaryDark;
+const PLUS_GRADIENT_BG = Colors.primaryGlow;
 
 const FEATURES = [
   { icon: 'cash-outline', title: '2% Cashback', desc: 'On every ticket purchase, credited to your wallet', free: false, plus: true },
@@ -228,13 +228,13 @@ export default function UpgradeScreen() {
               </View>
               <View style={styles.compCheck}>
                 {f.free ? (
-                  <Ionicons name="checkmark-circle" size={20} color="#34C759" />
+                  <Ionicons name="checkmark-circle" size={20} color={Colors.success} />
                 ) : (
-                  <Ionicons name="close-circle" size={20} color="#C8C8C8" />
+                  <Ionicons name="close-circle" size={20} color={Colors.textTertiary} />
                 )}
               </View>
               <View style={[styles.compCheck, styles.compCheckPlus]}>
-                <Ionicons name="checkmark-circle" size={20} color={PLUS_ACCENT} />
+                <Ionicons name="checkmark-circle" size={20} color={PLUS_COLOR} />
               </View>
             </Animated.View>
           ))}
@@ -300,7 +300,7 @@ export default function UpgradeScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#FAFBFC' },
+  container: { flex: 1, backgroundColor: Colors.background },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -308,11 +308,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#E8E8E8',
-    backgroundColor: '#FAFBFC',
+    borderBottomColor: Colors.borderLight,
+    backgroundColor: Colors.background,
   },
   backBtn: { width: 36, height: 36, justifyContent: 'center', alignItems: 'center' },
-  headerTitle: { fontSize: 17, fontWeight: '600', color: PLUS_COLOR },
+  headerTitle: { fontSize: 17, fontFamily: 'Poppins_600SemiBold', color: PLUS_COLOR },
   scroll: { flex: 1 },
   scrollContent: { paddingHorizontal: 20 },
   heroSection: { alignItems: 'center', paddingTop: 28, paddingBottom: 8 },
@@ -325,9 +325,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 16,
   },
-  heroTitle: { fontSize: 28, fontWeight: '700', color: PLUS_COLOR, marginBottom: 4 },
-  heroTagline: { fontSize: 14, fontWeight: '600', color: PLUS_ACCENT, letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 12 },
-  heroDesc: { fontSize: 15, color: '#5D6D7E', textAlign: 'center', lineHeight: 22, paddingHorizontal: 10 },
+  heroTitle: { fontSize: 28, fontFamily: 'Poppins_700Bold', color: PLUS_COLOR, marginBottom: 4 },
+  heroTagline: { fontSize: 13, fontFamily: 'Poppins_600SemiBold', color: PLUS_ACCENT, letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 12 },
+  heroDesc: { fontSize: 15, fontFamily: 'Poppins_400Regular', color: Colors.textSecondary, textAlign: 'center', lineHeight: 22, paddingHorizontal: 10 },
 
   socialProof: {
     flexDirection: 'row',
@@ -340,7 +340,7 @@ const styles = StyleSheet.create({
     marginTop: 16,
     alignSelf: 'center',
   },
-  socialProofText: { fontSize: 13, color: PLUS_COLOR, fontWeight: '500', marginLeft: 6 },
+  socialProofText: { fontSize: 13, fontFamily: 'Poppins_500Medium', color: PLUS_COLOR, marginLeft: 6 },
 
   pricingSection: { marginTop: 24 },
   toggleRow: {
@@ -359,82 +359,76 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   toggleActive: { backgroundColor: '#fff', shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 4, shadowOffset: { width: 0, height: 1 }, elevation: 2 },
-  toggleText: { fontSize: 14, fontWeight: '500', color: '#999' },
-  toggleTextActive: { color: PLUS_COLOR, fontWeight: '600' },
-  saveBadge: { backgroundColor: '#34C759', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6, marginLeft: 6 },
-  saveBadgeText: { fontSize: 10, fontWeight: '700', color: '#fff' },
+  toggleText: { fontSize: 14, fontFamily: 'Poppins_500Medium', color: Colors.textTertiary },
+  toggleTextActive: { color: PLUS_COLOR, fontFamily: 'Poppins_600SemiBold' },
+  saveBadge: { backgroundColor: Colors.success, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6, marginLeft: 6 },
+  saveBadgeText: { fontSize: 10, fontFamily: 'Poppins_700Bold', color: '#fff' },
 
   priceCard: { alignItems: 'center', paddingVertical: 16 },
-  priceAmount: { fontSize: 44, fontWeight: '800', color: PLUS_COLOR },
-  pricePeriod: { fontSize: 16, color: '#5D6D7E', fontWeight: '500', marginTop: 2 },
-  priceBreakdown: { fontSize: 13, color: PLUS_ACCENT, marginTop: 6, fontWeight: '500' },
+  priceAmount: { fontSize: 44, fontFamily: 'Poppins_700Bold', color: PLUS_COLOR },
+  pricePeriod: { fontSize: 16, fontFamily: 'Poppins_500Medium', color: Colors.textSecondary, marginTop: 2 },
+  priceBreakdown: { fontSize: 13, fontFamily: 'Poppins_500Medium', color: PLUS_ACCENT, marginTop: 6 },
 
+  sectionTitle: { fontSize: 20, fontFamily: 'Poppins_700Bold', color: Colors.text, marginBottom: 16 },
   comparisonSection: { marginTop: 8, marginBottom: 20 },
-  sectionTitle: { fontSize: 20, fontWeight: '700', color: PLUS_COLOR, marginBottom: 16 },
   comparisonHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 8, paddingRight: 4 },
   compColHeader: { width: 52, alignItems: 'center', paddingVertical: 4 },
-  compColPlus: { backgroundColor: PLUS_ACCENT, borderRadius: 8, flexDirection: 'row', justifyContent: 'center', paddingHorizontal: 6 },
-  compColLabel: { fontSize: 11, fontWeight: '600', color: '#999' },
+  compColPlus: { backgroundColor: PLUS_COLOR, borderRadius: 8, flexDirection: 'row', justifyContent: 'center', paddingHorizontal: 6 },
+  compColLabel: { fontSize: 11, fontFamily: 'Poppins_600SemiBold', color: Colors.textTertiary },
   compRow: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: 12,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#F0F0F0',
+    borderBottomColor: Colors.divider,
   },
   compFeature: { flex: 1, flexDirection: 'row', alignItems: 'center' },
-  compFeatureTitle: { fontSize: 14, fontWeight: '600', color: '#2C3E50' },
-  compFeatureDesc: { fontSize: 12, color: '#8E99A4', marginTop: 1 },
+  compFeatureTitle: { fontSize: 14, fontFamily: 'Poppins_600SemiBold', color: Colors.text },
+  compFeatureDesc: { fontSize: 12, fontFamily: 'Poppins_400Regular', color: Colors.textTertiary, marginTop: 1 },
   compCheck: { width: 52, alignItems: 'center' },
   compCheckPlus: {},
 
   highlightsSection: { marginBottom: 20, gap: 12 },
   highlightCard: {
-    backgroundColor: '#fff',
+    backgroundColor: Colors.surface,
     borderRadius: 16,
     padding: 20,
-    shadowColor: '#000',
-    shadowOpacity: 0.04,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 1,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: Colors.borderLight,
+    ...Colors.shadows.small,
   },
   highlightIcon: { width: 48, height: 48, borderRadius: 14, justifyContent: 'center', alignItems: 'center', marginBottom: 12 },
-  highlightTitle: { fontSize: 16, fontWeight: '700', color: '#2C3E50', marginBottom: 4 },
-  highlightDesc: { fontSize: 13, color: '#5D6D7E', lineHeight: 19 },
+  highlightTitle: { fontSize: 16, fontFamily: 'Poppins_700Bold', color: Colors.text, marginBottom: 4 },
+  highlightDesc: { fontSize: 13, fontFamily: 'Poppins_400Regular', color: Colors.textSecondary, lineHeight: 19 },
 
   activeSection: { alignItems: 'center', paddingVertical: 24 },
   activeBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#34C75910',
+    backgroundColor: Colors.success + '15',
     paddingHorizontal: 20,
     paddingVertical: 10,
     borderRadius: 24,
     marginBottom: 12,
   },
-  activeText: { fontSize: 15, fontWeight: '600', color: '#34C759', marginLeft: 8 },
-  activeSubtext: { fontSize: 13, color: '#8E99A4', marginBottom: 20 },
+  activeText: { fontSize: 15, fontFamily: 'Poppins_600SemiBold', color: Colors.success, marginLeft: 8 },
+  activeSubtext: { fontSize: 13, fontFamily: 'Poppins_400Regular', color: Colors.textTertiary, marginBottom: 20 },
   cancelBtn: { paddingVertical: 10, paddingHorizontal: 24 },
-  cancelBtnText: { fontSize: 14, color: '#FF3B30', fontWeight: '500' },
+  cancelBtnText: { fontSize: 14, fontFamily: 'Poppins_500Medium', color: Colors.error },
 
   ctaSection: { alignItems: 'center', paddingVertical: 8, marginBottom: 8 },
   subscribeBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: PLUS_ACCENT,
+    backgroundColor: PLUS_COLOR,
     paddingVertical: 16,
     paddingHorizontal: 32,
-    borderRadius: 14,
+    borderRadius: 16,
     width: '100%',
-    shadowColor: PLUS_ACCENT,
-    shadowOpacity: 0.3,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 3,
+    ...Colors.shadows.medium,
   },
   subscribeBtnDisabled: { opacity: 0.6 },
-  subscribeBtnText: { fontSize: 16, fontWeight: '700', color: '#fff' },
-  ctaFine: { fontSize: 12, color: '#B0B8C1', marginTop: 10 },
+  subscribeBtnText: { fontSize: 16, fontFamily: 'Poppins_700Bold', color: '#fff' },
+  ctaFine: { fontSize: 12, fontFamily: 'Poppins_400Regular', color: Colors.textTertiary, marginTop: 10 },
 });
