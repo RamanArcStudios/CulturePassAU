@@ -1,7 +1,7 @@
 import { db } from "../../db";
 import { eq } from "drizzle-orm";
 import {
-  users, wallets,
+  users, wallets, auditLogs,
   type User, type InsertUser,
 } from "@shared/schema";
 
@@ -39,4 +39,24 @@ export async function updateUser(id: string, data: Partial<User>): Promise<User 
 /** Returns all users ordered by creation date */
 export async function getAllUsers(): Promise<User[]> {
   return db.select().from(users).orderBy(users.createdAt);
+}
+
+/**
+ * Permanently deletes a user and all their associated data.
+ * Records an audit log entry for the deletion event.
+ */
+export async function deleteUser(id: string): Promise<boolean> {
+  const [user] = await db.select({ id: users.id, username: users.username }).from(users).where(eq(users.id, id));
+  if (!user) return false;
+
+  await db.transaction(async (tx) => {
+    await tx.insert(auditLogs).values({
+      userId: id,
+      event: "account_deleted",
+      metadata: { username: user.username, deletedAt: new Date().toISOString() },
+    });
+    await tx.delete(users).where(eq(users.id, id));
+  });
+
+  return true;
 }
