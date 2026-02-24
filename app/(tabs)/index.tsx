@@ -316,28 +316,22 @@ export default function HomeScreen() {
           </Animated.View>
         )}
 
-        <Animated.View entering={FadeInDown.delay(150).duration(500)}>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.quickRow}
-          >
-            {superAppSections.map(sec => (
-              <Pressable
-                key={sec.id}
-                style={[styles.quickPill, Platform.OS === 'web' && { cursor: 'pointer' as any }]}
-                onPress={() => {
-                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                  router.push(SECTION_ROUTES[sec.id] as any);
-                }}
-              >
-                <View style={[styles.quickPillIcon, { backgroundColor: sec.color + '20' }]}>
-                  <Ionicons name={sec.icon as any} size={16} color={sec.color} />
-                </View>
-                <Text style={styles.quickPillLabel}>{sec.label}</Text>
-              </Pressable>
-            ))}
-          </ScrollView>
+        <Animated.View entering={FadeInDown.delay(150).duration(500)} style={styles.quickGrid}>
+          {superAppSections.map((sec, i) => (
+            <Pressable
+              key={sec.id}
+              style={[styles.quickBtn, Platform.OS === 'web' && { cursor: 'pointer' as any }]}
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                router.push(SECTION_ROUTES[sec.id] as any);
+              }}
+            >
+              <View style={[styles.quickBtnIcon, { backgroundColor: sec.color + '15' }]}>
+                <Ionicons name={sec.icon as any} size={22} color={sec.color} />
+              </View>
+              <Text style={styles.quickBtnLabel}>{sec.label}</Text>
+            </Pressable>
+          ))}
         </Animated.View>
 
         {discoverLoading && (
@@ -348,7 +342,7 @@ export default function HomeScreen() {
         )}
 
         {featuredEvent && (
-          <Animated.View entering={FadeInDown.delay(200).duration(500)} style={{ paddingHorizontal: 20, marginBottom: 28 }}>
+          <Animated.View entering={FadeInDown.delay(200).duration(500)} style={{ paddingHorizontal: 20, marginBottom: 28, zIndex: 0 }}>
             <SectionHeader title="Cultural Highlight" subtitle="Don't miss this week" />
             <EventCard event={featuredEvent} highlight index={0} />
           </Animated.View>
@@ -645,31 +639,37 @@ const styles = StyleSheet.create({
     marginTop: 3,
     marginLeft: 20,
   },
-  quickRow: {
-    paddingHorizontal: 20,
-    gap: 8,
-    paddingBottom: 24,
-  },
-  quickPill: {
+  quickGrid: {
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    backgroundColor: Colors.surface,
-    borderRadius: 14,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
+    flexWrap: 'wrap',
+    paddingHorizontal: 16,
+    gap: 10,
+    marginBottom: 28,
   },
-  quickPillIcon: {
-    width: 32,
-    height: 32,
-    borderRadius: 10,
+  quickBtn: {
+    width: '30%' as any,
+    flexGrow: 1,
+    alignItems: 'center',
+    backgroundColor: Colors.surface,
+    borderRadius: 16,
+    paddingVertical: 14,
+    paddingHorizontal: 6,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.06)',
+  },
+  quickBtnIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
+    marginBottom: 8,
   },
-  quickPillLabel: {
-    fontSize: 13,
+  quickBtnLabel: {
+    fontSize: 12,
     fontFamily: 'Poppins_500Medium',
     color: Colors.text,
+    textAlign: 'center',
   },
   loadingWrap: {
     alignItems: 'center',
