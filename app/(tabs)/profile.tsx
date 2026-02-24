@@ -15,6 +15,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useOnboarding } from '@/contexts/OnboardingContext';
 import { useSaved } from '@/contexts/SavedContext';
+import { useContacts } from '@/contexts/ContactsContext';
 import Colors from '@/constants/colors';
 import { router } from 'expo-router';
 import * as Haptics from 'expo-haptics';
@@ -128,6 +129,7 @@ export default function ProfileScreen() {
   const topInset = Platform.OS === 'web' ? 67 : insets.top;
   const { state, resetOnboarding } = useOnboarding();
   const { savedEvents, joinedCommunities } = useSaved();
+  const { contacts } = useContacts();
   const [refreshing, setRefreshing] = useState(false);
   const handleRefresh = useCallback(() => {
     setRefreshing(true);
@@ -379,25 +381,37 @@ export default function ProfileScreen() {
             style={styles.quickActionChip}
             onPress={() => {
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-              router.push('/profile/public');
-            }}
-          >
-            <View style={[styles.quickActionIcon, { backgroundColor: Colors.secondary + '12' }]}>
-              <Ionicons name="eye-outline" size={18} color={Colors.secondary} />
-            </View>
-            <Text style={styles.quickActionText}>View Public</Text>
-          </Pressable>
-          <Pressable
-            style={styles.quickActionChip}
-            onPress={() => {
-              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
               router.push('/profile/qr');
             }}
           >
             <View style={[styles.quickActionIcon, { backgroundColor: Colors.secondary + '12' }]}>
               <Ionicons name="qr-code-outline" size={18} color={Colors.secondary} />
             </View>
-            <Text style={styles.quickActionText}>My QR ID</Text>
+            <Text style={styles.quickActionText}>My QR</Text>
+          </Pressable>
+          <Pressable
+            style={styles.quickActionChip}
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              router.push('/scanner');
+            }}
+          >
+            <View style={[styles.quickActionIcon, { backgroundColor: Colors.primary + '12' }]}>
+              <Ionicons name="scan-outline" size={18} color={Colors.primary} />
+            </View>
+            <Text style={styles.quickActionText}>Scan</Text>
+          </Pressable>
+          <Pressable
+            style={styles.quickActionChip}
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              router.push('/contacts' as any);
+            }}
+          >
+            <View style={[styles.quickActionIcon, { backgroundColor: Colors.accent + '12' }]}>
+              <Ionicons name="people-outline" size={18} color={Colors.accent} />
+            </View>
+            <Text style={styles.quickActionText}>Contacts</Text>
           </Pressable>
           <Pressable
             style={styles.quickActionChip}
@@ -406,8 +420,8 @@ export default function ProfileScreen() {
               handleShare();
             }}
           >
-            <View style={[styles.quickActionIcon, { backgroundColor: Colors.accent + '12' }]}>
-              <Ionicons name="share-social-outline" size={18} color={Colors.accent} />
+            <View style={[styles.quickActionIcon, { backgroundColor: Colors.textSecondary + '12' }]}>
+              <Ionicons name="share-social-outline" size={18} color={Colors.textSecondary} />
             </View>
             <Text style={styles.quickActionText}>Share</Text>
           </Pressable>
@@ -419,9 +433,9 @@ export default function ProfileScreen() {
             <Text style={styles.statLabel}>Communities</Text>
           </Pressable>
           <View style={styles.statDivider} />
-          <Pressable style={styles.statCard} onPress={() => router.push('/saved')}>
-            <Text style={styles.statNum}>{savedEvents.length}</Text>
-            <Text style={styles.statLabel}>Saved</Text>
+          <Pressable style={styles.statCard} onPress={() => router.push('/contacts' as any)}>
+            <Text style={styles.statNum}>{contacts.length}</Text>
+            <Text style={styles.statLabel}>Contacts</Text>
           </Pressable>
           <View style={styles.statDivider} />
           <Pressable style={styles.statCard} onPress={() => router.push('/tickets')}>
@@ -429,9 +443,9 @@ export default function ProfileScreen() {
             <Text style={styles.statLabel}>Tickets</Text>
           </Pressable>
           <View style={styles.statDivider} />
-          <Pressable style={styles.statCard} onPress={() => router.push('/payment/wallet')}>
-            <Text style={styles.statNum}>${walletBalance.toFixed(0)}</Text>
-            <Text style={styles.statLabel}>Wallet</Text>
+          <Pressable style={styles.statCard} onPress={() => router.push('/saved')}>
+            <Text style={styles.statNum}>{savedEvents.length}</Text>
+            <Text style={styles.statLabel}>Saved</Text>
           </Pressable>
         </Animated.View>
 
@@ -575,9 +589,16 @@ export default function ProfileScreen() {
               onPress={() => router.push('/saved')}
             />
             <MenuItem
+              icon="people-outline"
+              label="My Contacts"
+              color={Colors.secondary}
+              badge={contacts.length}
+              onPress={() => router.push('/contacts' as any)}
+            />
+            <MenuItem
               icon="scan-outline"
               label="Scanner"
-              color={Colors.secondary}
+              color={Colors.primary}
               onPress={() => router.push('/scanner')}
             />
             <MenuItem

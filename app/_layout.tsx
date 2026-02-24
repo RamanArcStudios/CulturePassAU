@@ -11,6 +11,7 @@ import { queryClient } from "@/lib/query-client";
 import { AuthProvider } from "@/lib/auth";
 import { OnboardingProvider } from "@/contexts/OnboardingContext";
 import { SavedProvider } from "@/contexts/SavedContext";
+import { ContactsProvider } from "@/contexts/ContactsContext";
 
 import {
   useFonts,
@@ -69,6 +70,11 @@ function RootLayoutNav() {
       <Stack.Screen name="perks/index" />
       <Stack.Screen name="notifications/index" />
 
+      {/* Contacts & Scanner */}
+      <Stack.Screen name="contacts/index" />
+      <Stack.Screen name="contacts/[cpid]" />
+      <Stack.Screen name="scanner" />
+
       {/* Help & Legal */}
       <Stack.Screen name="help/index" />
       <Stack.Screen name="legal/terms" />
@@ -103,14 +109,16 @@ export default function RootLayout() {
           <AuthProvider>
             <OnboardingProvider>
               <SavedProvider>
-                <GestureHandlerRootView
-                  style={{ flex: 1 }}
-                  onLayout={onLayoutRootView}
-                >
-                  <KeyboardProvider>
-                    <RootLayoutNav />
-                  </KeyboardProvider>
-                </GestureHandlerRootView>
+                <ContactsProvider>
+                  <GestureHandlerRootView
+                    style={{ flex: 1 }}
+                    onLayout={onLayoutRootView}
+                  >
+                    <KeyboardProvider>
+                      <RootLayoutNav />
+                    </KeyboardProvider>
+                  </GestureHandlerRootView>
+                </ContactsProvider>
               </SavedProvider>
             </OnboardingProvider>
           </AuthProvider>
