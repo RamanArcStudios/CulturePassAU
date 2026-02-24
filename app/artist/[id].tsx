@@ -178,11 +178,7 @@ export default function ArtistDetailScreen() {
               color={Colors.secondary}
               onPress={() => {
                 const q = encodeURIComponent(location);
-                const url = Platform.select({
-                  ios: `http://maps.apple.com/?q=${q}`,
-                  default: `https://www.google.com/maps/search/?api=1&query=${q}`,
-                });
-                Linking.openURL(url!);
+                Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${q}`);
               }}
             />
           ) : (

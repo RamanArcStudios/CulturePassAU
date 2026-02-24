@@ -73,12 +73,7 @@ export default function VenueDetailScreen() {
     if (!profile) return;
     const addr = profile.address || [profile.city, profile.country].filter(Boolean).join(", ");
     if (!addr) return;
-    const url = Platform.select({
-      ios: `maps:0,0?q=${encodeURIComponent(addr)}`,
-      android: `geo:0,0?q=${encodeURIComponent(addr)}`,
-      default: `https://maps.google.com/?q=${encodeURIComponent(addr)}`,
-    });
-    Linking.openURL(url);
+    Linking.openURL(`https://maps.google.com/?q=${encodeURIComponent(addr)}`);
   }, [profile]);
 
   if (isLoading) {
