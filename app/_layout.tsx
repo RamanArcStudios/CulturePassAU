@@ -34,24 +34,21 @@ function RootLayoutNav() {
         headerShadowVisible: false,
       }}
     >
-      {/* Core Navigation Groups */}
       <Stack.Screen name="(onboarding)" />
       <Stack.Screen name="(tabs)" />
 
-      {/* Core Entity Screens */}
       <Stack.Screen name="event/[id]" />
       <Stack.Screen name="community/[id]" />
       <Stack.Screen name="business/[id]" />
       <Stack.Screen name="artist/[id]" />
       <Stack.Screen name="venue/[id]" />
+      <Stack.Screen name="user/[id]" />
 
-      {/* Profile */}
       <Stack.Screen name="profile/[id]" />
       <Stack.Screen name="profile/edit" />
       <Stack.Screen name="profile/public" />
       <Stack.Screen name="profile/qr" />
 
-      {/* Super App Modules */}
       <Stack.Screen name="movies/index" />
       <Stack.Screen name="movies/[id]" />
       <Stack.Screen name="restaurants/index" />
@@ -60,23 +57,34 @@ function RootLayoutNav() {
       <Stack.Screen name="activities/[id]" />
       <Stack.Screen name="shopping/index" />
       <Stack.Screen name="shopping/[id]" />
+      <Stack.Screen name="communities/index" />
 
-      {/* Payments */}
       <Stack.Screen name="payment/methods" />
       <Stack.Screen name="payment/transactions" />
       <Stack.Screen name="payment/wallet" />
 
-      {/* Tickets / Perks / Notifications */}
       <Stack.Screen name="tickets/index" />
+      <Stack.Screen name="tickets/[id]" />
       <Stack.Screen name="perks/index" />
+      <Stack.Screen name="perks/[id]" />
       <Stack.Screen name="notifications/index" />
 
-      {/* Contacts & Scanner */}
       <Stack.Screen name="contacts/index" />
       <Stack.Screen name="contacts/[cpid]" />
       <Stack.Screen name="scanner" />
 
-      {/* Help & Legal */}
+      <Stack.Screen name="search/index" />
+      <Stack.Screen name="saved/index" />
+      <Stack.Screen name="submit/index" />
+      <Stack.Screen name="allevents" />
+      <Stack.Screen name="map" />
+      <Stack.Screen name="membership/upgrade" />
+
+      <Stack.Screen name="settings/about" />
+      <Stack.Screen name="settings/help" />
+      <Stack.Screen name="settings/notifications" />
+      <Stack.Screen name="settings/privacy" />
+
       <Stack.Screen name="help/index" />
       <Stack.Screen name="legal/terms" />
       <Stack.Screen name="legal/privacy" />
