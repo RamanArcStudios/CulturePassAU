@@ -128,7 +128,7 @@ export default function ProfileDetailScreen() {
   });
   const upcomingEvents = matchedEvents.length > 0
     ? matchedEvents.slice(0, 4)
-    : allEventsData.filter(ev => ev.isFeatured || ev.price === 0).slice(0, 4);
+    : allEventsData.filter(ev => ev.isFeatured || ev.priceCents === 0).slice(0, 4);
 
   const stats = [
     profile.followersCount ? { label: 'Followers', value: profile.followersCount } : null,
@@ -353,7 +353,7 @@ export default function ProfileDetailScreen() {
                       <Text style={styles.eventMetaText} numberOfLines={1}>{ev.venue}</Text>
                     </View>
                     <View style={styles.eventBottomRow}>
-                      <Text style={[styles.eventPrice, { color: ev.price === 0 ? '#2ECC71' : entityColor }]}>
+                      <Text style={[styles.eventPrice, { color: ev.priceCents === 0 ? '#2ECC71' : entityColor }]}>
                         {ev.priceLabel}
                       </Text>
                       <View style={styles.eventAttendeesRow}>

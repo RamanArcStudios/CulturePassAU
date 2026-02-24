@@ -64,7 +64,7 @@ export function registerStripeRoutes(app: Express) {
     if (!ticketData || !ticketData.userId || !ticketData.eventId) {
       throw new AppError(ErrorCodes.MISSING_REQUIRED_FIELD, 400, 'Ticket data with userId and eventId is required.');
     }
-    if (!ticketData.totalPrice || ticketData.totalPrice <= 0) {
+    if (!ticketData.totalPriceCents || ticketData.totalPriceCents <= 0) {
       throw new AppError(ErrorCodes.INVALID_AMOUNT, 400, 'A valid ticket price is required.');
     }
 
@@ -94,7 +94,7 @@ export function registerStripeRoutes(app: Express) {
             name: `${ticketData.eventTitle} - ${ticketData.tierName}`,
             description: `${ticketData.quantity}x ticket(s)`,
           },
-          unit_amount: Math.round(ticketData.totalPrice * 100),
+          unit_amount: ticketData.totalPriceCents,
         },
         quantity: 1,
       }],

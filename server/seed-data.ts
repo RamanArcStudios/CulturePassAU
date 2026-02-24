@@ -75,7 +75,7 @@ export async function seedAllData() {
           time: e.time,
           venue: e.venue,
           address: e.address,
-          price: e.price,
+          priceCents: e.priceCents,
           priceLabel: e.priceLabel,
           category: e.category,
           communityTag: e.communityTag,
@@ -197,7 +197,7 @@ export async function seedAllData() {
           category: a.category,
           description: a.description,
           location: a.location,
-          price: a.price,
+          priceCents: a.priceCents,
           priceLabel: a.priceLabel,
           rating: a.rating,
           reviews: a.reviews,
@@ -379,10 +379,10 @@ export async function seedApiEndpoint(_req: Request, res: Response) {
     }
 
     const ticketData = [
-      { userId: demoUser.id, eventId: "evt-001", eventTitle: "Diwali Festival of Lights 2026", eventDate: "2026-10-25", eventTime: "6:00 PM", eventVenue: "Sydney Opera House Forecourt", tierName: "VIP", quantity: 2, totalPrice: 120.00, currency: "AUD", status: "confirmed", imageColor: "#FF6B35" },
-      { userId: demoUser.id, eventId: "evt-002", eventTitle: "Chinese New Year Gala", eventDate: "2026-02-17", eventTime: "7:30 PM", eventVenue: "Melbourne Convention Centre", tierName: "General", quantity: 1, totalPrice: 45.00, currency: "AUD", status: "used", imageColor: "#E74C3C" },
-      { userId: demoUser.id, eventId: "evt-003", eventTitle: "Bollywood Night Live", eventDate: "2026-03-15", eventTime: "8:00 PM", eventVenue: "Darling Harbour Theatre", tierName: "Premium", quantity: 3, totalPrice: 225.00, currency: "AUD", status: "confirmed", imageColor: "#9B59B6" },
-      { userId: demoUser.id, eventId: "evt-004", eventTitle: "Cultural Food Festival", eventDate: "2026-04-10", eventTime: "11:00 AM", eventVenue: "Centennial Park", tierName: "General", quantity: 2, totalPrice: 30.00, currency: "AUD", status: "confirmed", imageColor: "#2ECC71" },
+      { userId: demoUser.id, eventId: "evt-001", eventTitle: "Diwali Festival of Lights 2026", eventDate: "2026-10-25", eventTime: "6:00 PM", eventVenue: "Sydney Opera House Forecourt", tierName: "VIP", quantity: 2, totalPriceCents: 12000, currency: "AUD", status: "confirmed", imageColor: "#FF6B35" },
+      { userId: demoUser.id, eventId: "evt-002", eventTitle: "Chinese New Year Gala", eventDate: "2026-02-17", eventTime: "7:30 PM", eventVenue: "Melbourne Convention Centre", tierName: "General", quantity: 1, totalPriceCents: 4500, currency: "AUD", status: "used", imageColor: "#E74C3C" },
+      { userId: demoUser.id, eventId: "evt-003", eventTitle: "Bollywood Night Live", eventDate: "2026-03-15", eventTime: "8:00 PM", eventVenue: "Darling Harbour Theatre", tierName: "Premium", quantity: 3, totalPriceCents: 22500, currency: "AUD", status: "confirmed", imageColor: "#9B59B6" },
+      { userId: demoUser.id, eventId: "evt-004", eventTitle: "Cultural Food Festival", eventDate: "2026-04-10", eventTime: "11:00 AM", eventVenue: "Centennial Park", tierName: "General", quantity: 2, totalPriceCents: 3000, currency: "AUD", status: "confirmed", imageColor: "#2ECC71" },
     ];
     for (const t of ticketData) {
       await ticketsService.createTicket(t as any);

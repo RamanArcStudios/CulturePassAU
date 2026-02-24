@@ -50,7 +50,7 @@ export default function ExploreScreen() {
     description: event.description,
     imageUrl: event.imageUrl,
     rating: event.attending ? undefined : undefined,
-    priceLabel: event.price === 0 ? 'Free' : event.priceLabel,
+    priceLabel: event.priceCents === 0 ? 'Free' : event.priceLabel,
     isPromoted: event.isFeatured,
     badge: event.communityTag,
     category: event.category,

@@ -268,7 +268,7 @@ export default function TicketDetailScreen() {
               <View style={styles.detailItem}>
                 <Text style={styles.detailLabel}>Total</Text>
                 <Text style={[styles.detailValue, { color: Colors.primary }]}>
-                  ${(ticket.totalPrice || 0).toFixed(2)}
+                  ${((ticket.totalPriceCents || 0) / 100).toFixed(2)}
                 </Text>
               </View>
             </View>

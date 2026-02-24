@@ -35,7 +35,7 @@ type ScanResult = {
     eventVenue: string | null;
     tierName: string | null;
     quantity: number | null;
-    totalPrice: number | null;
+    totalPriceCents: number | null;
     status: string | null;
     ticketCode: string | null;
     scannedAt: string | null;

@@ -24,7 +24,7 @@ export function registerDashboardRoutes(app: Express) {
       const allUsers = await usersService.getAllUsers();
       const allPerks = await perksService.getAllPerks();
 
-      const totalRevenue = allTickets.reduce((sum, t) => sum + (t.totalPrice || 0), 0);
+      const totalRevenue = allTickets.reduce((sum, t) => sum + ((t.totalPriceCents || 0) / 100), 0);
       const platformRevenue = allTickets.reduce((sum, t) => sum + (t.platformFee || 0), 0);
       const organizerRevenue = allTickets.reduce((sum, t) => sum + (t.organizerAmount || 0), 0);
       const scannedTickets = allTickets.filter(t => t.status === 'used').length;
@@ -35,7 +35,7 @@ export function registerDashboardRoutes(app: Express) {
       for (const t of allTickets) {
         const existing = eventMap.get(t.eventId) || { eventId: t.eventId, eventTitle: t.eventTitle, tickets: 0, revenue: 0, scanned: 0, organizerAmount: 0 };
         existing.tickets += (t.quantity || 1);
-        existing.revenue += (t.totalPrice || 0);
+        existing.revenue += ((t.totalPriceCents || 0) / 100);
         existing.organizerAmount += (t.organizerAmount || 0);
         if (t.status === 'used') existing.scanned += (t.quantity || 1);
         eventMap.set(t.eventId, existing);

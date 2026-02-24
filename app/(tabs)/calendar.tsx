@@ -216,7 +216,7 @@ export default function CalendarScreen() {
                   </View>
                   <View style={styles.eventRowPrice}>
                     <Text style={styles.eventRowPriceText}>
-                      {event.price === 0 ? 'Free' : `$${event.price}`}
+                      {event.priceCents === 0 ? 'Free' : `$${(event.priceCents / 100).toFixed(2)}`}
                     </Text>
                   </View>
                 </Pressable>

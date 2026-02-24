@@ -680,7 +680,7 @@ function renderOverview() {
       '<td><strong>' + (t.eventTitle||'-') + '</strong></td>' +
       '<td><span class="ticket-code">' + (t.ticketCode||'-') + '</span></td>' +
       '<td>' + statusBadge(t.status) + '</td>' +
-      '<td>' + formatMoney(t.totalPrice) + '</td>' +
+      '<td>' + formatMoney(t.totalPriceCents / 100) + '</td>' +
     '</tr>'
   ).join('') || '<tr><td colspan="4" style="text-align:center;color:var(--text2);padding:20px">No tickets yet</td></tr>';
 
@@ -724,7 +724,7 @@ function filterTickets() {
       '<td><span class="ticket-code">' + (t.ticketCode||'-') + '</span></td>' +
       '<td>' + (t.tierName||'General') + '</td>' +
       '<td>' + (t.quantity||1) + '</td>' +
-      '<td>' + formatMoney(t.totalPrice) + '</td>' +
+      '<td>' + formatMoney(t.totalPriceCents / 100) + '</td>' +
       '<td>' + formatDate(t.eventDate) + '</td>' +
       '<td>' + statusBadge(t.status) + '</td>' +
       '<td>' + (t.scannedAt ? '<span class="badge badge-info">' + formatDateTime(t.scannedAt) + '</span>' : '<span style="color:var(--text3)">-</span>') + '</td>' +
@@ -764,9 +764,10 @@ async function scanTicketById(code) {
 function showTicketDetail(id) {
   const t = allTickets.find(x => x.id === id);
   if (!t) return;
-  const platformFee = (Number(t.platformFee) || (Number(t.totalPrice)||0) * 0.05);
-  const stripeFee = (Number(t.totalPrice)||0) * 0.029 + 0.30;
-  const organizerAmount = (Number(t.organizerAmount) || (Number(t.totalPrice)||0) - platformFee);
+  const priceInDollars = Number(t.totalPriceCents || 0) / 100;
+  const platformFee = (Number(t.platformFee) || priceInDollars * 0.05);
+  const stripeFee = priceInDollars * 0.029 + 0.30;
+  const organizerAmount = (Number(t.organizerAmount) || priceInDollars - platformFee);
 
   let html = '<div class="detail-grid">' +
     '<div class="detail-item"><div class="detail-label">Event</div><div class="detail-value">' + (t.eventTitle||'-') + '</div></div>' +
@@ -796,7 +797,7 @@ function showTicketDetail(id) {
 
   html += '<div style="margin-top:16px"><h4 style="font-size:14px;font-weight:700;margin-bottom:12px">Payment Breakdown</h4>' +
     '<div class="detail-grid">' +
-      '<div class="detail-item"><div class="detail-label">Total Price</div><div class="detail-value">' + formatMoney(t.totalPrice) + '</div></div>' +
+      '<div class="detail-item"><div class="detail-label">Total Price</div><div class="detail-value">' + formatMoney(t.totalPriceCents / 100) + '</div></div>' +
       '<div class="detail-item"><div class="detail-label">Platform Fee (5%)</div><div class="detail-value">' + formatMoney(platformFee) + '</div></div>' +
       '<div class="detail-item"><div class="detail-label">Stripe Fee (~2.9%+30c)</div><div class="detail-value">' + formatMoney(stripeFee) + '</div></div>' +
       '<div class="detail-item"><div class="detail-label">Organizer Amount</div><div class="detail-value">' + formatMoney(organizerAmount) + '</div></div>' +
@@ -881,7 +882,7 @@ function renderScanHistory() {
 function renderEventsPage() {
   const events = {};
   allTickets.forEach(t => {
-    if (!events[t.eventId]) events[t.eventId] = { title: t.eventTitle, date: t.eventDate, venue: t.eventVenue, category: t.eventCategory||'-', price: t.tierPrice||t.totalPrice, attending: 0, capacity: t.eventCapacity||'-' };
+    if (!events[t.eventId]) events[t.eventId] = { title: t.eventTitle, date: t.eventDate, venue: t.eventVenue, category: t.eventCategory||'-', price: t.tierPrice||(Number(t.totalPriceCents || 0) / 100), attending: 0, capacity: t.eventCapacity||'-' };
     events[t.eventId].attending += (t.quantity || 1);
   });
   const evList = Object.values(events);
@@ -890,7 +891,7 @@ function renderEventsPage() {
     '<div class="stat-card"><div class="label">Total Events</div><div class="value">' + evList.length + '</div></div>' +
     '<div class="stat-card"><div class="label">Total Attendees</div><div class="value">' + evList.reduce((s,e)=>s+e.attending,0) + '</div></div>' +
     '<div class="stat-card"><div class="label">Avg Attendance</div><div class="value">' + (evList.length ? Math.round(evList.reduce((s,e)=>s+e.attending,0)/evList.length) : 0) + '</div></div>' +
-    '<div class="stat-card"><div class="label">Revenue</div><div class="value">' + formatMoney(allTickets.reduce((s,t)=>s+(Number(t.totalPrice)||0),0)) + '</div></div>';
+    '<div class="stat-card"><div class="label">Revenue</div><div class="value">' + formatMoney(allTickets.reduce((s,t)=>s+(Number(t.totalPriceCents || 0)/100),0)) + '</div></div>';
 
   document.getElementById('events-table').innerHTML = evList.map(e =>
     '<tr><td><strong>' + (e.title||'-') + '</strong></td><td>' + formatDate(e.date) + '</td><td>' + (e.venue||'-') + '</td><td>' + e.category + '</td><td>' + formatMoney(e.price) + '</td><td>' + e.attending + '</td><td>' + e.capacity + '</td></tr>'
@@ -922,7 +923,7 @@ function renderAnalytics() {
   const used = s.scannedTickets || allTickets.filter(t => t.status === 'used').length;
   const cancelled = s.cancelledTickets || allTickets.filter(t => t.status === 'cancelled').length;
   const total = s.totalTickets || allTickets.length;
-  const revenue = s.totalRevenue || allTickets.reduce((sum,t) => sum + (Number(t.totalPrice)||0), 0);
+  const revenue = s.totalRevenue || allTickets.reduce((sum,t) => sum + (Number(t.totalPriceCents || 0)/100), 0);
 
   document.getElementById('analytics-stats').innerHTML =
     '<div class="stat-card"><div class="label">Total Tickets</div><div class="value">' + total + '</div></div>' +

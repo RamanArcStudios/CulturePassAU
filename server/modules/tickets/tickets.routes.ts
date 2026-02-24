@@ -100,7 +100,7 @@ export function registerTicketsRoutes(app: Express) {
       throw new AppError(ErrorCodes.TICKET_ALREADY_CANCELLED, 400, 'This ticket has been cancelled and is no longer valid.');
     }
 
-    if (ticket.paymentStatus !== 'paid' && ticket.totalPrice && ticket.totalPrice > 0) {
+    if (ticket.paymentStatus !== 'paid' && ticket.totalPriceCents && ticket.totalPriceCents > 0) {
       throw new AppError(ErrorCodes.PAYMENT_PENDING, 400, 'This ticket has not been paid for yet.');
     }
 

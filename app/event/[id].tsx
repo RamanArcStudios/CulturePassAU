@@ -177,7 +177,7 @@ function EventDetail({ event, topInset, bottomInset }: EventDetailProps) {
   const familySize = 4;
   const familyDiscount = 0.10;
   const groupDiscount = quantity >= 10 ? 0.15 : quantity >= 5 ? 0.10 : 0;
-  const basePrice = selectedTier?.price ?? 0;
+  const basePrice = selectedTier?.priceCents ?? 0;
 
   const rawTotal = buyMode === 'family'
     ? basePrice * familySize
@@ -188,7 +188,7 @@ function EventDetail({ event, topInset, bottomInset }: EventDetailProps) {
   const discountAmount = rawTotal * discountRate;
   const totalPrice = rawTotal - discountAmount;
   const effectiveQty = buyMode === 'family' ? familySize : quantity;
-  const cashbackAmount = isPlus ? totalPrice * 0.02 : 0;
+  const cashbackAmount = isPlus ? (totalPrice / 100) * 0.02 : 0;
 
   const handlePurchase = useCallback(() => {
     const users = usersQuery.data;
@@ -210,7 +210,7 @@ function EventDetail({ event, topInset, bottomInset }: EventDetailProps) {
         eventVenue: event.venue,
         tierName: ticketLabel,
         quantity: effectiveQty,
-        totalPrice: 0,
+        totalPriceCents: 0,
         currency: 'AUD',
         imageColor: (event as any).imageColor ?? Colors.primary,
       });
@@ -226,7 +226,7 @@ function EventDetail({ event, topInset, bottomInset }: EventDetailProps) {
       eventVenue: event.venue,
       tierName: ticketLabel,
       quantity: effectiveQty,
-      totalPrice,
+      totalPriceCents: totalPrice,
       currency: 'AUD',
       imageColor: (event as any).imageColor ?? Colors.primary,
     });
@@ -567,7 +567,7 @@ function EventDetail({ event, topInset, bottomInset }: EventDetailProps) {
               </View>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                 <Text style={styles.tierPrice}>
-                  {tier.price === 0 ? 'Free' : `$${tier.price}`}
+                  {tier.priceCents === 0 ? 'Free' : `$${(tier.priceCents / 100).toFixed(2)}`}
                 </Text>
                 <Ionicons name="chevron-forward" size={16} color={Colors.textTertiary} />
               </View>
@@ -762,7 +762,7 @@ function EventDetail({ event, topInset, bottomInset }: EventDetailProps) {
                       </View>
                     </View>
                     <Text style={[modalStyles.tierOptionPrice, isSelected && { color: Colors.primary }]}>
-                      {tier.price === 0 ? 'Free' : `$${tier.price.toFixed(2)}`}
+                      {tier.priceCents === 0 ? 'Free' : `$${(tier.priceCents / 100).toFixed(2)}`}
                     </Text>
                   </Pressable>
                 );
@@ -804,23 +804,23 @@ function EventDetail({ event, topInset, bottomInset }: EventDetailProps) {
               <View style={modalStyles.priceSummary}>
                 <View style={modalStyles.priceRow}>
                   <Text style={modalStyles.priceRowLabel}>
-                    {effectiveQty}x {selectedTier?.name} @ ${basePrice.toFixed(2)}
+                    {effectiveQty}x {selectedTier?.name} @ ${(basePrice / 100).toFixed(2)}
                   </Text>
-                  <Text style={modalStyles.priceRowValue}>${rawTotal.toFixed(2)}</Text>
+                  <Text style={modalStyles.priceRowValue}>${(rawTotal / 100).toFixed(2)}</Text>
                 </View>
                 {discountAmount > 0 && (
                   <View style={modalStyles.priceRow}>
                     <Text style={[modalStyles.priceRowLabel, { color: '#27AE60' }]}>
                       {buyMode === 'family' ? 'Family' : 'Group'} Discount ({Math.round(discountRate * 100)}%)
                     </Text>
-                    <Text style={[modalStyles.priceRowValue, { color: '#27AE60' }]}>-${discountAmount.toFixed(2)}</Text>
+                    <Text style={[modalStyles.priceRowValue, { color: '#27AE60' }]}>-${(discountAmount / 100).toFixed(2)}</Text>
                   </View>
                 )}
                 <View style={modalStyles.totalDivider} />
                 <View style={modalStyles.priceRow}>
                   <Text style={modalStyles.totalLabel}>Total</Text>
                   <Text style={modalStyles.totalValue}>
-                    {totalPrice === 0 ? 'Free' : `A$${totalPrice.toFixed(2)}`}
+                    {totalPrice === 0 ? 'Free' : `A$${(totalPrice / 100).toFixed(2)}`}
                   </Text>
                 </View>
               </View>
@@ -862,7 +862,7 @@ function EventDetail({ event, topInset, bottomInset }: EventDetailProps) {
                   <>
                     <Ionicons name="card" size={20} color="#FFF" />
                     <Text style={modalStyles.purchaseBtnText}>
-                      Pay A${totalPrice.toFixed(2)}
+                      Pay A${(totalPrice / 100).toFixed(2)}
                     </Text>
                   </>
                 ) : (

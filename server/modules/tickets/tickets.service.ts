@@ -20,7 +20,8 @@ export async function getTicket(id: string): Promise<Ticket | undefined> {
 /** Creates a new ticket with a unique code, QR code, and fee calculations */
 export async function createTicket(data: InsertTicket): Promise<Ticket> {
   const code = `CP-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).substr(2, 4).toUpperCase()}`;
-  const totalPrice = data.totalPrice ? Number(data.totalPrice) : 0;
+  const totalPriceCents = data.totalPriceCents ? Number(data.totalPriceCents) : 0;
+  const totalPrice = totalPriceCents / 100;
   const platformFee = Math.round(totalPrice * 0.05 * 100) / 100;
   const stripeFee = Math.round((totalPrice * 0.029 + 0.30) * 100) / 100;
   const organizerAmount = Math.round((totalPrice - platformFee - stripeFee) * 100) / 100;
@@ -39,9 +40,9 @@ export async function createTicket(data: InsertTicket): Promise<Ticket> {
     ...data,
     ticketCode: code,
     qrCode: qrDataUrl,
-    platformFee: totalPrice > 0 ? platformFee : 0,
-    stripeFee: totalPrice > 0 ? stripeFee : 0,
-    organizerAmount: totalPrice > 0 ? organizerAmount : 0,
+    platformFee: totalPriceCents > 0 ? platformFee : 0,
+    stripeFee: totalPriceCents > 0 ? stripeFee : 0,
+    organizerAmount: totalPriceCents > 0 ? organizerAmount : 0,
   }).returning();
   return t;
 }
@@ -110,15 +111,16 @@ export async function backfillQRCodes(): Promise<number> {
         color: { dark: '#000000', light: '#FFFFFF' },
         errorCorrectionLevel: 'M',
       });
-      const totalPrice = ticket.totalPrice ? Number(ticket.totalPrice) : 0;
+      const totalPriceCents = ticket.totalPriceCents ? Number(ticket.totalPriceCents) : 0;
+      const totalPrice = totalPriceCents / 100;
       const platformFee = Math.round(totalPrice * 0.05 * 100) / 100;
       const stripeFee = Math.round((totalPrice * 0.029 + 0.30) * 100) / 100;
       const organizerAmount = Math.round((totalPrice - platformFee - stripeFee) * 100) / 100;
       await db.update(tickets).set({
         qrCode: qrDataUrl,
-        platformFee: totalPrice > 0 ? platformFee : 0,
-        stripeFee: totalPrice > 0 ? stripeFee : 0,
-        organizerAmount: totalPrice > 0 ? organizerAmount : 0,
+        platformFee: totalPriceCents > 0 ? platformFee : 0,
+        stripeFee: totalPriceCents > 0 ? stripeFee : 0,
+        organizerAmount: totalPriceCents > 0 ? organizerAmount : 0,
       }).where(eq(tickets.id, ticket.id));
       count++;
     } catch {}

@@ -18,7 +18,7 @@ interface Ticket {
   eventVenue: string | null;
   tierName: string | null;
   quantity: number | null;
-  totalPrice: number | null;
+  totalPriceCents: number | null;
   currency: string | null;
   status: string | null;
   ticketCode: string | null;
@@ -151,7 +151,7 @@ export default function TicketsScreen() {
                 {ticket.tierName && <View style={styles.tierBadge}><Text style={styles.tierText}>{ticket.tierName}</Text></View>}
                 <Text style={styles.ticketQty}>{ticket.quantity || 1}x ticket{(ticket.quantity || 1) > 1 ? 's' : ''}</Text>
               </View>
-              <Text style={styles.ticketPrice}>${(ticket.totalPrice || 0).toFixed(2)}</Text>
+              <Text style={styles.ticketPrice}>${((ticket.totalPriceCents || 0) / 100).toFixed(2)}</Text>
             </View>
 
             {ticket.ticketCode && isActive && (
