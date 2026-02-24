@@ -24,7 +24,12 @@ export default function CommunityCard({ community, index = 0 }: CommunityCardPro
   return (
     <Animated.View entering={FadeInDown.delay((index || 0) * 80 + 100).duration(500)}>
       <Pressable
-        style={[styles.card, Platform.OS === 'web' && { cursor: 'pointer' as any }]}
+        style={({ pressed }) => [
+          styles.card,
+          pressed && { opacity: 0.9, transform: [{ scale: 0.97 }] },
+          Platform.OS === 'web' && { cursor: 'pointer' as any },
+          Colors.shadows.small,
+        ]}
         onPress={() =>
           router.push({
             pathname: '/community/[id]',
@@ -32,17 +37,17 @@ export default function CommunityCard({ community, index = 0 }: CommunityCardPro
           })
         }
       >
-        <View style={[styles.iconWrap, { backgroundColor: color + '20' }]}>
+        <View style={[styles.iconWrap, { backgroundColor: color + '15' }]}>
           {community.iconEmoji ? (
-            <Text style={{ fontSize: 22 }}>{community.iconEmoji}</Text>
+            <Text style={{ fontSize: 24 }}>{community.iconEmoji}</Text>
           ) : (
-            <Ionicons name="people" size={22} color={color} />
+            <Ionicons name="people" size={24} color={color} />
           )}
         </View>
         <Text style={styles.name} numberOfLines={1}>
           {community.name}
         </Text>
-        <Text style={styles.members}>{members} members</Text>
+        <Text style={styles.members}>{members.toLocaleString()} members</Text>
         {community.description ? (
           <Text style={styles.description} numberOfLines={2}>
             {community.description}
@@ -55,35 +60,37 @@ export default function CommunityCard({ community, index = 0 }: CommunityCardPro
 
 const styles = StyleSheet.create({
   card: {
-    width: 180,
+    width: 196,
     backgroundColor: Colors.surface,
-    borderRadius: 18,
-    padding: 16,
+    borderRadius: 22,
+    padding: 18,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: Colors.borderLight,
   },
   iconWrap: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 50,
+    height: 50,
+    borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 12,
+    marginBottom: 14,
   },
   name: {
-    fontSize: 15,
+    fontSize: 16,
     fontFamily: 'Poppins_600SemiBold',
-    color: '#FFFFFF',
+    color: Colors.text,
     marginBottom: 4,
   },
   members: {
-    fontSize: 12,
+    fontSize: 13,
     fontFamily: 'Poppins_400Regular',
-    color: '#8E8E93',
-    marginBottom: 8,
+    color: Colors.textSecondary,
+    marginBottom: 10,
   },
   description: {
     fontSize: 12,
     fontFamily: 'Poppins_400Regular',
-    color: '#636366',
-    lineHeight: 17,
+    color: Colors.textTertiary,
+    lineHeight: 18,
   },
 });
