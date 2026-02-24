@@ -1,4 +1,5 @@
 import type { Express, Request, Response } from "express";
+import { routeParam } from "../route-params";
 import * as indigenousService from "./indigenous.service";
 
 export function registerIndigenousRoutes(app: Express) {
@@ -13,7 +14,7 @@ export function registerIndigenousRoutes(app: Express) {
 
   app.get("/api/indigenous/traditional-lands/:city", async (req: Request, res: Response) => {
     try {
-      const city = req.params.city;
+      const city = routeParam(req.params.city);
       const country = (req.query.country as string) || "Australia";
       const result = await indigenousService.getTraditionalLand(city, country);
       if (!result) return res.status(404).json({ error: "Traditional land not found" });

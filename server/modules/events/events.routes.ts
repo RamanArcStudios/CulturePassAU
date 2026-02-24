@@ -1,4 +1,5 @@
 import type { Express, Request, Response } from "express";
+import { routeParam } from "../route-params";
 import * as eventsService from "./events.service";
 
 export function registerEventsRoutes(app: Express) {
@@ -30,7 +31,7 @@ export function registerEventsRoutes(app: Express) {
 
   app.get("/api/events/:id", async (req: Request, res: Response) => {
     try {
-      const event = await eventsService.getEventById(req.params.id);
+      const event = await eventsService.getEventById(routeParam(req.params.id));
       if (!event) return res.status(404).json({ error: "Event not found" });
       res.json(event);
     } catch (e: any) {

@@ -1,4 +1,5 @@
 import type { Express, Request, Response } from "express";
+import { routeParam } from "../route-params";
 import * as shoppingService from "./shopping.service";
 
 export function registerShoppingRoutes(app: Express) {
@@ -18,7 +19,7 @@ export function registerShoppingRoutes(app: Express) {
 
   app.get("/api/shopping/:id", async (req: Request, res: Response) => {
     try {
-      const item = await shoppingService.getShoppingById(req.params.id);
+      const item = await shoppingService.getShoppingById(routeParam(req.params.id));
       if (!item) return res.status(404).json({ error: "Shopping item not found" });
       res.json(item);
     } catch (e: any) {

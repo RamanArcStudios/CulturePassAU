@@ -9,7 +9,6 @@ import { apiRequest, queryClient, getApiUrl } from '@/lib/query-client';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useState } from 'react';
-import * as Clipboard from 'expo-clipboard';
 import { useAuth } from '@/lib/auth';
 
 interface Perk {
@@ -95,6 +94,7 @@ export default function PerkDetailScreen() {
       queryClient.invalidateQueries({ queryKey: ['/api/perks'] });
       queryClient.invalidateQueries({ queryKey: ['/api/redemptions'] });
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      if (!perk) return;
       const code = `CP-${perk.perkType.toUpperCase().replace('_', '')}-${Date.now().toString(36).toUpperCase()}`;
       setCouponCode(code);
       setShowCoupon(true);
@@ -303,7 +303,7 @@ export default function PerkDetailScreen() {
               <Ionicons name="checkmark-circle" size={48} color="#34C759" />
             </View>
             <Text style={styles.couponTitle}>Perk Redeemed!</Text>
-            <Text style={styles.couponSubtitle}>Here's your coupon code</Text>
+            <Text style={styles.couponSubtitle}>Here&apos;s your coupon code</Text>
             <View style={styles.couponCodeWrap}>
               <Text style={styles.couponCodeText}>{couponCode}</Text>
             </View>
@@ -311,9 +311,13 @@ export default function PerkDetailScreen() {
             <Pressable
               style={styles.couponCopyBtn}
               onPress={async () => {
-                await Clipboard.setStringAsync(couponCode);
+                if (Platform.OS === 'web' && typeof navigator !== 'undefined' && navigator.clipboard) {
+                  await navigator.clipboard.writeText(couponCode);
+                  Alert.alert('Copied!', 'Coupon code copied to clipboard.');
+                } else {
+                  Alert.alert('Coupon Code', couponCode);
+                }
                 Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-                Alert.alert('Copied!', 'Coupon code copied to clipboard.');
               }}
             >
               <Ionicons name="copy-outline" size={18} color="#FFF" />

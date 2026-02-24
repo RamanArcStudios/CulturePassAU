@@ -18,7 +18,7 @@ export async function getProfileBySlug(slug: string): Promise<Profile | undefine
 }
 
 /** Returns all profiles matching a specific entity type */
-export async function getProfilesByType(entityType: string): Promise<Profile[]> {
+export async function getProfilesByType(entityType: Profile["entityType"]): Promise<Profile[]> {
   return db.select().from(profiles).where(eq(profiles.entityType, entityType)).orderBy(desc(profiles.createdAt));
 }
 

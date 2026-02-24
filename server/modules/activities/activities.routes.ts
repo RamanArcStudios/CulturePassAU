@@ -1,4 +1,5 @@
 import type { Express, Request, Response } from "express";
+import { routeParam } from "../route-params";
 import * as activitiesService from "./activities.service";
 
 export function registerActivitiesRoutes(app: Express) {
@@ -19,7 +20,7 @@ export function registerActivitiesRoutes(app: Express) {
 
   app.get("/api/activities/:id", async (req: Request, res: Response) => {
     try {
-      const activity = await activitiesService.getActivityById(req.params.id);
+      const activity = await activitiesService.getActivityById(routeParam(req.params.id));
       if (!activity) return res.status(404).json({ error: "Activity not found" });
       res.json(activity);
     } catch (e: any) {
