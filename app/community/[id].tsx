@@ -174,7 +174,7 @@ function DbCommunityView({ community, topInset, bottomInset }: { community: Comm
             </View>
             <Animated.View entering={FadeInDown.delay(300).duration(500)} style={styles.section}>
               <Text style={styles.sectionTitle}>Related Events</Text>
-              {relatedEvents.slice(0, 5).map(event => (
+              {relatedEvents.slice(0, 5).map((event: any) => (
                 <Pressable
                   key={event.id}
                   style={styles.eventCard}
@@ -353,7 +353,7 @@ function MockCommunityView({ community, topInset, bottomInset }: { community: an
             </View>
             <Animated.View entering={FadeInDown.delay(400).duration(500)} style={styles.section}>
               <Text style={styles.sectionTitle}>Upcoming Events</Text>
-              {communityEvents.map(event => (
+              {communityEvents.map((event: any) => (
                 <Pressable
                   key={event.id}
                   style={styles.eventCard}

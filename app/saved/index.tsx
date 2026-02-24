@@ -112,7 +112,7 @@ export default function SavedScreen() {
                 </Pressable>
               </View>
             ) : (
-              savedEventItems.map((event, index) => (
+              savedEventItems.map((event: any, index: number) => (
                 <Animated.View key={event.id} entering={FadeInDown.delay(index * 60).duration(400)}>
                   <Pressable
                     style={styles.eventCard}
@@ -165,7 +165,7 @@ export default function SavedScreen() {
                 </Pressable>
               </View>
             ) : (
-              joinedCommunityItems.map((community, index) => (
+              joinedCommunityItems.map((community: any, index: number) => (
                 <Animated.View key={community.id} entering={FadeInDown.delay(index * 60).duration(400)}>
                   <Pressable
                     style={styles.communityCard}
