@@ -265,8 +265,8 @@ export default function HomeScreen() {
           <Pressable style={styles.iconButton} hitSlop={8} onPress={() => router.push('/search')}>
             <Ionicons name="search" size={22} color={Colors.text} />
           </Pressable>
-          <Pressable style={styles.iconButton} hitSlop={8} onPress={() => router.push('/saved')}>
-            <Ionicons name="bookmark-outline" size={22} color={Colors.text} />
+          <Pressable style={styles.iconButton} hitSlop={8} onPress={() => router.push('/map' as any)}>
+            <Ionicons name="map-outline" size={22} color={Colors.text} />
           </Pressable>
           <Pressable style={styles.iconButton} hitSlop={8} onPress={() => router.push('/notifications')}>
             <Ionicons name="notifications-outline" size={22} color={Colors.text} />
@@ -342,14 +342,14 @@ export default function HomeScreen() {
         )}
 
         {featuredEvent && (
-          <Animated.View entering={FadeInDown.delay(200).duration(500)} style={{ paddingHorizontal: 20, marginBottom: 28, zIndex: 0 }}>
+          <Animated.View entering={FadeInDown.delay(180).duration(500)} style={{ paddingHorizontal: 20, marginBottom: 24 }}>
             <SectionHeader title="Cultural Highlight" subtitle="Don't miss this week" />
             <EventCard event={featuredEvent} highlight index={0} />
           </Animated.View>
         )}
 
         {popularEvents.length > 0 && (
-          <Animated.View entering={FadeInDown.delay(250).duration(500)} style={{ marginBottom: 28 }}>
+          <Animated.View entering={FadeInDown.delay(220).duration(500)} style={{ marginBottom: 24 }}>
             <View style={{ paddingHorizontal: 20 }}>
               <SectionHeader
                 title="Popular Near You"
@@ -368,65 +368,8 @@ export default function HomeScreen() {
           </Animated.View>
         )}
 
-        {cultureCards.length > 0 && (
-          <Animated.View entering={FadeInDown.delay(300).duration(500)} style={{ marginBottom: 28 }}>
-            <View style={{ paddingHorizontal: 20 }}>
-              <SectionHeader title="Explore Your Culture" />
-            </View>
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={{ paddingHorizontal: 20, gap: 10 }}
-            >
-              {cultureCards.map((item: any) => (
-                <CategoryCard
-                  key={item.id}
-                  item={item}
-                  onPress={() => router.push({ pathname: '/community/[id]', params: { id: item.id } })}
-                />
-              ))}
-            </ScrollView>
-          </Animated.View>
-        )}
-
-        <Animated.View entering={FadeInDown.delay(320).duration(500)} style={{ marginBottom: 28 }}>
-          <View style={{ paddingHorizontal: 20 }}>
-            <SectionHeader title="Browse Categories" />
-          </View>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={{ paddingHorizontal: 20, gap: 10 }}
-          >
-            {browseCategories.map(cat => (
-              <CategoryCard
-                key={cat.id}
-                item={cat}
-                onPress={() => router.push('/(tabs)/explore')}
-              />
-            ))}
-          </ScrollView>
-        </Animated.View>
-
-        {spotlights.length > 0 && (
-          <Animated.View entering={FadeInDown.delay(340).duration(500)} style={{ marginBottom: 28 }}>
-            <View style={{ paddingHorizontal: 20 }}>
-              <SectionHeader title="First Nations Spotlight" subtitle="Celebrating Indigenous culture" />
-            </View>
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={{ paddingHorizontal: 20, gap: 14 }}
-            >
-              {spotlights.map((item: any, i: number) => (
-                <SpotlightCard key={item.id} item={item} index={i} />
-              ))}
-            </ScrollView>
-          </Animated.View>
-        )}
-
         {allCommunities.length > 0 && (
-          <Animated.View entering={FadeInDown.delay(360).duration(500)} style={{ marginBottom: 28 }}>
+          <Animated.View entering={FadeInDown.delay(260).duration(500)} style={{ marginBottom: 24 }}>
             <View style={{ paddingHorizontal: 20 }}>
               <SectionHeader
                 title="Cultural Communities"
@@ -446,8 +389,46 @@ export default function HomeScreen() {
           </Animated.View>
         )}
 
+        {spotlights.length > 0 && (
+          <Animated.View entering={FadeInDown.delay(300).duration(500)} style={{ marginBottom: 24 }}>
+            <View style={{ paddingHorizontal: 20 }}>
+              <SectionHeader title="First Nations Spotlight" subtitle="Celebrating Indigenous culture" />
+            </View>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={{ paddingHorizontal: 20, gap: 14 }}
+            >
+              {spotlights.map((item: any, i: number) => (
+                <SpotlightCard key={item.id} item={item} index={i} />
+              ))}
+            </ScrollView>
+          </Animated.View>
+        )}
+
+        {cultureCards.length > 0 && (
+          <Animated.View entering={FadeInDown.delay(340).duration(500)} style={{ marginBottom: 24 }}>
+            <View style={{ paddingHorizontal: 20 }}>
+              <SectionHeader title="Explore Your Culture" />
+            </View>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={{ paddingHorizontal: 20, gap: 10 }}
+            >
+              {cultureCards.map((item: any) => (
+                <CategoryCard
+                  key={item.id}
+                  item={item}
+                  onPress={() => router.push({ pathname: '/community/[id]', params: { id: item.id } })}
+                />
+              ))}
+            </ScrollView>
+          </Animated.View>
+        )}
+
         {otherSections.filter(s => s.type === 'events' || s.type === 'mixed').map((section) => (
-          <Animated.View key={section.title} entering={FadeInDown.delay(380).duration(500)} style={{ marginBottom: 28 }}>
+          <Animated.View key={section.title} entering={FadeInDown.delay(380).duration(500)} style={{ marginBottom: 24 }}>
             <View style={{ paddingHorizontal: 20 }}>
               <SectionHeader title={section.title} subtitle={section.subtitle} />
             </View>
@@ -463,7 +444,26 @@ export default function HomeScreen() {
           </Animated.View>
         ))}
 
-        <Animated.View entering={FadeInDown.delay(400).duration(500)} style={{ marginBottom: 28 }}>
+        <Animated.View entering={FadeInDown.delay(400).duration(500)} style={{ marginBottom: 24 }}>
+          <View style={{ paddingHorizontal: 20 }}>
+            <SectionHeader title="Browse Categories" />
+          </View>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={{ paddingHorizontal: 20, gap: 10 }}
+          >
+            {browseCategories.map(cat => (
+              <CategoryCard
+                key={cat.id}
+                item={cat}
+                onPress={() => router.push('/(tabs)/explore')}
+              />
+            ))}
+          </ScrollView>
+        </Animated.View>
+
+        <Animated.View entering={FadeInDown.delay(420).duration(500)} style={{ marginBottom: 24 }}>
           <View style={{ paddingHorizontal: 20 }}>
             <SectionHeader title="Explore Cities" subtitle="Discover culture worldwide" />
           </View>
