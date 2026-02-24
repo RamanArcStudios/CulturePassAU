@@ -105,8 +105,8 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.surfaceSecondary,
   },
   highlight: {
-    width: 280,
-    height: 290,
+    width: '100%',
+    height: 320,
     borderWidth: 1.5,
     borderColor: 'rgba(255, 215, 0, 0.5)',
   },
