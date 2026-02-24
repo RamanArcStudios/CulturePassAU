@@ -5,6 +5,9 @@ This matrix maps key app routes to the API endpoints they consume so dead links 
 | Route | Endpoint(s) |
 |---|---|
 | `/(tabs)/index`, `/allevents`, `/map`, `/search` | `GET /api/events`, `GET /api/communities`, `GET /api/discover/:userId`, `GET /api/indigenous/traditional-lands`, `GET /api/indigenous/spotlights`, `GET /api/search`, `GET /api/search/suggest` |
+| `/event/[id]` | `GET /api/events/:id`, `POST /api/tickets`, `POST /api/stripe/create-checkout-session`, `GET /api/ticket/:id` |
+| `/saved` | `GET /api/events`, `GET /api/communities` |
+| `/tickets`, `/tickets/[id]` | `GET /api/tickets/:userId`, `GET /api/tickets/:userId/count`, `GET /api/ticket/:id`, `GET /api/tickets/:id/history`, `PUT /api/tickets/:id/cancel`, `GET /api/tickets/:id/wallet/apple`, `GET /api/tickets/:id/wallet/google`, `POST /api/stripe/refund` |
 | `/(tabs)/index`, `/allevents`, `/map`, `/search` | `GET /api/events`, `GET /api/communities`, `GET /api/discover/:userId`, `GET /api/indigenous/traditional-lands`, `GET /api/indigenous/spotlights` |
 | `/event/[id]` | `GET /api/events/:id`, `POST /api/tickets`, `POST /api/stripe/create-checkout-session`, `GET /api/ticket/:id` |
 | `/saved` | `GET /api/events`, `GET /api/communities` |

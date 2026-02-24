@@ -59,6 +59,10 @@ This document describes the initial productionization backend scaffold added for
 - `POST /api/tickets`
 - `PUT /api/tickets/:id/cancel`
 - `POST /api/tickets/scan`
+- `GET /api/tickets/:id/history`
+- `GET /api/tickets/admin/scan-events`
+- `GET /api/tickets/:id/wallet/apple`
+- `GET /api/tickets/:id/wallet/google`
 
 ## Perks and Reviews
 - `GET /api/perks`
@@ -113,6 +117,7 @@ This document describes the initial productionization backend scaffold added for
 ## Stripe placeholders
 - `POST /api/stripe/create-checkout-session`
 - `POST /api/stripe/refund`
+- `POST /api/stripe/webhook`
 
 ## Moderation and governance baseline
 - IP-based rate limiting middleware on API requests.

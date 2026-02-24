@@ -17,6 +17,7 @@ import {
 
 type EntityType = 'community' | 'business' | 'venue' | 'artist' | 'organisation';
 type TicketStatus = 'confirmed' | 'used' | 'cancelled' | 'expired';
+type TicketPriority = 'low' | 'normal' | 'high' | 'vip';
 
 type AppUser = {
   id: string;
@@ -73,6 +74,14 @@ type AppTicket = {
   totalPriceCents: number;
   currency: string;
   status: TicketStatus;
+  paymentStatus?: 'pending' | 'paid' | 'refunded' | 'failed';
+  priority: TicketPriority;
+  ticketCode: string;
+  scanCount?: number;
+  lastScannedAt?: string;
+  staffAuditTrail?: Array<{ at: string; by: string; action: string; note?: string }>;
+  stripePaymentIntentId?: string;
+  walletPasses?: { apple?: string; google?: string };
   ticketCode: string;
   imageColor?: string;
   createdAt: string;
@@ -128,6 +137,10 @@ const privacySettings = new Map<string, Record<string, boolean>>();
 const wallets = new Map<string, { id: string; userId: string; balance: number; currency: string; points: number }>();
 const memberships = new Map<string, { id: string; userId: string; tier: 'free' | 'plus' | 'premium'; isActive: boolean; validUntil?: string }>();
 const notifications = new Map<string, Array<{ id: string; userId: string; title: string; message: string; type: string; isRead: boolean; metadata: Record<string, unknown> | null; createdAt: string }>>();
+const tickets: AppTicket[] = [];
+const paymentMethods = new Map<string, Array<{ id: string; brand: string; last4: string; isDefault: boolean }>>();
+const transactions = new Map<string, Array<{ id: string; type: 'charge' | 'refund'; amountCents: number; createdAt: string; description: string }>>();
+const scanEvents: Array<{ id: string; ticketId: string; ticketCode: string; scannedAt: string; scannedBy: string; outcome: 'accepted' | 'duplicate' | 'rejected' }> = [];
 const notifications = new Map<string, Array<{ id: string; title: string; message: string; read: boolean; createdAt: string }>>();
 const tickets: AppTicket[] = [];
 const paymentMethods = new Map<string, Array<{ id: string; brand: string; last4: string; isDefault: boolean }>>();
@@ -468,6 +481,10 @@ app.post('/api/tickets', (req, res) => {
   const eventId = String(req.body?.eventId ?? events[0].id);
   const event = events.find((e) => e.id === eventId);
   if (!event) return res.status(404).json({ error: 'Event not found' });
+  const amount = Number(req.body?.totalPriceCents ?? 2500);
+  const quantity = Number(req.body?.quantity ?? 1);
+  const isVip = Number(req.body?.totalPriceCents ?? 0) >= 10_000;
+
   const ticket: AppTicket = {
     id: randomUUID(),
     userId,
@@ -477,6 +494,17 @@ app.post('/api/tickets', (req, res) => {
     eventTime: event.time,
     eventVenue: event.venue,
     tierName: String(req.body?.tierName ?? 'General'),
+    quantity,
+    totalPriceCents: amount,
+    currency: 'AUD',
+    status: 'confirmed',
+    paymentStatus: 'paid',
+    priority: isVip ? 'vip' : quantity >= 5 ? 'high' : 'normal',
+    ticketCode: `CP-T-${Math.random().toString(36).slice(2, 8).toUpperCase()}`,
+    scanCount: 0,
+    staffAuditTrail: [{ at: nowIso(), by: 'system', action: 'ticket_created', note: 'Ticket created and paid' }],
+    stripePaymentIntentId: `pi_mock_${randomUUID().slice(0, 8)}`,
+    walletPasses: {},
     quantity: Number(req.body?.quantity ?? 1),
     totalPriceCents: Number(req.body?.totalPriceCents ?? 2500),
     currency: 'AUD',
@@ -495,6 +523,11 @@ app.post('/api/tickets', (req, res) => {
 app.put('/api/tickets/:id/cancel', (req, res) => {
   const ticket = tickets.find((t) => t.id === req.params.id);
   if (!ticket) return res.status(404).json({ error: 'Ticket not found' });
+  if (ticket.status === 'used') return res.status(400).json({ error: 'Used tickets cannot be cancelled' });
+  ticket.status = 'cancelled';
+  ticket.paymentStatus = 'refunded';
+  ticket.history.unshift({ at: nowIso(), status: 'cancelled', note: 'Cancelled by user' });
+  ticket.staffAuditTrail?.unshift({ at: nowIso(), by: String(req.body?.cancelledBy ?? 'user'), action: 'ticket_cancelled' });
   ticket.status = 'cancelled';
   ticket.history.unshift({ at: nowIso(), status: 'cancelled', note: 'Cancelled by user' });
   const tx = transactions.get(ticket.userId) ?? [];
@@ -504,6 +537,53 @@ app.put('/api/tickets/:id/cancel', (req, res) => {
 });
 app.post('/api/tickets/scan', (req, res) => {
   const ticketCode = String(req.body?.ticketCode ?? '').trim();
+  const scannedBy = String(req.body?.scannedBy ?? 'staff');
+  const ticket = tickets.find((t) => t.ticketCode === ticketCode);
+  if (!ticket) {
+    scanEvents.unshift({ id: randomUUID(), ticketId: 'unknown', ticketCode, scannedAt: nowIso(), scannedBy, outcome: 'rejected' });
+    return res.status(404).json({ valid: false, error: 'Invalid ticket code' });
+  }
+  if (ticket.status !== 'confirmed') {
+    scanEvents.unshift({ id: randomUUID(), ticketId: ticket.id, ticketCode, scannedAt: nowIso(), scannedBy, outcome: ticket.status === 'used' ? 'duplicate' : 'rejected' });
+    return res.status(400).json({ valid: false, error: `Ticket is ${ticket.status}`, ticket });
+  }
+  ticket.status = 'used';
+  ticket.scanCount = Number(ticket.scanCount ?? 0) + 1;
+  ticket.lastScannedAt = nowIso();
+  ticket.history.unshift({ at: nowIso(), status: 'used', note: `Scanned by ${scannedBy}` });
+  ticket.staffAuditTrail?.unshift({ at: nowIso(), by: scannedBy, action: 'ticket_scanned' });
+  scanEvents.unshift({ id: randomUUID(), ticketId: ticket.id, ticketCode, scannedAt: nowIso(), scannedBy, outcome: 'accepted' });
+  res.json({ valid: true, message: 'Ticket scanned successfully', ticket });
+});
+
+app.get('/api/tickets/:id/history', (req, res) => {
+  const ticket = tickets.find((t) => t.id === req.params.id);
+  if (!ticket) return res.status(404).json({ error: 'Ticket not found' });
+  res.json({ history: ticket.history, staffAuditTrail: ticket.staffAuditTrail ?? [] });
+});
+
+app.get('/api/tickets/admin/scan-events', (_req, res) => {
+  res.json(scanEvents.slice(0, 200));
+});
+
+app.get('/api/tickets/:id/wallet/apple', (req, res) => {
+  const ticket = tickets.find((t) => t.id === req.params.id);
+  if (!ticket) return res.status(404).json({ error: 'Ticket not found' });
+  const url = `https://wallet.culturepass.au/apple/${ticket.id}`;
+  ticket.walletPasses = { ...(ticket.walletPasses ?? {}), apple: url };
+  ticket.staffAuditTrail?.unshift({ at: nowIso(), by: 'user', action: 'apple_wallet_pass_generated' });
+  res.json({ url, provider: 'apple', ticketId: ticket.id });
+});
+
+app.get('/api/tickets/:id/wallet/google', (req, res) => {
+  const ticket = tickets.find((t) => t.id === req.params.id);
+  if (!ticket) return res.status(404).json({ error: 'Ticket not found' });
+  const url = `https://wallet.culturepass.au/google/${ticket.id}`;
+  ticket.walletPasses = { ...(ticket.walletPasses ?? {}), google: url };
+  ticket.staffAuditTrail?.unshift({ at: nowIso(), by: 'user', action: 'google_wallet_pass_generated' });
+  res.json({ url, provider: 'google', ticketId: ticket.id });
+});
+
   const ticket = tickets.find((t) => t.ticketCode === ticketCode);
   if (!ticket) return res.status(404).json({ valid: false, error: 'Invalid ticket code' });
   if (ticket.status !== 'confirmed') {
@@ -847,6 +927,51 @@ app.get('/api/search/suggest', (req, res) => {
   const suggestions = runSuggest(getSearchCorpus(), q, 8);
   searchCache.set(key, suggestions, 30_000);
   return res.json({ suggestions, cached: false });
+});
+
+app.post('/api/stripe/create-checkout-session', (req, res) => {
+  const ticket = req.body?.ticketData ?? {};
+  const draftId = randomUUID();
+  res.json({ checkoutUrl: 'https://checkout.stripe.com/mock-session', ticketId: draftId, paymentIntentId: `pi_mock_${draftId.slice(0, 8)}`, ticket });
+});
+app.post('/api/stripe/refund', (req, res) => {
+  const ticketId = String(req.body?.ticketId ?? '');
+  const ticket = tickets.find((t) => t.id === ticketId);
+  if (!ticket) return res.status(404).json({ error: 'Ticket not found' });
+  if (ticket.status === 'used') return res.status(400).json({ error: 'Cannot refund used ticket' });
+
+  ticket.status = 'cancelled';
+  ticket.paymentStatus = 'refunded';
+  ticket.history.unshift({ at: nowIso(), status: 'cancelled', note: 'Refund processed via Stripe endpoint' });
+  ticket.staffAuditTrail?.unshift({ at: nowIso(), by: 'system', action: 'stripe_refund_processed' });
+
+  const tx = transactions.get(ticket.userId) ?? [];
+  tx.unshift({ id: randomUUID(), type: 'refund', amountCents: ticket.totalPriceCents, createdAt: nowIso(), description: `Refund: ${ticket.eventTitle}` });
+  transactions.set(ticket.userId, tx);
+
+  return res.json({ ok: true, ticketId, refundId: `re_mock_${randomUUID().slice(0, 8)}` });
+});
+
+app.post('/api/stripe/webhook', (req, res) => {
+  const eventType = String(req.body?.type ?? '');
+  const ticketId = String(req.body?.data?.object?.metadata?.ticketId ?? '');
+  const ticket = tickets.find((t) => t.id === ticketId);
+
+  if (ticket) {
+    if (eventType === 'payment_intent.succeeded') {
+      ticket.paymentStatus = 'paid';
+      ticket.history.unshift({ at: nowIso(), status: ticket.status, note: 'Stripe webhook: payment succeeded' });
+    }
+    if (eventType === 'charge.refunded') {
+      ticket.paymentStatus = 'refunded';
+      ticket.status = 'cancelled';
+      ticket.history.unshift({ at: nowIso(), status: 'cancelled', note: 'Stripe webhook: refund completed' });
+    }
+    ticket.staffAuditTrail?.unshift({ at: nowIso(), by: 'stripe_webhook', action: eventType });
+  }
+
+  return res.json({ received: true });
+});
   const q = String(req.query.q ?? '').trim();
   const type = String(req.query.type ?? 'all');
   const city = String(req.query.city ?? '');
