@@ -1,4 +1,4 @@
-import { View, Text, Pressable, StyleSheet, ScrollView, Platform, Image, ActivityIndicator } from 'react-native';
+import { View, Text, Pressable, StyleSheet, ScrollView, Platform, Image, ActivityIndicator, RefreshControlProps } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -11,6 +11,7 @@ export interface CategoryFilter {
   label: string;
   icon: string;
   color: string;
+  count?: number;
 }
 
 export interface BrowseItem {
@@ -43,7 +44,7 @@ interface BrowsePageProps {
   renderItemExtra?: (item: BrowseItem) => React.ReactNode;
   emptyMessage?: string;
   emptyIcon?: string;
-  refreshControl?: React.ReactElement;
+  refreshControl?: React.ReactElement<RefreshControlProps>;
 }
 
 export default function BrowsePage({
@@ -143,11 +144,7 @@ export default function BrowsePage({
         )}
 
         {categories.length > 0 && (
-          <View style={styles.section}>
-            <View style={styles.sectionHead}>
-              <View style={[styles.sectionDot, { backgroundColor: accentColor }]} />
-              <Text style={styles.sectionTitle}>Browse</Text>
-            </View>
+          <View style={styles.catSection}>
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
@@ -155,6 +152,13 @@ export default function BrowsePage({
             >
               {categories.map((c) => {
                 const isActive = selectedCat === c.label;
+                const count = c.label === 'All'
+                  ? items.length
+                  : items.filter((item) => {
+                      const val = item[categoryKey];
+                      if (Array.isArray(val)) return val.includes(c.label);
+                      return val === c.label;
+                    }).length;
                 return (
                   <Pressable
                     key={c.label}
@@ -169,8 +173,11 @@ export default function BrowsePage({
                       setSelectedCat(c.label);
                     }}
                   >
-                    <Ionicons name={c.icon as any} size={15} color={isActive ? '#FFF' : c.color} />
+                    <Ionicons name={c.icon as any} size={14} color={isActive ? '#FFF' : c.color} />
                     <Text style={[styles.catText, isActive && { color: '#FFF' }]}>{c.label}</Text>
+                    <View style={[styles.catCount, isActive ? { backgroundColor: 'rgba(255,255,255,0.25)' } : { backgroundColor: c.color + '18' }]}>
+                      <Text style={[styles.catCountText, { color: isActive ? '#FFF' : c.color }]}>{count}</Text>
+                    </View>
                   </Pressable>
                 );
               })}
@@ -391,16 +398,20 @@ const styles = StyleSheet.create({
     fontFamily: 'Poppins_600SemiBold',
     color: Colors.textSecondary,
   },
+  catSection: {
+    marginBottom: 20,
+  },
   catRow: {
     paddingHorizontal: 20,
-    gap: 8,
-    paddingBottom: 6,
+    gap: 10,
+    paddingVertical: 4,
   },
   catChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 14,
+    gap: 7,
+    paddingLeft: 12,
+    paddingRight: 6,
     paddingVertical: 8,
     borderRadius: 50,
     borderWidth: 1,
@@ -409,6 +420,18 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontFamily: 'Poppins_600SemiBold',
     color: Colors.text,
+  },
+  catCount: {
+    minWidth: 22,
+    height: 22,
+    borderRadius: 11,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 5,
+  },
+  catCountText: {
+    fontSize: 11,
+    fontFamily: 'Poppins_700Bold',
   },
   listSection: {
     paddingHorizontal: 20,
