@@ -5,17 +5,14 @@ import {
   StyleSheet,
   ScrollView,
   Platform,
-  Share,
   RefreshControl,
   Image,
   ActivityIndicator,
-  Dimensions,
 } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useOnboarding } from '@/contexts/OnboardingContext';
-import { useSaved } from '@/contexts/SavedContext';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
@@ -32,7 +29,6 @@ import CityCard from '@/components/Discover/CityCard';
 import Colors from '@/constants/colors';
 
 const isWeb = Platform.OS === 'web';
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 const superAppSections = [
   { id: 'movies', label: 'Movies', icon: 'film', color: '#C0392B', route: '/movies' },

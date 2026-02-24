@@ -60,7 +60,6 @@ function parseVCard(data: string): CulturePassContact | null {
   let name = '';
   let org = '';
   let cpid = '';
-  let email = '';
 
   for (const line of lines) {
     if (line.startsWith('FN:')) name = line.substring(3).trim();
