@@ -89,6 +89,7 @@ function RootLayoutNav() {
       <Stack.Screen name="legal/terms" />
       <Stack.Screen name="legal/privacy" />
       <Stack.Screen name="legal/cookies" />
+      <Stack.Screen name="legal/guidelines" />
     </Stack>
   );
 }

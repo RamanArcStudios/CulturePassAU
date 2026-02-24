@@ -84,7 +84,7 @@ export default function SettingsHelpScreen() {
         <Animated.View entering={FadeInDown.delay(400).duration(400)} style={styles.section}>
           <Pressable style={styles.guidelinesCard} onPress={() => {
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-            Linking.openURL('https://culturepass.com/guidelines');
+            router.push('/legal/guidelines');
           }}>
             <View style={[styles.contactIcon, { backgroundColor: '#9B59B615' }]}>
               <Ionicons name="book-outline" size={20} color="#9B59B6" />
