@@ -128,7 +128,7 @@ export default function LoginScreen() {
           </View>
 
           <Pressable style={styles.switchRow} onPress={() => router.replace('/(onboarding)/signup')}>
-            <Text style={styles.switchText}>Don't have an account? <Text style={styles.switchLink}>Sign Up</Text></Text>
+            <Text style={styles.switchText}>Don&apos;t have an account? <Text style={styles.switchLink}>Sign Up</Text></Text>
           </Pressable>
         </ScrollView>
       </View>

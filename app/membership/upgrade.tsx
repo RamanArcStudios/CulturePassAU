@@ -197,14 +197,14 @@ export default function UpgradeScreen() {
                 {billingPeriod === 'yearly' ? '/year' : '/month'}
               </Text>
               {billingPeriod === 'yearly' && (
-                <Text style={styles.priceBreakdown}>That's just {perMonth}/month</Text>
+                <Text style={styles.priceBreakdown}>That&apos;s just {perMonth}/month</Text>
               )}
             </View>
           </Animated.View>
         )}
 
         <Animated.View entering={FadeInDown.delay(400).duration(500)} style={styles.comparisonSection}>
-          <Text style={styles.sectionTitle}>What's Included</Text>
+          <Text style={styles.sectionTitle}>What&apos;s Included</Text>
 
           <View style={styles.comparisonHeader}>
             <View style={{ flex: 1 }} />
@@ -268,7 +268,7 @@ export default function UpgradeScreen() {
           <Animated.View entering={FadeInUp.delay(200).duration(500)} style={styles.activeSection}>
             <View style={styles.activeBadge}>
               <Ionicons name="checkmark-circle" size={20} color="#34C759" />
-              <Text style={styles.activeText}>You're a CulturePass+ member</Text>
+              <Text style={styles.activeText}>You&apos;re a CulturePass+ member</Text>
             </View>
             <Text style={styles.activeSubtext}>Thank you for being part of the CulturePass+ community.</Text>
             <Pressable style={styles.cancelBtn} onPress={handleCancel} disabled={loading}>

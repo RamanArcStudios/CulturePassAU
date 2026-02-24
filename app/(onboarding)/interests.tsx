@@ -47,7 +47,7 @@ export default function InterestsScreen() {
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         <Animated.View entering={isWeb ? undefined : FadeInDown.delay(100).duration(600)}>
           <Text style={styles.title}>What interests you?</Text>
-          <Text style={styles.subtitle}>We'll personalize your feed with events and content that match your passions.</Text>
+          <Text style={styles.subtitle}>We&apos;ll personalize your feed with events and content that match your passions.</Text>
         </Animated.View>
 
         <Animated.View entering={isWeb ? undefined : FadeInDown.delay(200).duration(600)} style={styles.grid}>

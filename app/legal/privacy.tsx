@@ -41,7 +41,7 @@ export default function PrivacyScreen() {
           </View>
           <Text style={styles.introTitle}>Privacy Policy</Text>
           <Text style={styles.introDate}>Last updated: 1 February 2026</Text>
-          <Text style={styles.introPara}>CulturePass Pty Ltd ("we", "our", "us") is committed to protecting your privacy. This policy explains how we collect, use, and safeguard your personal information.</Text>
+          <Text style={styles.introPara}>CulturePass Pty Ltd (&quot;we&quot;, &quot;our&quot;, &quot;us&quot;) is committed to protecting your privacy. This policy explains how we collect, use, and safeguard your personal information.</Text>
         </Animated.View>
 
         {SECTIONS.map((s, i) => (

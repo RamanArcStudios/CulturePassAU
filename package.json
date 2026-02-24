@@ -13,7 +13,8 @@
     "db:push": "drizzle-kit push",
     "start": "npx expo start",
     "lint": "npx expo lint",
-    "lint:fix": "npx expo lint --fix"
+    "lint:fix": "npx expo lint --fix",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@expo-google-fonts/poppins": "^0.4.1",

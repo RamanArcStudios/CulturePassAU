@@ -116,7 +116,7 @@ export default function NotificationsScreen() {
           <View style={styles.emptyState}>
             <Ionicons name="notifications-off-outline" size={48} color={Colors.textTertiary} />
             <Text style={styles.emptyText}>No notifications yet</Text>
-            <Text style={styles.emptySubtext}>We'll let you know when something happens</Text>
+            <Text style={styles.emptySubtext}>We&apos;ll let you know when something happens</Text>
           </View>
         ) : (
           notifications.map((notif, i) => {
