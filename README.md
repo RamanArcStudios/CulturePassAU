@@ -21,6 +21,8 @@ A cross-platform Expo + React Native app connecting cultural diaspora communitie
 Detailed architecture notes: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)
 
 Full product documentation: [`docs/APP_DOCUMENTATION.md`](docs/APP_DOCUMENTATION.md)
+codex/create-robots.txt-file-for-seo-odit54
+Enhancement roadmap: [`docs/PROJECT_ENHANCEMENT_PLAN.md`](docs/PROJECT_ENHANCEMENT_PLAN.md)
 
 ## Quick start
 

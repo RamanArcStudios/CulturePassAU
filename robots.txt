@@ -48,4 +48,5 @@ User-agent: Google-Extended
 Allow: /
 
 # Sitemap (helps ALL engines discover your events/community pages dynamically)
-Sitemap: https://ramanarcstudios.com/sitemap.xml
+ codex/create-robots.txt-file-for-seo-odit54
+Sitemap: https://culturepass.au/sitemap.xml
