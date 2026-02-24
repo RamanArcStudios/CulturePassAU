@@ -31,12 +31,12 @@ import Colors from '@/constants/colors';
 const isWeb = Platform.OS === 'web';
 
 const superAppSections = [
-  { id: 'movies', label: 'Movies', icon: 'film', color: '#C0392B', route: '/movies' },
-  { id: 'restaurants', label: 'Restaurants', icon: 'restaurant', color: '#E85D3A', route: '/restaurants' },
-  { id: 'activities', label: 'Activities', icon: 'compass', color: '#F2A93B', route: '/activities' },
-  { id: 'shopping', label: 'Shopping', icon: 'bag-handle', color: '#9B59B6', route: '/shopping' },
-  { id: 'events', label: 'Events', icon: 'calendar', color: '#1A7A6D', route: '/explore' },
-  { id: 'directory', label: 'Directory', icon: 'storefront', color: '#3498DB', route: '/directory' },
+  { id: 'movies', label: 'Movies', icon: 'film', color: '#FF3B30', route: '/movies' },
+  { id: 'restaurants', label: 'Dining', icon: 'restaurant', color: '#FF9500', route: '/restaurants' },
+  { id: 'activities', label: 'Activities', icon: 'compass', color: '#34C759', route: '/activities' },
+  { id: 'shopping', label: 'Shopping', icon: 'bag-handle', color: '#AF52DE', route: '/shopping' },
+  { id: 'events', label: 'Events', icon: 'calendar', color: '#007AFF', route: '/explore' },
+  { id: 'directory', label: 'Directory', icon: 'storefront', color: '#5856D6', route: '/directory' },
 ];
 
 const SECTION_ROUTES: Record<string, string> = {
@@ -102,8 +102,13 @@ function SectionHeader({ title, subtitle, onSeeAll }: { title: string; subtitle?
         {subtitle ? <Text style={styles.sectionSubtitle}>{subtitle}</Text> : null}
       </View>
       {onSeeAll && (
-        <Pressable onPress={onSeeAll} hitSlop={8}>
+        <Pressable
+          style={styles.seeAllButton}
+          onPress={onSeeAll}
+          hitSlop={12}
+        >
           <Text style={styles.seeAll}>See all</Text>
+          <Ionicons name="chevron-forward" size={14} color={Colors.tint} />
         </Pressable>
       )}
     </View>
@@ -114,7 +119,12 @@ function SpotlightCard({ item, index = 0 }: { item: any; index?: number }) {
   return (
     <Animated.View entering={isWeb ? undefined : FadeInDown.delay((index || 0) * 80 + 100).duration(500)}>
       <Pressable
-        style={[styles.spotlightCard, Platform.OS === 'web' && { cursor: 'pointer' as any }]}
+        style={({ pressed }) => [
+          styles.spotlightCard,
+          pressed && { opacity: 0.9, transform: [{ scale: 0.98 }] },
+          Platform.OS === 'web' && { cursor: 'pointer' as any },
+          Colors.shadows.medium,
+        ]}
         onPress={() => {
           if (item.type === 'event') router.push({ pathname: '/event/[id]', params: { id: item.id } });
         }}
@@ -259,14 +269,14 @@ export default function HomeScreen() {
       <View style={[styles.topBar, Platform.OS === 'web' && { maxWidth: 900, alignSelf: 'center', width: '100%' }]}>
         <LocationPicker />
         <View style={styles.topBarRight}>
-          <Pressable style={styles.iconButton} hitSlop={8} onPress={() => router.push('/search')} testID="search-btn" accessibilityLabel="Search">
-            <Ionicons name="search" size={22} color={Colors.text} />
+          <Pressable style={styles.iconButton} onPress={() => router.push('/search')} testID="search-btn" accessibilityLabel="Search">
+            <Ionicons name="search" size={24} color={Colors.text} />
           </Pressable>
-          <Pressable style={styles.iconButton} hitSlop={8} onPress={() => router.push('/map' as any)} testID="map-btn" accessibilityLabel="Events Map">
-            <Ionicons name="map-outline" size={22} color={Colors.text} />
+          <Pressable style={styles.iconButton} onPress={() => router.push('/map' as any)} testID="map-btn" accessibilityLabel="Events Map">
+            <Ionicons name="map-outline" size={24} color={Colors.text} />
           </Pressable>
-          <Pressable style={styles.iconButton} hitSlop={8} onPress={() => router.push('/notifications')} testID="notifications-btn" accessibilityLabel="Notifications">
-            <Ionicons name="notifications-outline" size={22} color={Colors.text} />
+          <Pressable style={styles.iconButton} onPress={() => router.push('/notifications')} testID="notifications-btn" accessibilityLabel="Notifications">
+            <Ionicons name="notifications-outline" size={24} color={Colors.text} />
             <View style={styles.notifDot} />
           </Pressable>
         </View>
@@ -282,8 +292,7 @@ export default function HomeScreen() {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={handleRefresh}
-            tintColor="#FFD700"
-            colors={['#FFD700']}
+            tintColor={Colors.tint}
           />
         }
       >
@@ -291,9 +300,6 @@ export default function HomeScreen() {
           <Text style={styles.heroSubtitle}>{timeGreeting}, {firstName}</Text>
           <Text style={styles.heroTitle}>
             What's happening in{'\n'}your culture this week?
-          </Text>
-          <Text style={styles.heroMeta}>
-            Curated for you{state.city ? ` in ${state.city}` : ''}
           </Text>
         </Animated.View>
 
@@ -314,17 +320,23 @@ export default function HomeScreen() {
         )}
 
         <Animated.View entering={isWeb ? undefined : FadeInDown.delay(150).duration(500)} style={styles.quickGrid}>
-          {superAppSections.map((sec, i) => (
+          {superAppSections.map((sec) => (
             <Pressable
               key={sec.id}
-              style={[styles.quickBtn, Platform.OS === 'web' && { cursor: 'pointer' as any }]}
+              style={({ pressed }) => [
+                styles.quickBtn,
+                pressed && { transform: [{ scale: 0.95 }] },
+                Platform.OS === 'web' && { cursor: 'pointer' as any },
+              ]}
               onPress={() => {
                 Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                 router.push(SECTION_ROUTES[sec.id] as any);
               }}
             >
-              <View style={[styles.quickBtnIcon, { backgroundColor: sec.color + '15' }]}>
-                <Ionicons name={sec.icon as any} size={22} color={sec.color} />
+              <View style={[styles.quickBtnIconWrapper, Colors.shadows.small]}>
+                <View style={[styles.quickBtnIcon, { backgroundColor: sec.color + '15' }]}>
+                  <Ionicons name={sec.icon as any} size={24} color={sec.color} />
+                </View>
               </View>
               <Text style={styles.quickBtnLabel}>{sec.label}</Text>
             </Pressable>
@@ -333,20 +345,20 @@ export default function HomeScreen() {
 
         {discoverLoading && (
           <View style={styles.loadingWrap}>
-            <ActivityIndicator size="large" color="#FFD700" />
+            <ActivityIndicator size="large" color={Colors.tint} />
             <Text style={styles.loadingText}>Personalising your feed...</Text>
           </View>
         )}
 
         {featuredEvent && (
-          <Animated.View entering={isWeb ? undefined : FadeInDown.delay(180).duration(500)} style={{ paddingHorizontal: 20, marginBottom: 24 }}>
+          <Animated.View entering={isWeb ? undefined : FadeInDown.delay(180).duration(500)} style={{ paddingHorizontal: 20, marginBottom: 28 }}>
             <SectionHeader title="Cultural Highlight" subtitle="Don't miss this week" />
             <EventCard event={featuredEvent} highlight index={0} />
           </Animated.View>
         )}
 
         {popularEvents.length > 0 && (
-          <Animated.View entering={isWeb ? undefined : FadeInDown.delay(220).duration(500)} style={{ marginBottom: 24 }}>
+          <Animated.View entering={isWeb ? undefined : FadeInDown.delay(220).duration(500)} style={{ marginBottom: 32 }}>
             <View style={{ paddingHorizontal: 20 }}>
               <SectionHeader
                 title="Popular Near You"
@@ -356,7 +368,10 @@ export default function HomeScreen() {
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
-              contentContainerStyle={{ paddingHorizontal: 20, gap: 14 }}
+              contentContainerStyle={{ paddingHorizontal: 20, gap: 16 }}
+              decelerationRate="fast"
+              snapToInterval={296}
+              snapToAlignment="start"
             >
               {popularEvents.map((event: any, i: number) => (
                 <EventCard key={event.id} event={event} index={i} />
@@ -366,7 +381,7 @@ export default function HomeScreen() {
         )}
 
         {allCommunities.length > 0 && (
-          <Animated.View entering={isWeb ? undefined : FadeInDown.delay(260).duration(500)} style={{ marginBottom: 24 }}>
+          <Animated.View entering={isWeb ? undefined : FadeInDown.delay(260).duration(500)} style={{ marginBottom: 32 }}>
             <View style={{ paddingHorizontal: 20 }}>
               <SectionHeader
                 title="Cultural Communities"
@@ -377,7 +392,10 @@ export default function HomeScreen() {
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
-              contentContainerStyle={{ paddingHorizontal: 20, gap: 12 }}
+              contentContainerStyle={{ paddingHorizontal: 20, gap: 14 }}
+              decelerationRate="fast"
+              snapToInterval={210}
+              snapToAlignment="start"
             >
               {allCommunities.slice(0, 10).map((c: any, i: number) => (
                 <CommunityCard key={c.id} community={c} index={i} />
@@ -387,7 +405,7 @@ export default function HomeScreen() {
         )}
 
         {spotlights.length > 0 && (
-          <Animated.View entering={isWeb ? undefined : FadeInDown.delay(300).duration(500)} style={{ marginBottom: 24 }}>
+          <Animated.View entering={isWeb ? undefined : FadeInDown.delay(300).duration(500)} style={{ marginBottom: 32 }}>
             <View style={{ paddingHorizontal: 20 }}>
               <SectionHeader title="First Nations Spotlight" subtitle="Celebrating Indigenous culture" />
             </View>
@@ -395,6 +413,9 @@ export default function HomeScreen() {
               horizontal
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={{ paddingHorizontal: 20, gap: 14 }}
+              decelerationRate="fast"
+              snapToInterval={294}
+              snapToAlignment="start"
             >
               {spotlights.map((item: any, i: number) => (
                 <SpotlightCard key={item.id} item={item} index={i} />
@@ -404,14 +425,17 @@ export default function HomeScreen() {
         )}
 
         {cultureCards.length > 0 && (
-          <Animated.View entering={isWeb ? undefined : FadeInDown.delay(340).duration(500)} style={{ marginBottom: 24 }}>
+          <Animated.View entering={isWeb ? undefined : FadeInDown.delay(340).duration(500)} style={{ marginBottom: 32 }}>
             <View style={{ paddingHorizontal: 20 }}>
               <SectionHeader title="Explore Your Culture" />
             </View>
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
-              contentContainerStyle={{ paddingHorizontal: 20, gap: 10 }}
+              contentContainerStyle={{ paddingHorizontal: 20, gap: 12 }}
+              decelerationRate="fast"
+              snapToInterval={122}
+              snapToAlignment="start"
             >
               {cultureCards.map((item: any) => (
                 <CategoryCard
@@ -425,14 +449,17 @@ export default function HomeScreen() {
         )}
 
         {otherSections.filter(s => s.type === 'events' || s.type === 'mixed').map((section) => (
-          <Animated.View key={section.title} entering={isWeb ? undefined : FadeInDown.delay(380).duration(500)} style={{ marginBottom: 24 }}>
+          <Animated.View key={section.title} entering={isWeb ? undefined : FadeInDown.delay(380).duration(500)} style={{ marginBottom: 32 }}>
             <View style={{ paddingHorizontal: 20 }}>
               <SectionHeader title={section.title} subtitle={section.subtitle} />
             </View>
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
-              contentContainerStyle={{ paddingHorizontal: 20, gap: 14 }}
+              contentContainerStyle={{ paddingHorizontal: 20, gap: 16 }}
+              decelerationRate="fast"
+              snapToInterval={296}
+              snapToAlignment="start"
             >
               {section.items.filter((e: any) => !!e.venue).slice(0, 10).map((event: any, i: number) => (
                 <EventCard key={event.id} event={event} index={i} />
@@ -441,14 +468,17 @@ export default function HomeScreen() {
           </Animated.View>
         ))}
 
-        <Animated.View entering={isWeb ? undefined : FadeInDown.delay(400).duration(500)} style={{ marginBottom: 24 }}>
+        <Animated.View entering={isWeb ? undefined : FadeInDown.delay(400).duration(500)} style={{ marginBottom: 32 }}>
           <View style={{ paddingHorizontal: 20 }}>
             <SectionHeader title="Browse Categories" />
           </View>
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
-            contentContainerStyle={{ paddingHorizontal: 20, gap: 10 }}
+            contentContainerStyle={{ paddingHorizontal: 20, gap: 12 }}
+            decelerationRate="fast"
+            snapToInterval={122}
+            snapToAlignment="start"
           >
             {browseCategories.map(cat => (
               <CategoryCard
@@ -460,14 +490,17 @@ export default function HomeScreen() {
           </ScrollView>
         </Animated.View>
 
-        <Animated.View entering={isWeb ? undefined : FadeInDown.delay(420).duration(500)} style={{ marginBottom: 24 }}>
+        <Animated.View entering={isWeb ? undefined : FadeInDown.delay(420).duration(500)} style={{ marginBottom: 32 }}>
           <View style={{ paddingHorizontal: 20 }}>
             <SectionHeader title="Explore Cities" subtitle="Discover culture worldwide" />
           </View>
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
-            contentContainerStyle={{ paddingHorizontal: 20, gap: 12 }}
+            contentContainerStyle={{ paddingHorizontal: 20, gap: 14 }}
+            decelerationRate="fast"
+            snapToInterval={190}
+            snapToAlignment="start"
           >
             {FEATURED_CITIES.map((city, i) => (
               <CityCard
@@ -483,33 +516,43 @@ export default function HomeScreen() {
 
         <Animated.View entering={isWeb ? undefined : FadeInDown.delay(420).duration(500)} style={styles.bannerWrap}>
           <Pressable
-            style={[styles.plusBanner, Platform.OS === 'web' && { cursor: 'pointer' as any }]}
+            style={({ pressed }) => [
+              styles.plusBanner,
+              pressed && { opacity: 0.9, transform: [{ scale: 0.98 }] },
+              Platform.OS === 'web' && { cursor: 'pointer' as any },
+            ]}
             onPress={() => router.push('/membership/upgrade')}
           >
             <LinearGradient
-              colors={['#1A3A5C', '#0D2540']}
+              colors={['#111111', '#1A1A24']}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
               style={StyleSheet.absoluteFillObject}
             />
+            <View style={styles.bannerDecoration1} />
+            <View style={styles.bannerDecoration2} />
             <View style={styles.plusBannerLeft}>
               <View style={styles.plusBannerIconWrap}>
                 <Ionicons name="star" size={20} color="#FFD700" />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={styles.plusBannerTitle}>CulturePass+</Text>
-                <Text style={styles.plusBannerSub}>2% cashback, early access & exclusive perks</Text>
+                <Text style={styles.plusBannerTitle}>CulturePass <Text style={{ color: '#FFD700' }}>PRO</Text></Text>
+                <Text style={styles.plusBannerSub}>2% cashback & exclusive VIP access</Text>
               </View>
             </View>
             <View style={styles.plusBannerCta}>
-              <Text style={styles.plusBannerCtaText}>$7.99/mo</Text>
+              <Text style={styles.plusBannerCtaText}>Explore</Text>
             </View>
           </Pressable>
         </Animated.View>
 
         <Animated.View entering={isWeb ? undefined : FadeInDown.delay(440).duration(500)} style={styles.bannerWrap}>
           <Pressable
-            style={[styles.perksBanner, Platform.OS === 'web' && { cursor: 'pointer' as any }]}
+            style={({ pressed }) => [
+              styles.perksBanner,
+              pressed && { opacity: 0.9, transform: [{ scale: 0.98 }] },
+              Platform.OS === 'web' && { cursor: 'pointer' as any },
+            ]}
             onPress={() => router.push('/perks')}
           >
             <LinearGradient
@@ -533,7 +576,11 @@ export default function HomeScreen() {
 
         <Animated.View entering={isWeb ? undefined : FadeInDown.delay(460).duration(500)} style={styles.bannerWrap}>
           <Pressable
-            style={[styles.exploreCta, Platform.OS === 'web' && { cursor: 'pointer' as any }]}
+            style={({ pressed }) => [
+              styles.exploreCta,
+              pressed && { opacity: 0.9, transform: [{ scale: 0.98 }] },
+              Platform.OS === 'web' && { cursor: 'pointer' as any },
+            ]}
             onPress={() => router.push('/allevents')}
           >
             <View style={styles.exploreCtaIcon}>
@@ -554,60 +601,57 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: Colors.backgroundSecondary,
   },
   topBar: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 20,
-    paddingVertical: 10,
-    backgroundColor: Colors.background,
+    paddingVertical: 12,
   },
   topBarRight: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 2,
+    gap: 8,
   },
   iconButton: {
-    width: 38,
-    height: 38,
+    width: 40,
+    height: 40,
     alignItems: 'center',
     justifyContent: 'center',
+    backgroundColor: Colors.surfaceSecondary,
+    borderRadius: 20,
     position: 'relative',
   },
   notifDot: {
     position: 'absolute',
-    top: 7,
-    right: 7,
-    width: 7,
-    height: 7,
-    borderRadius: 3.5,
-    backgroundColor: '#FF3B30',
+    top: 10,
+    right: 10,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: Colors.error,
+    borderWidth: 1.5,
+    borderColor: Colors.surfaceSecondary,
   },
   heroSection: {
     paddingHorizontal: 20,
-    marginBottom: 20,
-    marginTop: 4,
+    marginBottom: 28,
+    marginTop: 8,
   },
   heroSubtitle: {
-    fontSize: 15,
-    fontFamily: 'Poppins_400Regular',
-    color: '#8E8E93',
-    marginBottom: 6,
+    fontSize: 16,
+    fontFamily: 'Poppins_500Medium',
+    color: Colors.tint,
+    marginBottom: 4,
   },
   heroTitle: {
-    fontSize: 26,
+    fontSize: 32,
     fontFamily: 'Poppins_700Bold',
     color: Colors.text,
-    lineHeight: 34,
-    letterSpacing: 0.2,
-  },
-  heroMeta: {
-    fontSize: 13,
-    fontFamily: 'Poppins_400Regular',
-    color: '#636366',
-    marginTop: 8,
+    lineHeight: 40,
+    letterSpacing: -0.5,
   },
   landBanner: {
     borderRadius: 14,
@@ -639,31 +683,34 @@ const styles = StyleSheet.create({
   quickGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    paddingHorizontal: 16,
-    gap: 10,
-    marginBottom: 28,
+    paddingHorizontal: 20,
+    justifyContent: 'space-between',
+    marginBottom: 36,
+    gap: 12,
   },
   quickBtn: {
     width: '30%' as any,
-    flexGrow: 1,
     alignItems: 'center',
-    backgroundColor: Colors.surface,
-    borderRadius: 16,
-    paddingVertical: 14,
-    paddingHorizontal: 6,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.06)',
+    marginBottom: 8,
   },
-  quickBtnIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 14,
+  quickBtnIconWrapper: {
+    width: 64,
+    height: 64,
+    borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 8,
+    backgroundColor: Colors.surface,
+  },
+  quickBtnIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   quickBtnLabel: {
-    fontSize: 12,
+    fontSize: 13,
     fontFamily: 'Poppins_500Medium',
     color: Colors.text,
     textAlign: 'center',
@@ -680,32 +727,37 @@ const styles = StyleSheet.create({
   },
   sectionHeader: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
+    alignItems: 'flex-end',
     justifyContent: 'space-between',
     marginBottom: 16,
   },
   sectionTitle: {
-    fontSize: 20,
+    fontSize: 22,
     fontFamily: 'Poppins_700Bold',
     color: Colors.text,
-    letterSpacing: 0.3,
+    letterSpacing: -0.3,
   },
   sectionSubtitle: {
-    fontSize: 13,
+    fontSize: 14,
     fontFamily: 'Poppins_400Regular',
-    color: '#636366',
-    marginTop: 2,
+    color: Colors.textSecondary,
+    marginTop: 4,
+  },
+  seeAllButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+    paddingBottom: 4,
   },
   seeAll: {
-    fontSize: 14,
-    fontFamily: 'Poppins_500Medium',
-    color: '#007AFF',
-    marginTop: 2,
+    fontSize: 15,
+    fontFamily: 'Poppins_600SemiBold',
+    color: Colors.tint,
   },
   spotlightCard: {
-    width: 260,
-    height: 160,
-    borderRadius: 20,
+    width: 280,
+    height: 180,
+    borderRadius: 24,
     overflow: 'hidden',
     backgroundColor: Colors.surface,
   },
@@ -731,7 +783,7 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    padding: 14,
+    padding: 16,
   },
   spotlightTitle: {
     fontSize: 15,
@@ -747,66 +799,88 @@ const styles = StyleSheet.create({
   },
   bannerWrap: {
     paddingHorizontal: 20,
-    marginBottom: 12,
+    marginBottom: 16,
   },
   plusBanner: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    borderRadius: 18,
-    paddingHorizontal: 18,
-    paddingVertical: 18,
+    borderRadius: 24,
+    paddingHorizontal: 20,
+    paddingVertical: 24,
     overflow: 'hidden',
+    ...Colors.shadows.large,
+  },
+  bannerDecoration1: {
+    position: 'absolute',
+    top: -40,
+    right: -20,
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: 'rgba(255, 215, 0, 0.08)',
+  },
+  bannerDecoration2: {
+    position: 'absolute',
+    bottom: -30,
+    right: 40,
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: 'rgba(255, 215, 0, 0.05)',
   },
   plusBannerLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 14,
+    gap: 16,
     flex: 1,
   },
   plusBannerIconWrap: {
-    width: 42,
-    height: 42,
-    borderRadius: 14,
+    width: 48,
+    height: 48,
+    borderRadius: 16,
     backgroundColor: 'rgba(255,215,0,0.15)',
     alignItems: 'center',
     justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255,215,0,0.3)',
   },
   plusBannerTitle: {
-    fontSize: 16,
+    fontSize: 18,
     fontFamily: 'Poppins_700Bold',
     color: '#FFF',
   },
   plusBannerSub: {
-    fontSize: 12,
+    fontSize: 13,
     fontFamily: 'Poppins_400Regular',
-    color: 'rgba(255,255,255,0.6)',
-    marginTop: 1,
+    color: 'rgba(255,255,255,0.7)',
+    marginTop: 2,
   },
   plusBannerCta: {
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    paddingHorizontal: 14,
-    paddingVertical: 7,
-    borderRadius: 10,
+    backgroundColor: '#FFD700',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 14,
   },
   plusBannerCtaText: {
-    fontSize: 13,
+    fontSize: 14,
     fontFamily: 'Poppins_700Bold',
-    color: '#FFF',
+    color: '#000',
   },
   perksBanner: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    borderRadius: 18,
-    paddingHorizontal: 18,
-    paddingVertical: 18,
+    borderRadius: 24,
+    paddingHorizontal: 20,
+    paddingVertical: 24,
     overflow: 'hidden',
+    ...Colors.shadows.large,
   },
   perksBannerIconWrap: {
-    width: 42,
-    height: 42,
-    borderRadius: 14,
+    width: 48,
+    height: 48,
+    borderRadius: 16,
     backgroundColor: 'rgba(255,255,255,0.15)',
     alignItems: 'center',
     justifyContent: 'center',
@@ -814,16 +888,17 @@ const styles = StyleSheet.create({
   exploreCta: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 14,
+    gap: 16,
     backgroundColor: Colors.surface,
-    borderRadius: 18,
-    paddingHorizontal: 18,
-    paddingVertical: 18,
+    borderRadius: 24,
+    paddingHorizontal: 20,
+    paddingVertical: 22,
+    ...Colors.shadows.medium,
   },
   exploreCtaIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 14,
+    width: 48,
+    height: 48,
+    borderRadius: 16,
     backgroundColor: 'rgba(0,122,255,0.12)',
     alignItems: 'center',
     justifyContent: 'center',
@@ -837,5 +912,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontFamily: 'Poppins_400Regular',
     color: '#636366',
+    marginTop: 2,
   },
 });
