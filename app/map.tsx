@@ -9,7 +9,9 @@ import { fetch } from 'expo/fetch';
 import { useState, useMemo } from 'react';
 import * as Haptics from 'expo-haptics';
 import Animated, { FadeInUp } from 'react-native-reanimated';
-import NativeMapView from '@/components/NativeMapView';
+const NativeMapView = Platform.OS === 'web'
+  ? require('@/components/NativeMapView.web').default
+  : require('@/components/NativeMapView.native').default;
 
 const CITY_COORDS: Record<string, { latitude: number; longitude: number }> = {
   'Sydney': { latitude: -33.8688, longitude: 151.2093 },

@@ -73,7 +73,7 @@ export default function ActivityDetailScreen() {
 
           <Text style={styles.subTitle}>Highlights</Text>
           <View style={styles.highlightGrid}>
-            {act.highlights.map(h => (
+            {act.highlights.map((h: string) => (
               <View key={h} style={styles.highlightItem}>
                 <Ionicons name="checkmark-circle" size={18} color={Colors.success} />
                 <Text style={styles.highlightText}>{h}</Text>
