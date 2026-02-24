@@ -21,6 +21,8 @@ interface Ticket {
   totalPriceCents: number | null;
   currency: string | null;
   status: string | null;
+  paymentStatus?: string | null;
+  priority?: 'low' | 'normal' | 'high' | 'vip' | null;
   ticketCode: string | null;
   imageColor: string | null;
   createdAt: string | null;
@@ -44,6 +46,16 @@ function getStatusStyle(status: string | null) {
     case 'cancelled': return { bg: Colors.error + '15', color: Colors.error, label: 'Cancelled' };
     case 'expired': return { bg: Colors.warning + '15', color: Colors.warning, label: 'Expired' };
     default: return { bg: Colors.textTertiary + '15', color: Colors.textTertiary, label: status || 'Unknown' };
+  }
+}
+
+
+function getPriorityStyle(priority: Ticket['priority']) {
+  switch (priority) {
+    case 'vip': return { bg: '#F2A93B22', color: '#F2A93B', label: 'VIP' };
+    case 'high': return { bg: '#FF3B3022', color: '#FF3B30', label: 'High' };
+    case 'low': return { bg: '#34C75922', color: '#34C759', label: 'Low' };
+    default: return { bg: Colors.textTertiary + '22', color: Colors.textTertiary, label: 'Normal' };
   }
 }
 
@@ -101,6 +113,7 @@ export default function TicketsScreen() {
 
   const renderTicket = (ticket: Ticket, index: number) => {
     const statusStyle = getStatusStyle(ticket.status);
+    const priorityStyle = getPriorityStyle(ticket.priority);
     const isActive = ticket.status === 'confirmed';
 
     return (
@@ -149,6 +162,7 @@ export default function TicketsScreen() {
             <View style={styles.ticketFooter}>
               <View style={styles.ticketDetails}>
                 {ticket.tierName && <View style={styles.tierBadge}><Text style={styles.tierText}>{ticket.tierName}</Text></View>}
+                <View style={[styles.priorityBadge, { backgroundColor: priorityStyle.bg }]}><Text style={[styles.priorityText, { color: priorityStyle.color }]}>{priorityStyle.label}</Text></View>
                 <Text style={styles.ticketQty}>{ticket.quantity || 1}x ticket{(ticket.quantity || 1) > 1 ? 's' : ''}</Text>
               </View>
               <Text style={styles.ticketPrice}>${((ticket.totalPriceCents || 0) / 100).toFixed(2)}</Text>
@@ -273,6 +287,8 @@ const styles = StyleSheet.create({
   ticketDetails: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   tierBadge: { backgroundColor: Colors.accent + '15', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 },
   tierText: { fontSize: 11, fontFamily: 'Poppins_600SemiBold', color: Colors.accent },
+  priorityBadge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 },
+  priorityText: { fontSize: 11, fontFamily: 'Poppins_600SemiBold' },
   ticketQty: { fontSize: 13, fontFamily: 'Poppins_500Medium', color: Colors.textSecondary },
   ticketPrice: { fontSize: 17, fontFamily: 'Poppins_700Bold', color: Colors.text },
   codeRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 12, backgroundColor: Colors.primary + '08', borderRadius: 10, padding: 10 },

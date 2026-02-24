@@ -6,6 +6,7 @@
 npm install
 npm run lint
 npm run typecheck
+npm run qa:all
 npm run expo:dev
 ```
 
@@ -13,6 +14,7 @@ If you run a backend locally, set:
 
 ```bash
 export EXPO_PUBLIC_API_URL=http://localhost:5000
+export ROLLOUT_PHASE=internal
 ```
 
 ---
@@ -93,3 +95,17 @@ firebase deploy --only hosting
 
 ### CI/CD suggestion
 Use GitHub Actions to run lint/typecheck/build on every PR, then auto-deploy preview channels for web.
+
+## Staged rollout control
+
+Use the rollout phase env variable in each environment:
+
+```bash
+export ROLLOUT_PHASE=internal  # internal | pilot | half | full
+```
+
+Validate phase + user flag resolution with:
+
+```bash
+curl "http://localhost:5000/api/rollout/config?userId=u1"
+```

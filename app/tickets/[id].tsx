@@ -13,6 +13,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Colors from '@/constants/colors';
 import { router, useLocalSearchParams } from 'expo-router';
+import { goBackOrReplace } from '@/lib/navigation';
 import * as Haptics from 'expo-haptics';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { apiRequest, queryClient, getQueryFn } from '@/lib/query-client';
@@ -147,7 +148,7 @@ export default function TicketDetailScreen() {
     return (
       <View style={[styles.container, { paddingTop: topInset }]}>
         <View style={styles.header}>
-          <Pressable onPress={() => router.back()} style={styles.backBtn}>
+          <Pressable onPress={() => goBackOrReplace('/(tabs)')} style={styles.backBtn}>
             <Ionicons name="chevron-back" size={22} color={Colors.text} />
           </Pressable>
           <Text style={styles.headerTitle}>Ticket</Text>
@@ -165,7 +166,7 @@ export default function TicketDetailScreen() {
     return (
       <View style={[styles.container, { paddingTop: topInset }]}>
         <View style={styles.header}>
-          <Pressable onPress={() => router.back()} style={styles.backBtn}>
+          <Pressable onPress={() => goBackOrReplace('/(tabs)')} style={styles.backBtn}>
             <Ionicons name="chevron-back" size={22} color={Colors.text} />
           </Pressable>
           <Text style={styles.headerTitle}>Ticket</Text>
@@ -174,7 +175,7 @@ export default function TicketDetailScreen() {
         <View style={styles.loadingState}>
           <Ionicons name="ticket-outline" size={48} color={Colors.textTertiary} />
           <Text style={styles.emptyTitle}>Ticket Not Found</Text>
-          <Pressable onPress={() => router.back()}>
+          <Pressable onPress={() => goBackOrReplace('/(tabs)')}>
             <Text style={styles.backLink}>Go Back</Text>
           </Pressable>
         </View>
@@ -189,7 +190,7 @@ export default function TicketDetailScreen() {
   return (
     <View style={[styles.container, { paddingTop: topInset }]}>
       <View style={styles.header}>
-        <Pressable onPress={() => router.back()} style={styles.backBtn}>
+        <Pressable onPress={() => goBackOrReplace('/(tabs)')} style={styles.backBtn}>
           <Ionicons name="chevron-back" size={22} color={Colors.text} />
         </Pressable>
         <Text style={styles.headerTitle}>Ticket Details</Text>

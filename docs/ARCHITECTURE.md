@@ -46,6 +46,18 @@ Default query behavior was updated to production-friendly caching:
 
 This reduces over-fetching and improves perceived performance without stale data persisting forever.
 
+### Config-driven rollout + feature flags
+- Backend rollout configuration lives in `server/services/rollout.ts`.
+- Runtime phase is controlled by `ROLLOUT_PHASE` (`internal`, `pilot`, `half`, `full`).
+- API exposure endpoint: `GET /api/rollout/config?userId=<id>`.
+- Client helper: `lib/feature-flags.ts` (`fetchFeatureFlags`).
+
+### QA automation baseline
+- Unit checks: `scripts/tests/unit-services-middleware.ts`.
+- Integration checks: `scripts/tests/integration-api-routes.ts`.
+- E2E smoke: `scripts/tests/e2e-critical-smoke.ts`.
+- Aggregated command: `npm run qa:all`.
+
 ## 4) Recommended Next Steps (Roadmap)
 
 1. Add server/API folder back into repository or isolate API as a dedicated service.
