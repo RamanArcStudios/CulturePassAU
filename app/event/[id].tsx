@@ -55,8 +55,6 @@ export default function EventDetailScreen() {
   const insets = useSafeAreaInsets();
   const topInset = Platform.OS === 'web' ? 67 : insets.top;
   const bottomInset = Platform.OS === 'web' ? 34 : insets.bottom;
-  const { isEventSaved, toggleSaveEvent } = useSaved();
-
   const { data: event, isLoading } = useQuery({
     queryKey: ['/api/events', id],
     queryFn: async () => {
@@ -160,7 +158,7 @@ function EventDetail({ event, topInset, bottomInset }: EventDetailProps) {
               ]);
             }
           }
-        } catch (e: any) {
+        } catch {
           Alert.alert('Payment Error', 'Could not open payment page. Please try again.');
         } finally {
           setPaymentLoading(false);
@@ -189,6 +187,25 @@ function EventDetail({ event, topInset, bottomInset }: EventDetailProps) {
   const totalPrice = rawTotal - discountAmount;
   const effectiveQty = buyMode === 'family' ? familySize : quantity;
   const cashbackAmount = isPlus ? (totalPrice / 100) * 0.02 : 0;
+
+  const purchaseFreeTicket = useCallback(async (body: Record<string, unknown>) => {
+    try {
+      const res = await apiRequest('POST', '/api/tickets', body);
+      const data = await res.json();
+      queryClient.invalidateQueries({ queryKey: ['/api/tickets'] });
+      setTicketModalVisible(false);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      Alert.alert('Ticket Confirmed!', 'Your free ticket has been reserved.', [
+        {
+          text: 'View Ticket',
+          onPress: () => router.push(`/tickets/${data.id}` as any),
+        },
+        { text: 'OK' },
+      ]);
+    } catch {
+      Alert.alert('Error', 'Failed to reserve ticket. Please try again.');
+    }
+  }, []);
 
   const handlePurchase = useCallback(() => {
     const users = usersQuery.data;
@@ -230,26 +247,7 @@ function EventDetail({ event, topInset, bottomInset }: EventDetailProps) {
       currency: 'AUD',
       imageColor: (event as any).imageColor ?? Colors.primary,
     });
-  }, [usersQuery.data, event, selectedTier, quantity, totalPrice, effectiveQty, buyMode, purchaseMutation]);
-
-  const purchaseFreeTicket = useCallback(async (body: Record<string, unknown>) => {
-    try {
-      const res = await apiRequest('POST', '/api/tickets', body);
-      const data = await res.json();
-      queryClient.invalidateQueries({ queryKey: ['/api/tickets'] });
-      setTicketModalVisible(false);
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      Alert.alert('Ticket Confirmed!', 'Your free ticket has been reserved.', [
-        {
-          text: 'View Ticket',
-          onPress: () => router.push(`/tickets/${data.id}` as any),
-        },
-        { text: 'OK' },
-      ]);
-    } catch (e: any) {
-      Alert.alert('Error', 'Failed to reserve ticket. Please try again.');
-    }
-  }, []);
+  }, [usersQuery.data, event, selectedTier, quantity, totalPrice, effectiveQty, buyMode, purchaseMutation, purchaseFreeTicket]);
 
   const openTicketModal = useCallback((tierIdx?: number) => {
     setSelectedTierIndex(tierIdx ?? 0);
