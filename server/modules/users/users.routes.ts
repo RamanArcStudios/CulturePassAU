@@ -41,20 +41,16 @@ export function registerUsersRoutes(app: Express) {
       }
 
       // Create new user
-      const user = await usersService.createUser({
-        username,
-        password,
-        displayName,
-        email,
-      });
+      const user = await usersService.createUser({ username, password });
+      const updatedUser = await usersService.updateUser(user.id, { displayName, email });
 
       // Return user without password
       res.status(201).json({
         user: {
-          id: user.id,
-          username: user.username,
-          displayName: user.displayName,
-          email: user.email,
+          id: updatedUser?.id ?? user.id,
+          username: updatedUser?.username ?? user.username,
+          displayName: updatedUser?.displayName ?? user.displayName,
+          email: updatedUser?.email ?? user.email,
         },
       });
     } catch (e: any) {

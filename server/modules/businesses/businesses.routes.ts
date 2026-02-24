@@ -1,4 +1,5 @@
 import type { Express, Request, Response } from "express";
+import { routeParam } from "../route-params";
 import * as businessesService from "./businesses.service";
 
 export function registerBusinessesRoutes(app: Express) {
@@ -19,7 +20,7 @@ export function registerBusinessesRoutes(app: Express) {
 
   app.get("/api/businesses/:id", async (req: Request, res: Response) => {
     try {
-      const business = await businessesService.getBusinessById(req.params.id);
+      const business = await businessesService.getBusinessById(routeParam(req.params.id));
       if (!business) return res.status(404).json({ error: "Business not found" });
       res.json(business);
     } catch (e: any) {

@@ -1,4 +1,5 @@
 import type { Express, Request, Response } from "express";
+import { routeParam } from "../route-params";
 import * as moviesService from "./movies.service";
 
 export function registerMoviesRoutes(app: Express) {
@@ -19,7 +20,7 @@ export function registerMoviesRoutes(app: Express) {
 
   app.get("/api/movies/:id", async (req: Request, res: Response) => {
     try {
-      const movie = await moviesService.getMovieById(req.params.id);
+      const movie = await moviesService.getMovieById(routeParam(req.params.id));
       if (!movie) return res.status(404).json({ error: "Movie not found" });
       res.json(movie);
     } catch (e: any) {
