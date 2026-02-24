@@ -43,6 +43,7 @@ interface BrowsePageProps {
   renderItemExtra?: (item: BrowseItem) => React.ReactNode;
   emptyMessage?: string;
   emptyIcon?: string;
+  refreshControl?: React.ReactElement;
 }
 
 export default function BrowsePage({
@@ -59,6 +60,7 @@ export default function BrowsePage({
   renderItemExtra,
   emptyMessage = 'Nothing found',
   emptyIcon = 'search-outline',
+  refreshControl,
 }: BrowsePageProps) {
   const insets = useSafeAreaInsets();
   const topInset = Platform.OS === 'web' ? 67 : insets.top;
@@ -93,6 +95,7 @@ export default function BrowsePage({
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: bottomInset + 100 }}
+        refreshControl={refreshControl}
       >
         {promotedItems.length > 0 && (
           <Animated.View entering={FadeInDown.duration(400)} style={styles.section}>
