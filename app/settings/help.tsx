@@ -16,7 +16,7 @@ const FAQ_ITEMS = [
 ];
 
 const CONTACT_OPTIONS = [
-  { icon: 'mail', label: 'Email Support', sub: 'support@culturepass.com', color: '#3498DB', action: () => Linking.openURL('mailto:support@culturepass.com') },
+  { icon: 'mail', label: 'Email Support', sub: 'support@culturepass.au', color: '#3498DB', action: () => Linking.openURL('mailto:support@culturepass.au') },
   { icon: 'call', label: 'Phone Support', sub: '1800-CULTURE (1800 285 887)', color: '#34C759', action: () => Linking.openURL('tel:1800285887') },
 ];
 

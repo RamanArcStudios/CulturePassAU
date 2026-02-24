@@ -76,7 +76,7 @@ const users: AppUser[] = [
     id: 'u1',
     username: 'ramanarc',
     displayName: 'Raman Arc',
-    email: 'raman@culturepass.com',
+    email: 'raman@culturepass.au',
     city: 'Sydney',
     country: 'Australia',
     bio: 'Building human + AI community experiences.',
