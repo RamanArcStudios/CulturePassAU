@@ -9,6 +9,8 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useState } from 'react';
 import * as Haptics from 'expo-haptics';
 
+const isWeb = Platform.OS === 'web';
+
 const interestColors = ['#E85D3A', '#1A7A6D', '#F2A93B', '#9B59B6', '#3498DB', '#E74C3C', '#2ECC71', '#1ABC9C', '#8E44AD', '#F39C12', '#16A085', '#C0392B', '#2980B9', '#D35400', '#27AE60'];
 
 export default function InterestsScreen() {
@@ -43,12 +45,12 @@ export default function InterestsScreen() {
       </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        <Animated.View entering={FadeInDown.delay(100).duration(600)}>
+        <Animated.View entering={isWeb ? undefined : FadeInDown.delay(100).duration(600)}>
           <Text style={styles.title}>What interests you?</Text>
           <Text style={styles.subtitle}>We'll personalize your feed with events and content that match your passions.</Text>
         </Animated.View>
 
-        <Animated.View entering={FadeInDown.delay(200).duration(600)} style={styles.grid}>
+        <Animated.View entering={isWeb ? undefined : FadeInDown.delay(200).duration(600)} style={styles.grid}>
           {interests.map((interest, idx) => {
             const isSelected = selected.includes(interest);
             const color = interestColors[idx % interestColors.length];

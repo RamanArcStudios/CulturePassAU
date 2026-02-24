@@ -31,6 +31,7 @@ import CommunityCard from '@/components/Discover/CommunityCard';
 import CityCard from '@/components/Discover/CityCard';
 import Colors from '@/constants/colors';
 
+const isWeb = Platform.OS === 'web';
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 const superAppSections = [
@@ -115,7 +116,7 @@ function SectionHeader({ title, subtitle, onSeeAll }: { title: string; subtitle?
 
 function SpotlightCard({ item, index = 0 }: { item: any; index?: number }) {
   return (
-    <Animated.View entering={FadeInDown.delay((index || 0) * 80 + 100).duration(500)}>
+    <Animated.View entering={isWeb ? undefined : FadeInDown.delay((index || 0) * 80 + 100).duration(500)}>
       <Pressable
         style={[styles.spotlightCard, Platform.OS === 'web' && { cursor: 'pointer' as any }]}
         onPress={() => {
@@ -290,7 +291,7 @@ export default function HomeScreen() {
           />
         }
       >
-        <Animated.View entering={FadeInDown.delay(100).duration(500)} style={styles.heroSection}>
+        <Animated.View entering={isWeb ? undefined : FadeInDown.delay(100).duration(500)} style={styles.heroSection}>
           <Text style={styles.heroSubtitle}>{timeGreeting}, {firstName}</Text>
           <Text style={styles.heroTitle}>
             What's happening in{'\n'}your culture this week?
@@ -301,7 +302,7 @@ export default function HomeScreen() {
         </Animated.View>
 
         {land && (
-          <Animated.View entering={FadeInDown.delay(120).duration(500)} style={styles.landBanner}>
+          <Animated.View entering={isWeb ? undefined : FadeInDown.delay(120).duration(500)} style={styles.landBanner}>
             <LinearGradient
               colors={['rgba(139,69,19,0.15)', 'rgba(139,69,19,0.05)']}
               start={{ x: 0, y: 0 }}
@@ -316,7 +317,7 @@ export default function HomeScreen() {
           </Animated.View>
         )}
 
-        <Animated.View entering={FadeInDown.delay(150).duration(500)} style={styles.quickGrid}>
+        <Animated.View entering={isWeb ? undefined : FadeInDown.delay(150).duration(500)} style={styles.quickGrid}>
           {superAppSections.map((sec, i) => (
             <Pressable
               key={sec.id}
@@ -342,14 +343,14 @@ export default function HomeScreen() {
         )}
 
         {featuredEvent && (
-          <Animated.View entering={FadeInDown.delay(180).duration(500)} style={{ paddingHorizontal: 20, marginBottom: 24 }}>
+          <Animated.View entering={isWeb ? undefined : FadeInDown.delay(180).duration(500)} style={{ paddingHorizontal: 20, marginBottom: 24 }}>
             <SectionHeader title="Cultural Highlight" subtitle="Don't miss this week" />
             <EventCard event={featuredEvent} highlight index={0} />
           </Animated.View>
         )}
 
         {popularEvents.length > 0 && (
-          <Animated.View entering={FadeInDown.delay(220).duration(500)} style={{ marginBottom: 24 }}>
+          <Animated.View entering={isWeb ? undefined : FadeInDown.delay(220).duration(500)} style={{ marginBottom: 24 }}>
             <View style={{ paddingHorizontal: 20 }}>
               <SectionHeader
                 title="Popular Near You"
@@ -369,7 +370,7 @@ export default function HomeScreen() {
         )}
 
         {allCommunities.length > 0 && (
-          <Animated.View entering={FadeInDown.delay(260).duration(500)} style={{ marginBottom: 24 }}>
+          <Animated.View entering={isWeb ? undefined : FadeInDown.delay(260).duration(500)} style={{ marginBottom: 24 }}>
             <View style={{ paddingHorizontal: 20 }}>
               <SectionHeader
                 title="Cultural Communities"
@@ -390,7 +391,7 @@ export default function HomeScreen() {
         )}
 
         {spotlights.length > 0 && (
-          <Animated.View entering={FadeInDown.delay(300).duration(500)} style={{ marginBottom: 24 }}>
+          <Animated.View entering={isWeb ? undefined : FadeInDown.delay(300).duration(500)} style={{ marginBottom: 24 }}>
             <View style={{ paddingHorizontal: 20 }}>
               <SectionHeader title="First Nations Spotlight" subtitle="Celebrating Indigenous culture" />
             </View>
@@ -407,7 +408,7 @@ export default function HomeScreen() {
         )}
 
         {cultureCards.length > 0 && (
-          <Animated.View entering={FadeInDown.delay(340).duration(500)} style={{ marginBottom: 24 }}>
+          <Animated.View entering={isWeb ? undefined : FadeInDown.delay(340).duration(500)} style={{ marginBottom: 24 }}>
             <View style={{ paddingHorizontal: 20 }}>
               <SectionHeader title="Explore Your Culture" />
             </View>
@@ -428,7 +429,7 @@ export default function HomeScreen() {
         )}
 
         {otherSections.filter(s => s.type === 'events' || s.type === 'mixed').map((section) => (
-          <Animated.View key={section.title} entering={FadeInDown.delay(380).duration(500)} style={{ marginBottom: 24 }}>
+          <Animated.View key={section.title} entering={isWeb ? undefined : FadeInDown.delay(380).duration(500)} style={{ marginBottom: 24 }}>
             <View style={{ paddingHorizontal: 20 }}>
               <SectionHeader title={section.title} subtitle={section.subtitle} />
             </View>
@@ -444,7 +445,7 @@ export default function HomeScreen() {
           </Animated.View>
         ))}
 
-        <Animated.View entering={FadeInDown.delay(400).duration(500)} style={{ marginBottom: 24 }}>
+        <Animated.View entering={isWeb ? undefined : FadeInDown.delay(400).duration(500)} style={{ marginBottom: 24 }}>
           <View style={{ paddingHorizontal: 20 }}>
             <SectionHeader title="Browse Categories" />
           </View>
@@ -463,7 +464,7 @@ export default function HomeScreen() {
           </ScrollView>
         </Animated.View>
 
-        <Animated.View entering={FadeInDown.delay(420).duration(500)} style={{ marginBottom: 24 }}>
+        <Animated.View entering={isWeb ? undefined : FadeInDown.delay(420).duration(500)} style={{ marginBottom: 24 }}>
           <View style={{ paddingHorizontal: 20 }}>
             <SectionHeader title="Explore Cities" subtitle="Discover culture worldwide" />
           </View>
@@ -484,7 +485,7 @@ export default function HomeScreen() {
           </ScrollView>
         </Animated.View>
 
-        <Animated.View entering={FadeInDown.delay(420).duration(500)} style={styles.bannerWrap}>
+        <Animated.View entering={isWeb ? undefined : FadeInDown.delay(420).duration(500)} style={styles.bannerWrap}>
           <Pressable
             style={[styles.plusBanner, Platform.OS === 'web' && { cursor: 'pointer' as any }]}
             onPress={() => router.push('/membership/upgrade')}
@@ -510,7 +511,7 @@ export default function HomeScreen() {
           </Pressable>
         </Animated.View>
 
-        <Animated.View entering={FadeInDown.delay(440).duration(500)} style={styles.bannerWrap}>
+        <Animated.View entering={isWeb ? undefined : FadeInDown.delay(440).duration(500)} style={styles.bannerWrap}>
           <Pressable
             style={[styles.perksBanner, Platform.OS === 'web' && { cursor: 'pointer' as any }]}
             onPress={() => router.push('/perks')}
@@ -534,7 +535,7 @@ export default function HomeScreen() {
           </Pressable>
         </Animated.View>
 
-        <Animated.View entering={FadeInDown.delay(460).duration(500)} style={styles.bannerWrap}>
+        <Animated.View entering={isWeb ? undefined : FadeInDown.delay(460).duration(500)} style={styles.bannerWrap}>
           <Pressable
             style={[styles.exploreCta, Platform.OS === 'web' && { cursor: 'pointer' as any }]}
             onPress={() => router.push('/allevents')}

@@ -10,6 +10,8 @@ import { apiRequest, queryClient } from '@/lib/query-client';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { FilterChipRow, FilterItem } from '@/components/FilterChip';
 
+const isWeb = Platform.OS === 'web';
+
 interface Perk {
   id: string;
   title: string;
@@ -141,7 +143,7 @@ export default function PerksTabScreen() {
         showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.primary} />}
       >
-        <Animated.View entering={FadeInDown.delay(100).duration(400)} style={styles.heroBanner}>
+        <Animated.View entering={isWeb ? undefined : FadeInDown.delay(100).duration(400)} style={styles.heroBanner}>
           <View style={styles.heroIconWrap}>
             <Ionicons name="gift" size={26} color="#FFF" />
           </View>
@@ -166,7 +168,7 @@ export default function PerksTabScreen() {
         </Animated.View>
 
         {membership?.tier === 'free' && (
-          <Animated.View entering={FadeInDown.delay(150).duration(400)}>
+          <Animated.View entering={isWeb ? undefined : FadeInDown.delay(150).duration(400)}>
             <Pressable
               style={styles.upgradePrompt}
               onPress={() => {
@@ -186,7 +188,7 @@ export default function PerksTabScreen() {
           </Animated.View>
         )}
 
-        <Animated.View entering={FadeInDown.delay(200).duration(400)}>
+        <Animated.View entering={isWeb ? undefined : FadeInDown.delay(200).duration(400)}>
           <FilterChipRow items={filterItems} selectedId={selectedCategory} onSelect={setSelectedCategory} size="small" />
         </Animated.View>
 
@@ -213,7 +215,7 @@ export default function PerksTabScreen() {
               const redeemable = canRedeem(perk);
               const usagePercent = perk.usageLimit ? Math.round(((perk.usedCount || 0) / perk.usageLimit) * 100) : 0;
               return (
-                <Animated.View key={perk.id} entering={FadeInDown.delay(250 + i * 60).duration(400)}>
+                <Animated.View key={perk.id} entering={isWeb ? undefined : FadeInDown.delay(250 + i * 60).duration(400)}>
                   <Pressable style={styles.perkCard} onPress={() => router.push(`/perks/${perk.id}`)}>
                     <View style={styles.perkTop}>
                       <View style={[styles.perkBadge, { backgroundColor: typeInfo.color + '12' }]}>

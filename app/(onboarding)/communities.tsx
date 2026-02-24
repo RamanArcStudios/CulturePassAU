@@ -9,6 +9,8 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useState, useCallback } from 'react';
 import * as Haptics from 'expo-haptics';
 
+const isWeb = Platform.OS === 'web';
+
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 // Kept as a module-level constant — no need to recreate on every render
@@ -59,14 +61,14 @@ export default function CommunitiesScreen() {
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
-        <Animated.View entering={FadeInDown.delay(100).duration(600)}>
+        <Animated.View entering={isWeb ? undefined : FadeInDown.delay(100).duration(600)}>
           <Text style={styles.title}>Your Communities</Text>
           <Text style={styles.subtitle}>
             Select the communities you'd like to connect with. You can always change these later.
           </Text>
         </Animated.View>
 
-        <Animated.View entering={FadeInDown.delay(200).duration(600)} style={styles.chipContainer}>
+        <Animated.View entering={isWeb ? undefined : FadeInDown.delay(200).duration(600)} style={styles.chipContainer}>
           {communities.map((community, idx) => {
             const isSelected = selected.includes(community);
             const color = CHIP_COLORS[idx % CHIP_COLORS.length];

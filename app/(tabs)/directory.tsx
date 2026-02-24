@@ -21,6 +21,8 @@ import { queryClient } from '@/lib/query-client';
 import type { Profile } from '@shared/schema';
 import { FilterChipRow, FilterItem } from '@/components/FilterChip';
 
+const isWeb = Platform.OS === 'web';
+
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const TYPE_COLORS: Record<string, string> = {
@@ -68,7 +70,7 @@ function DirectoryCard({ profile, index }: { profile: Profile; index: number }) 
   const tags = getTags(profile);
 
   return (
-    <Animated.View entering={FadeInDown.delay(index * 60).duration(400)}>
+    <Animated.View entering={isWeb ? undefined : FadeInDown.delay(index * 60).duration(400)}>
       <Pressable
         style={styles.card}
         onPress={() =>

@@ -8,6 +8,8 @@ import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { useCallback } from 'react';
 import { useOnboarding } from '@/contexts/OnboardingContext';
 
+const isWeb = Platform.OS === 'web';
+
 export default function WelcomeScreen() {
   const insets = useSafeAreaInsets();
   const topInset = Platform.OS === 'web' ? 67 : insets.top;
@@ -32,7 +34,7 @@ export default function WelcomeScreen() {
       />
 
       <View style={[styles.topSection, { paddingTop: topInset + 60 }]}>
-        <Animated.View entering={FadeInDown.delay(200).duration(800)} style={styles.iconCluster}>
+        <Animated.View entering={isWeb ? undefined : FadeInDown.delay(200).duration(800)} style={styles.iconCluster}>
           <View style={[styles.orb, styles.orbPrimary]} />
           <View style={[styles.orb, styles.orbSecondary]} />
           <View style={[styles.orb, styles.orbAccent]} />
@@ -41,31 +43,31 @@ export default function WelcomeScreen() {
           </View>
         </Animated.View>
 
-        <Animated.Text entering={FadeInDown.delay(400).duration(800)} style={styles.title}>
+        <Animated.Text entering={isWeb ? undefined : FadeInDown.delay(400).duration(800)} style={styles.title}>
           CulturePass
         </Animated.Text>
-        <Animated.Text entering={FadeInDown.delay(600).duration(800)} style={styles.tagline}>
+        <Animated.Text entering={isWeb ? undefined : FadeInDown.delay(600).duration(800)} style={styles.tagline}>
           Connect. Celebrate. Belong.
         </Animated.Text>
-        <Animated.Text entering={FadeInDown.delay(800).duration(800)} style={styles.subtitle}>
+        <Animated.Text entering={isWeb ? undefined : FadeInDown.delay(800).duration(800)} style={styles.subtitle}>
           Discover cultural events, connect with communities, and celebrate diversity across
           Australia, New Zealand, and beyond.
         </Animated.Text>
 
         <View style={styles.featureList}>
-          <Animated.View entering={FadeInDown.delay(1000).duration(600)} style={styles.featureRow}>
+          <Animated.View entering={isWeb ? undefined : FadeInDown.delay(1000).duration(600)} style={styles.featureRow}>
             <View style={[styles.featureIcon, { backgroundColor: Colors.primaryGlow }]}>
               <Ionicons name="calendar-outline" size={18} color={Colors.primary} />
             </View>
             <Text style={styles.featureText}>Discover Events</Text>
           </Animated.View>
-          <Animated.View entering={FadeInDown.delay(1150).duration(600)} style={styles.featureRow}>
+          <Animated.View entering={isWeb ? undefined : FadeInDown.delay(1150).duration(600)} style={styles.featureRow}>
             <View style={[styles.featureIcon, { backgroundColor: '#5856D610' }]}>
               <Ionicons name="people-outline" size={18} color={Colors.secondary} />
             </View>
             <Text style={styles.featureText}>Join Communities</Text>
           </Animated.View>
-          <Animated.View entering={FadeInDown.delay(1300).duration(600)} style={styles.featureRow}>
+          <Animated.View entering={isWeb ? undefined : FadeInDown.delay(1300).duration(600)} style={styles.featureRow}>
             <View style={[styles.featureIcon, { backgroundColor: '#FF950010' }]}>
               <Ionicons name="gift-outline" size={18} color={Colors.accent} />
             </View>
@@ -75,7 +77,7 @@ export default function WelcomeScreen() {
       </View>
 
       <Animated.View
-        entering={FadeInUp.delay(1000).duration(800)}
+        entering={isWeb ? undefined : FadeInUp.delay(1000).duration(800)}
         style={[styles.bottomSection, { paddingBottom: bottomInset + 16 }]}
       >
         <Pressable

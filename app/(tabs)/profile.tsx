@@ -26,6 +26,8 @@ import { fetch } from 'expo/fetch';
 import type { Wallet, User, Membership } from '@shared/schema';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
+const isWeb = Platform.OS === 'web';
+
 function formatDate(dateStr: string): string {
   const [year, month, day] = dateStr.split('-').map(Number);
   if (!year || !month || !day) return dateStr;
@@ -271,7 +273,7 @@ export default function ProfileScreen() {
         contentContainerStyle={{ paddingBottom: 100 }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={Colors.primary} colors={[Colors.primary]} />}
       >
-        <Animated.View entering={FadeInDown.duration(400)} style={styles.profileHeader}>
+        <Animated.View entering={isWeb ? undefined : FadeInDown.duration(400)} style={styles.profileHeader}>
           <View style={styles.headerTopBar}>
             <Pressable style={styles.headerBtn} onPress={handleShare}>
               <Ionicons name="share-outline" size={20} color={Colors.primary} />
@@ -427,7 +429,7 @@ export default function ProfileScreen() {
           </Pressable>
         </View>
 
-        <Animated.View entering={FadeInDown.delay(100).duration(400)} style={styles.statsRow}>
+        <Animated.View entering={isWeb ? undefined : FadeInDown.delay(100).duration(400)} style={styles.statsRow}>
           <Pressable style={styles.statCard} onPress={() => router.push('/(tabs)/communities')}>
             <Text style={styles.statNum}>{joinedCommunities.length}</Text>
             <Text style={styles.statLabel}>Communities</Text>
@@ -449,7 +451,7 @@ export default function ProfileScreen() {
           </Pressable>
         </Animated.View>
 
-        <Animated.View entering={FadeInDown.delay(150).duration(400)} style={styles.section}>
+        <Animated.View entering={isWeb ? undefined : FadeInDown.delay(150).duration(400)} style={styles.section}>
           <View style={styles.activityCard}>
             <Text style={styles.activityTitle}>Recent Activity</Text>
             <View style={styles.activityRow}>
@@ -464,7 +466,7 @@ export default function ProfileScreen() {
         </Animated.View>
 
         {joinedCommunitiesList.length > 0 && (
-          <Animated.View entering={FadeInDown.delay(200).duration(400)} style={styles.section}>
+          <Animated.View entering={isWeb ? undefined : FadeInDown.delay(200).duration(400)} style={styles.section}>
             <SectionTitle title="My Communities" />
             <View style={styles.menuCard}>
               {joinedCommunitiesList.slice(0, 3).map((c, idx) => (
@@ -502,7 +504,7 @@ export default function ProfileScreen() {
         )}
 
         {savedEventsList.length > 0 && (
-          <Animated.View entering={FadeInDown.delay(250).duration(400)} style={styles.section}>
+          <Animated.View entering={isWeb ? undefined : FadeInDown.delay(250).duration(400)} style={styles.section}>
             <SectionTitle title="Saved Events" />
             <View style={styles.menuCard}>
               {savedEventsList.slice(0, 3).map((e, idx) => (
@@ -531,7 +533,7 @@ export default function ProfileScreen() {
           </Animated.View>
         )}
 
-        <Animated.View entering={FadeInDown.delay(300).duration(400)} style={styles.section}>
+        <Animated.View entering={isWeb ? undefined : FadeInDown.delay(300).duration(400)} style={styles.section}>
           <SectionTitle title="Location & Preferences" />
           <View style={styles.menuCard}>
             <MenuItem
@@ -564,7 +566,7 @@ export default function ProfileScreen() {
           </View>
         </Animated.View>
 
-        <Animated.View entering={FadeInDown.delay(350).duration(400)} style={styles.section}>
+        <Animated.View entering={isWeb ? undefined : FadeInDown.delay(350).duration(400)} style={styles.section}>
           <SectionTitle title="Tickets & Wallet" />
           <View style={styles.menuCard}>
             <MenuItem
@@ -611,7 +613,7 @@ export default function ProfileScreen() {
           </View>
         </Animated.View>
 
-        <Animated.View entering={FadeInDown.delay(400).duration(400)} style={styles.section}>
+        <Animated.View entering={isWeb ? undefined : FadeInDown.delay(400).duration(400)} style={styles.section}>
           <SectionTitle title="Payment & Billing" />
           <View style={styles.menuCard}>
             <MenuItem
@@ -630,7 +632,7 @@ export default function ProfileScreen() {
           </View>
         </Animated.View>
 
-        <Animated.View entering={FadeInDown.delay(450).duration(400)} style={styles.section}>
+        <Animated.View entering={isWeb ? undefined : FadeInDown.delay(450).duration(400)} style={styles.section}>
           <SectionTitle title="Notifications" />
           <View style={styles.menuCard}>
             <MenuItem
@@ -650,7 +652,7 @@ export default function ProfileScreen() {
           </View>
         </Animated.View>
 
-        <Animated.View entering={FadeInDown.delay(500).duration(400)} style={styles.section}>
+        <Animated.View entering={isWeb ? undefined : FadeInDown.delay(500).duration(400)} style={styles.section}>
           <SectionTitle title="Settings" />
           <View style={styles.menuCard}>
             <MenuItem
@@ -669,7 +671,7 @@ export default function ProfileScreen() {
           </View>
         </Animated.View>
 
-        <Animated.View entering={FadeInDown.delay(550).duration(400)} style={styles.section}>
+        <Animated.View entering={isWeb ? undefined : FadeInDown.delay(550).duration(400)} style={styles.section}>
           <SectionTitle title="Help & Support" />
           <View style={styles.menuCard}>
             <MenuItem
@@ -694,7 +696,7 @@ export default function ProfileScreen() {
           </View>
         </Animated.View>
 
-        <Animated.View entering={FadeInDown.delay(550).duration(400)} style={styles.bottomActions}>
+        <Animated.View entering={isWeb ? undefined : FadeInDown.delay(550).duration(400)} style={styles.bottomActions}>
           <Pressable style={styles.logoutBtn} onPress={handleSignOut}>
             <Ionicons name="log-out-outline" size={18} color={Colors.error} />
             <Text style={styles.logoutText}>Sign Out</Text>
