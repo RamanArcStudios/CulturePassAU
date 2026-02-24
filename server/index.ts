@@ -83,6 +83,7 @@ type AppTicket = {
   staffAuditTrail?: Array<{ at: string; by: string; action: string; note?: string }>;
   stripePaymentIntentId?: string;
   walletPasses?: { apple?: string; google?: string };
+  ticketCode: string;
   imageColor?: string;
   createdAt: string;
   history: Array<{ at: string; status: TicketStatus; note: string }>;
@@ -103,6 +104,10 @@ const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 8 * 1024 * 1024 },
 });
+
+const rateBucket = new Map<string, { count: number; resetAt: number }>();
+const searchCache = new InMemoryTtlCache(45_000);
+const BAD_WORDS = ['hate', 'abuse', 'stupid', 'idiot'];
 
 const users: AppUser[] = [
   {
@@ -137,6 +142,10 @@ const tickets: AppTicket[] = [];
 const paymentMethods = new Map<string, Array<{ id: string; brand: string; last4: string; isDefault: boolean }>>();
 const transactions = new Map<string, Array<{ id: string; type: 'charge' | 'refund'; amountCents: number; createdAt: string; description: string }>>();
 const scanEvents: Array<{ id: string; ticketId: string; ticketCode: string; scannedAt: string; scannedBy: string; outcome: 'accepted' | 'duplicate' | 'rejected' }> = [];
+const notifications = new Map<string, Array<{ id: string; title: string; message: string; read: boolean; createdAt: string }>>();
+const tickets: AppTicket[] = [];
+const paymentMethods = new Map<string, Array<{ id: string; brand: string; last4: string; isDefault: boolean }>>();
+const transactions = new Map<string, Array<{ id: string; type: 'charge' | 'refund'; amountCents: number; createdAt: string; description: string }>>();
 
 for (const user of users) {
   wallets.set(user.id, { id: `w-${user.id}`, userId: user.id, balance: 12500, currency: 'AUD', points: 1200 });
@@ -153,6 +162,7 @@ for (const user of users) {
       metadata: null,
       createdAt: new Date().toISOString(),
     },
+    { id: randomUUID(), title: 'Welcome to CulturePass', message: 'Your account is ready.', read: false, createdAt: new Date().toISOString() },
   ]);
   paymentMethods.set(user.id, [{ id: randomUUID(), brand: 'visa', last4: '4242', isDefault: true }]);
   transactions.set(user.id, []);
@@ -206,6 +216,7 @@ type UploadedMedia = {
 
 const reports: ContentReport[] = [];
 const uploadedMedia: UploadedMedia[] = [];
+const reports: ContentReport[] = [];
 
 function parseSearchQuery(req: Request): SearchQuery {
   const tagsInput = String(req.query.tags ?? '').trim();
@@ -278,6 +289,36 @@ app.get('/api/rollout/config', (req, res) => {
     },
   });
 });
+function textHasProfanity(value: unknown): boolean {
+  if (typeof value !== 'string') return false;
+  const v = value.toLowerCase();
+  return BAD_WORDS.some((bad) => v.includes(bad));
+}
+
+function moderationCheck(req: Request, res: Response, next: NextFunction) {
+  const payload = JSON.stringify(req.body ?? {}).toLowerCase();
+  if (BAD_WORDS.some((w) => payload.includes(w))) {
+    return res.status(400).json({ error: 'Content rejected by moderation checks' });
+  }
+  next();
+}
+
+function rankItem(item: { title?: string; name?: string; city?: string; category?: string; description?: string }, q: string, city?: string) {
+  const query = q.toLowerCase();
+  const title = (item.title ?? item.name ?? '').toLowerCase();
+  const description = (item.description ?? '').toLowerCase();
+  const category = (item.category ?? '').toLowerCase();
+  let score = 0;
+  if (title === query) score += 100;
+  if (title.startsWith(query)) score += 60;
+  if (title.includes(query)) score += 35;
+  if (description.includes(query)) score += 15;
+  if (category.includes(query)) score += 10;
+  if (city && item.city?.toLowerCase() === city.toLowerCase()) score += 20;
+  return score;
+}
+
+app.get('/health', (_req, res) => res.json({ ok: true, at: nowIso() }));
 
 app.use(requireRateLimit);
 
@@ -481,6 +522,11 @@ app.post('/api/tickets', (req, res) => {
     staffAuditTrail: [{ at: nowIso(), by: 'system', action: 'ticket_created', note: 'Ticket created and paid' }],
     stripePaymentIntentId: `pi_mock_${randomUUID().slice(0, 8)}`,
     walletPasses: {},
+    quantity: Number(req.body?.quantity ?? 1),
+    totalPriceCents: Number(req.body?.totalPriceCents ?? 2500),
+    currency: 'AUD',
+    status: 'confirmed',
+    ticketCode: `CP-T-${Math.random().toString(36).slice(2, 8).toUpperCase()}`,
     imageColor: event.imageColor,
     createdAt: nowIso(),
     history: [{ at: nowIso(), status: 'confirmed', note: 'Ticket created' }],
@@ -499,6 +545,8 @@ app.put('/api/tickets/:id/cancel', (req, res) => {
   ticket.paymentStatus = 'refunded';
   ticket.history.unshift({ at: nowIso(), status: 'cancelled', note: 'Cancelled by user' });
   ticket.staffAuditTrail?.unshift({ at: nowIso(), by: String(req.body?.cancelledBy ?? 'user'), action: 'ticket_cancelled' });
+  ticket.status = 'cancelled';
+  ticket.history.unshift({ at: nowIso(), status: 'cancelled', note: 'Cancelled by user' });
   const tx = transactions.get(ticket.userId) ?? [];
   tx.unshift({ id: randomUUID(), type: 'refund', amountCents: ticket.totalPriceCents, createdAt: nowIso(), description: `Refund: ${ticket.eventTitle}` });
   transactions.set(ticket.userId, tx);
@@ -551,6 +599,16 @@ app.get('/api/tickets/:id/wallet/google', (req, res) => {
   ticket.walletPasses = { ...(ticket.walletPasses ?? {}), google: url };
   ticket.staffAuditTrail?.unshift({ at: nowIso(), by: 'user', action: 'google_wallet_pass_generated' });
   res.json({ url, provider: 'google', ticketId: ticket.id });
+});
+
+  const ticket = tickets.find((t) => t.ticketCode === ticketCode);
+  if (!ticket) return res.status(404).json({ valid: false, error: 'Invalid ticket code' });
+  if (ticket.status !== 'confirmed') {
+    return res.status(400).json({ valid: false, error: `Ticket is ${ticket.status}`, ticket });
+  }
+  ticket.status = 'used';
+  ticket.history.unshift({ at: nowIso(), status: 'used', note: `Scanned by ${String(req.body?.scannedBy ?? 'staff')}` });
+  res.json({ valid: true, message: 'Ticket scanned successfully', ticket });
 });
 
 const perks = [
@@ -638,6 +696,13 @@ app.get('/api/redemptions', (req, res) => {
   const userId = String(req.query.userId ?? users[0].id);
   res.json(redemptions.get(userId) ?? []);
 });
+app.get('/api/perks', (_req, res) => res.json([
+  { id: 'p1', title: '20% Off Partner Cafes', requiredTier: 'free', pointsCost: 100 },
+  { id: 'p2', title: 'VIP Event Priority Entry', requiredTier: 'plus', pointsCost: 350 },
+]));
+app.get('/api/perks/:id', (req, res) => res.json({ id: req.params.id, title: 'Perk Detail', requiredTier: 'free', pointsCost: 100 }));
+app.post('/api/perks', moderationCheck, (req, res) => res.status(201).json({ id: randomUUID(), ...req.body }));
+app.get('/api/redemptions', (_req, res) => res.json([]));
 
 app.get('/api/notifications/:userId', (req, res) => res.json(notifications.get(req.params.userId) ?? []));
 app.get('/api/notifications/:userId/unread-count', (req, res) => {
@@ -672,6 +737,14 @@ app.delete('/api/notifications/:id', (req, res) => {
     }
   }
   return res.status(404).json({ error: 'Notification not found' });
+  res.json({ count: list.filter((n) => !n.read).length });
+});
+app.post('/api/notifications/:userId/:id/read', (req, res) => {
+  const list = notifications.get(req.params.userId) ?? [];
+  list.forEach((n) => {
+    if (n.id === req.params.id) n.read = true;
+  });
+  res.json({ ok: true });
 });
 
 app.get('/api/reviews/:profileId', (req, res) => res.json([
@@ -916,6 +989,44 @@ app.post('/api/stripe/webhook', (req, res) => {
 
   return res.json({ received: true });
 });
+  const q = String(req.query.q ?? '').trim();
+  const type = String(req.query.type ?? 'all');
+  const city = String(req.query.city ?? '');
+  if (!q) return res.json({ results: [] });
+
+  const buckets: Array<{ id: string; type: string; title: string; subtitle: string; score: number }> = [];
+  if (type === 'all' || type === 'event') {
+    for (const e of events) {
+      const score = rankItem(e, q, city);
+      if (score > 0) buckets.push({ id: e.id, type: 'event', title: e.title, subtitle: `${e.communityTag} · ${e.venue}`, score });
+    }
+  }
+  if (type === 'all' || type === 'community') {
+    for (const c of profiles.filter((p) => p.entityType === 'community')) {
+      const score = rankItem(c, q, city);
+      if (score > 0) buckets.push({ id: c.id, type: 'community', title: c.name, subtitle: `${c.category} · ${c.members ?? 0} members`, score });
+    }
+  }
+
+  buckets.sort((a, b) => b.score - a.score);
+  res.json({ results: buckets.map(({ score, ...rest }) => rest) });
+});
+
+app.get('/api/search/suggest', (req, res) => {
+  const q = String(req.query.q ?? '').toLowerCase().trim();
+  if (!q) return res.json({ suggestions: [] });
+  const source = [...new Set([...events.map((e) => e.title), ...profiles.map((p) => p.name)])];
+  const suggestions = source.filter((s) => s.toLowerCase().includes(q)).slice(0, 8);
+  res.json({ suggestions });
+});
+
+app.post('/api/stripe/create-checkout-session', (req, res) => {
+  const ticket = req.body?.ticketData ?? {};
+  const draftId = randomUUID();
+  res.json({ checkoutUrl: 'https://checkout.stripe.com/mock-session', ticketId: draftId, ticket });
+});
+app.post('/api/stripe/create-checkout-session', (_req, res) => res.json({ url: 'https://checkout.stripe.com/mock-session' }));
+app.post('/api/stripe/refund', (req, res) => res.json({ ok: true, ticketId: req.body?.ticketId }));
 
 const port = Number(process.env.PORT ?? 5000);
 app.listen(port, () => {

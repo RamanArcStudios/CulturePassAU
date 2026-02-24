@@ -122,6 +122,9 @@ function DbCommunityView({ community, topInset, bottomInset }: { community: Comm
               <Ionicons name="flag-outline" size={20} color="#FFF" />
             </Pressable>
           </View>
+          <Pressable style={styles.backButton} onPress={() => goBackOrReplace('/(tabs)')}>
+            <Ionicons name="arrow-back" size={22} color="#FFF" />
+          </Pressable>
           <View style={styles.heroBottom}>
             <View style={[styles.heroIconWrap, { backgroundColor: 'rgba(255,255,255,0.2)' }]}>
               {community.iconEmoji ? (
@@ -301,6 +304,9 @@ function MockCommunityView({ community, topInset, bottomInset }: { community: an
               <Ionicons name="flag-outline" size={20} color="#FFF" />
             </Pressable>
           </View>
+          <Pressable style={styles.backButton} onPress={() => goBackOrReplace('/(tabs)')}>
+            <Ionicons name="arrow-back" size={22} color="#FFF" />
+          </Pressable>
           <View style={styles.heroBottom}>
             <View style={[styles.heroIconWrap, { backgroundColor: community.color + '50' }]}>
               <Ionicons name={community.icon as any} size={28} color="#FFF" />
