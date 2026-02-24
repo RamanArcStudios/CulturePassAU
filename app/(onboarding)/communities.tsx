@@ -64,7 +64,7 @@ export default function CommunitiesScreen() {
         <Animated.View entering={isWeb ? undefined : FadeInDown.delay(100).duration(600)}>
           <Text style={styles.title}>Your Communities</Text>
           <Text style={styles.subtitle}>
-            Select the communities you'd like to connect with. You can always change these later.
+            Select the communities you&apos;d like to connect with. You can always change these later.
           </Text>
         </Animated.View>
 

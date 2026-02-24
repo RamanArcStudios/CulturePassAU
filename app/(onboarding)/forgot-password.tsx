@@ -34,7 +34,7 @@ export default function ForgotPasswordScreen() {
               </View>
 
               <Text style={styles.title}>Reset Password</Text>
-              <Text style={styles.subtitle}>Enter the email address associated with your account. We'll send you a link to reset your password.</Text>
+              <Text style={styles.subtitle}>Enter the email address associated with your account. We&apos;ll send you a link to reset your password.</Text>
 
               <View style={styles.form}>
                 <View style={styles.inputGroup}>
@@ -60,9 +60,9 @@ export default function ForgotPasswordScreen() {
             <View style={styles.successContainer}>
               <View style={styles.successIcon}><Ionicons name="checkmark-circle" size={64} color={Colors.success} /></View>
               <Text style={styles.successTitle}>Check Your Email</Text>
-              <Text style={styles.successSubtitle}>We've sent a password reset link to:</Text>
+              <Text style={styles.successSubtitle}>We&apos;ve sent a password reset link to:</Text>
               <Text style={styles.emailDisplay}>{email}</Text>
-              <Text style={styles.successHint}>If you don't see it, check your spam folder. The link expires in 24 hours.</Text>
+              <Text style={styles.successHint}>If you don&apos;t see it, check your spam folder. The link expires in 24 hours.</Text>
 
               <Pressable style={styles.submitBtn} onPress={() => router.replace('/(onboarding)/login')}>
                 <Ionicons name="arrow-back" size={18} color="#FFF" />
@@ -73,7 +73,7 @@ export default function ForgotPasswordScreen() {
                 Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                 Alert.alert('Email Resent', 'A new reset link has been sent to your email.');
               }}>
-                <Text style={styles.resendText}>Didn't receive it? <Text style={styles.resendLink}>Resend</Text></Text>
+                <Text style={styles.resendText}>Didn&apos;t receive it? <Text style={styles.resendLink}>Resend</Text></Text>
               </Pressable>
             </View>
           )}

@@ -96,6 +96,7 @@ const BrandDots = memo(({ size = 22, opacity = 0.22 }: { size?: number; opacity?
     ))}
   </View>
 ));
+BrandDots.displayName = 'BrandDots';
 
 const StatItem = memo(({ value, label }: { value: number; label: string }) => (
   <View style={styles.statItem}>
@@ -103,6 +104,7 @@ const StatItem = memo(({ value, label }: { value: number; label: string }) => (
     <Text style={styles.statLabel}>{label}</Text>
   </View>
 ));
+StatItem.displayName = 'StatItem';
 
 const SectionHeader = memo(({ title }: { title: string }) => (
   <View style={styles.sectionHeader}>
@@ -110,6 +112,7 @@ const SectionHeader = memo(({ title }: { title: string }) => (
     <Text style={styles.sectionTitle}>{title}</Text>
   </View>
 ));
+SectionHeader.displayName = 'SectionHeader';
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
@@ -138,6 +141,7 @@ const SocialCard = memo(({ icon, label, color, accentColor, onPress }: {
     </AnimatedPressable>
   );
 });
+SocialCard.displayName = 'SocialCard';
 
 const DetailRow = memo(({
   icon, iconBg, iconColor, label, value, valueColor, onPress, showArrow,
@@ -164,6 +168,7 @@ const DetailRow = memo(({
   }
   return <View style={styles.detailRow}>{content}</View>;
 });
+DetailRow.displayName = 'DetailRow';
 
 function LoadingSkeleton({ topInset }: { topInset: number }) {
   return (
