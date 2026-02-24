@@ -356,9 +356,9 @@ export default function HomeScreen() {
         )}
 
         {featuredEvent && (
-          <Animated.View entering={isWeb ? undefined : FadeInDown.delay(180).duration(500)} style={{ marginBottom: 28 }}>
-            <View style={{ paddingHorizontal: 20 }}>
-              <SectionHeader title="Cultural Highlight" subtitle="Don't miss this week" />
+          <Animated.View entering={isWeb ? undefined : FadeInDown.delay(180).duration(500)} style={{ marginBottom: 28}}>
+            <View style={{ paddingHorizontal: 16 }}>
+              <SectionHeader title="Cultural Highlight " subtitle="Don't miss this week" />
             </View>
             <EventCard event={featuredEvent} highlight index={0} />
           </Animated.View>
@@ -366,7 +366,7 @@ export default function HomeScreen() {
 
         {popularEvents.length > 0 && (
           <Animated.View entering={isWeb ? undefined : FadeInDown.delay(220).duration(500)} style={{ marginBottom: 32 }}>
-            <View style={{ paddingHorizontal: 20 }}>
+            <View style={{ paddingHorizontal: 16 }}>
               <SectionHeader
                 title="Popular Near You"
                 onSeeAll={() => router.push('/(tabs)/explore')}
