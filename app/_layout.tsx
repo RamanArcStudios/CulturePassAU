@@ -2,6 +2,7 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import React, { useCallback } from "react";
+import { Platform, View, StyleSheet } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { KeyboardProvider } from "react-native-keyboard-controller";
 import { SafeAreaProvider } from "react-native-safe-area-context";
@@ -102,6 +103,8 @@ export default function RootLayout() {
     return null;
   }
 
+  const isWeb = Platform.OS === 'web';
+
   return (
     <ErrorBoundary>
       <SafeAreaProvider>
@@ -114,9 +117,19 @@ export default function RootLayout() {
                     style={{ flex: 1 }}
                     onLayout={onLayoutRootView}
                   >
-                    <KeyboardProvider>
-                      <RootLayoutNav />
-                    </KeyboardProvider>
+                    {isWeb ? (
+                      <View style={webStyles.outerContainer}>
+                        <View style={webStyles.innerContainer}>
+                          <KeyboardProvider>
+                            <RootLayoutNav />
+                          </KeyboardProvider>
+                        </View>
+                      </View>
+                    ) : (
+                      <KeyboardProvider>
+                        <RootLayoutNav />
+                      </KeyboardProvider>
+                    )}
                   </GestureHandlerRootView>
                 </ContactsProvider>
               </SavedProvider>
@@ -127,3 +140,21 @@ export default function RootLayout() {
     </ErrorBoundary>
   );
 }
+
+const webStyles = StyleSheet.create({
+  outerContainer: {
+    flex: 1,
+    alignItems: 'center',
+    backgroundColor: '#000',
+  },
+  innerContainer: {
+    flex: 1,
+    width: '100%',
+    maxWidth: 480,
+    backgroundColor: '#F2F2F7',
+    overflow: 'hidden',
+    ...(Platform.OS === 'web' ? {
+      boxShadow: '0 0 40px rgba(0,0,0,0.3)',
+    } : {}),
+  },
+});
