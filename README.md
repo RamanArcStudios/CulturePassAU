@@ -41,6 +41,8 @@ export EXPO_PUBLIC_API_URL=http://localhost:5000
 
 See [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) for:
 
+Publishing checklist: [`docs/PUBLISHING_READINESS.md`](docs/PUBLISHING_READINESS.md)
+
 - iOS App Store build + submission
 - Google Play build + submission
 - Web deployment (Firebase Hosting)
