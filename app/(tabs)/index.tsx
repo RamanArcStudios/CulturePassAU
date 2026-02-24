@@ -8,6 +8,7 @@ import {
   RefreshControl,
   Image,
   ActivityIndicator,
+  Dimensions,
 } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -261,6 +262,10 @@ export default function HomeScreen() {
     return all.slice(0, 10);
   }, [allCommunities]);
 
+  const screenWidth = Dimensions.get('window').width;
+  const maxWidth = Platform.OS === 'web' ? Math.min(screenWidth, 480) : screenWidth;
+  const cityCardWidth = (maxWidth - 40 - 14) / 2;
+
   const [refreshing, setRefreshing] = useState(false);
   const handleRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -494,25 +499,19 @@ export default function HomeScreen() {
           <View style={{ paddingHorizontal: 20 }}>
             <SectionHeader title="Explore Cities" subtitle="Discover culture worldwide" />
           </View>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={{ paddingHorizontal: 20, gap: 14 }}
-            decelerationRate="fast"
-            snapToInterval={190}
-            snapToAlignment="start"
-          >
+          <View style={{ paddingHorizontal: 20, flexDirection: 'row', flexWrap: 'wrap', gap: 14 }}>
             {FEATURED_CITIES.map((city, i) => (
               <CityCard
                 key={city.name}
                 city={city}
+                width={cityCardWidth}
                 onPress={() => {
                   Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                   router.push({ pathname: '/(tabs)/explore', params: { city: city.name } });
                 }}
               />
             ))}
-          </ScrollView>
+          </View>
         </Animated.View>
 
         <Animated.View entering={isWeb ? undefined : FadeInDown.delay(420).duration(500)} style={styles.bannerWrap}>

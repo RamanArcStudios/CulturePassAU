@@ -1,4 +1,4 @@
-import { View, Text, Pressable, StyleSheet, ScrollView, Platform, Alert, Image, Share, ActivityIndicator } from 'react-native';
+import { View, Text, Pressable, StyleSheet, ScrollView, Platform, Alert, Image, Share, ActivityIndicator, Linking } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -6,7 +6,6 @@ import { useQuery } from '@tanstack/react-query';
 import { getApiUrl } from '@/lib/query-client';
 import { fetch } from 'expo/fetch';
 import Colors from '@/constants/colors';
-import { useState } from 'react';
 import * as Haptics from 'expo-haptics';
 
 export default function MovieDetailScreen() {
@@ -23,8 +22,6 @@ export default function MovieDetailScreen() {
     },
     enabled: !!id,
   });
-  const [selectedCinema, setSelectedCinema] = useState(0);
-  const [selectedTime, setSelectedTime] = useState<string | null>(null);
 
   if (isLoading) return <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}><ActivityIndicator size="large" color={Colors.primary} /></View>;
   if (!movie) return <View style={styles.container}><Text>Movie not found</Text></View>;
@@ -39,11 +36,6 @@ export default function MovieDetailScreen() {
         url: shareUrl,
       });
     } catch {}
-  };
-
-  const handleBook = () => {
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    Alert.alert('Booking Confirmed!', `Your ticket for "${movie.title}" at ${movie.showtimes[selectedCinema].cinema} (${selectedTime}) has been reserved.\n\nTotal: $${movie.showtimes[selectedCinema].price}\n\nA QR code ticket has been sent to your profile.`, [{ text: 'View Ticket', onPress: () => router.back() }]);
   };
 
   return (
@@ -88,39 +80,43 @@ export default function MovieDetailScreen() {
           </View>
         </View>
 
-        <View style={styles.showtimeSection}>
-          <Text style={styles.showtimeTitle}>Select Showtime</Text>
-          {movie.showtimes.map((st, ci) => (
-            <View key={ci} style={styles.cinemaBlock}>
-              <Pressable style={[styles.cinemaHeader, selectedCinema === ci && styles.cinemaHeaderActive]}
-                onPress={() => { setSelectedCinema(ci); setSelectedTime(null); }}>
-                <Ionicons name="location" size={16} color={selectedCinema === ci ? Colors.primary : Colors.textSecondary} />
-                <Text style={[styles.cinemaName, selectedCinema === ci && { color: Colors.primary }]}>{st.cinema}</Text>
-                <Text style={styles.cinemaPrice}>${st.price}</Text>
-              </Pressable>
-              {selectedCinema === ci && (
+        {movie.showtimes && movie.showtimes.length > 0 && (
+          <View style={styles.showtimeSection}>
+            <Text style={styles.showtimeTitle}>Where to Watch</Text>
+            {movie.showtimes.map((st: any, ci: number) => (
+              <View key={ci} style={styles.cinemaBlock}>
+                <View style={styles.cinemaHeader}>
+                  <Ionicons name="location" size={16} color={Colors.textSecondary} />
+                  <Text style={styles.cinemaName}>{st.cinema}</Text>
+                  <Text style={styles.cinemaPrice}>From ${st.price}</Text>
+                </View>
                 <View style={styles.timesRow}>
-                  {st.times.map(time => (
-                    <Pressable key={time} style={[styles.timeChip, selectedTime === time && styles.timeChipActive]}
-                      onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setSelectedTime(time); }}>
-                      <Text style={[styles.timeText, selectedTime === time && { color: '#FFF' }]}>{time}</Text>
-                    </Pressable>
+                  {st.times.map((time: string) => (
+                    <View key={time} style={styles.timeChip}>
+                      <Text style={styles.timeText}>{time}</Text>
+                    </View>
                   ))}
                 </View>
-              )}
-            </View>
-          ))}
-        </View>
+              </View>
+            ))}
+          </View>
+        )}
       </ScrollView>
 
       <View style={[styles.bottomBar, { paddingBottom: Platform.OS === 'web' ? 34 : insets.bottom + 12 }]}>
         <View>
-          <Text style={styles.bottomPrice}>${movie.showtimes[selectedCinema].price}</Text>
-          <Text style={styles.bottomLabel}>per ticket</Text>
+          <Text style={styles.bottomPrice}>From ${movie.showtimes?.[0]?.price || '—'}</Text>
+          <Text style={styles.bottomLabel}>at nearby cinemas</Text>
         </View>
-        <Pressable style={[styles.bookButton, !selectedTime && { opacity: 0.5 }]}
-          onPress={selectedTime ? handleBook : undefined} disabled={!selectedTime}>
-          <Ionicons name="ticket" size={18} color="#FFF" />
+        <Pressable
+          style={styles.bookButton}
+          onPress={() => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+            const query = encodeURIComponent(`${movie.title} movie tickets ${movie.city || ''}`);
+            Linking.openURL(`https://www.google.com/search?q=${query}`);
+          }}
+        >
+          <Ionicons name="open-outline" size={18} color="#FFF" />
           <Text style={styles.bookButtonText}>Book Tickets</Text>
         </Pressable>
       </View>
@@ -151,12 +147,10 @@ const styles = StyleSheet.create({
   showtimeTitle: { fontSize: 18, fontFamily: 'Poppins_700Bold', color: Colors.text },
   cinemaBlock: { gap: 10 },
   cinemaHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: Colors.card, borderRadius: 14, padding: 14, borderWidth: 1, borderColor: Colors.cardBorder },
-  cinemaHeaderActive: { borderColor: Colors.primary, borderWidth: 2 },
   cinemaName: { flex: 1, fontSize: 14, fontFamily: 'Poppins_600SemiBold', color: Colors.text },
   cinemaPrice: { fontSize: 15, fontFamily: 'Poppins_700Bold', color: Colors.primary },
   timesRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, paddingLeft: 8 },
   timeChip: { paddingHorizontal: 18, paddingVertical: 10, borderRadius: 12, backgroundColor: Colors.card, borderWidth: 1.5, borderColor: Colors.cardBorder },
-  timeChipActive: { backgroundColor: Colors.primary, borderColor: Colors.primary },
   timeText: { fontSize: 13, fontFamily: 'Poppins_600SemiBold', color: Colors.text },
   bottomBar: { position: 'absolute', bottom: 0, left: 0, right: 0, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 14, backgroundColor: Colors.card, borderTopWidth: 1, borderTopColor: Colors.cardBorder },
   bottomPrice: { fontSize: 22, fontFamily: 'Poppins_700Bold', color: Colors.text },

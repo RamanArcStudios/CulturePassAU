@@ -22,15 +22,17 @@ interface CityCardProps {
     imageUrl?: string;
   };
   onPress?: () => void;
+  width?: number;
 }
 
-export default function CityCard({ city, onPress }: CityCardProps) {
+export default function CityCard({ city, onPress, width }: CityCardProps) {
   const imageUri = city.imageUrl || CITY_IMAGES[city.name] || FALLBACK_IMAGE;
 
   return (
     <Pressable
       style={({ pressed }) => [
         styles.card,
+        width ? { width } : null,
         pressed && { opacity: 0.9, transform: [{ scale: 0.97 }] },
         Platform.OS === 'web' && { cursor: 'pointer' as any },
         Colors.shadows.medium,
@@ -59,7 +61,7 @@ export default function CityCard({ city, onPress }: CityCardProps) {
 
 const styles = StyleSheet.create({
   card: {
-    width: 176,
+    width: 170,
     height: 130,
     borderRadius: 22,
     overflow: 'hidden',

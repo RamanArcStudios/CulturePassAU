@@ -8,6 +8,9 @@ import { useQuery, useMutation } from '@tanstack/react-query';
 import { apiRequest, queryClient, getApiUrl } from '@/lib/query-client';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useState } from 'react';
+import * as Clipboard from 'expo-clipboard';
+import { useAuth } from '@/lib/auth';
 
 interface Perk {
   id: string;
@@ -28,11 +31,6 @@ interface Perk {
   status: string | null;
   startDate: string | null;
   endDate: string | null;
-}
-
-function useDemoUserId() {
-  const { data } = useQuery<{ id: string }[]>({ queryKey: ['/api/users'] });
-  return data?.[0]?.id;
 }
 
 const PERK_TYPE_INFO: Record<string, { icon: string; color: string; label: string; gradient: string }> = {
@@ -68,7 +66,9 @@ export default function PerkDetailScreen() {
   const insets = useSafeAreaInsets();
   const topInset = Platform.OS === 'web' ? 67 : insets.top;
   const bottomInset = Platform.OS === 'web' ? 34 : insets.bottom;
-  const userId = useDemoUserId();
+  const { userId } = useAuth();
+  const [showCoupon, setShowCoupon] = useState(false);
+  const [couponCode, setCouponCode] = useState('');
 
   const { data: perk, isLoading } = useQuery<Perk>({
     queryKey: ['/api/perks', id],
@@ -95,7 +95,9 @@ export default function PerkDetailScreen() {
       queryClient.invalidateQueries({ queryKey: ['/api/perks'] });
       queryClient.invalidateQueries({ queryKey: ['/api/redemptions'] });
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      Alert.alert('Redeemed!', 'This perk has been applied to your account.');
+      const code = `CP-${perk.perkType.toUpperCase().replace('_', '')}-${Date.now().toString(36).toUpperCase()}`;
+      setCouponCode(code);
+      setShowCoupon(true);
     },
     onError: (err: Error) => {
       Alert.alert('Cannot Redeem', err.message);
@@ -293,6 +295,36 @@ export default function PerkDetailScreen() {
           </>
         )}
       </ScrollView>
+
+      {showCoupon && (
+        <View style={styles.couponOverlay}>
+          <View style={styles.couponModal}>
+            <View style={styles.couponIconWrap}>
+              <Ionicons name="checkmark-circle" size={48} color="#34C759" />
+            </View>
+            <Text style={styles.couponTitle}>Perk Redeemed!</Text>
+            <Text style={styles.couponSubtitle}>Here's your coupon code</Text>
+            <View style={styles.couponCodeWrap}>
+              <Text style={styles.couponCodeText}>{couponCode}</Text>
+            </View>
+            <Text style={styles.couponHint}>Show this code at checkout or enter it online</Text>
+            <Pressable
+              style={styles.couponCopyBtn}
+              onPress={async () => {
+                await Clipboard.setStringAsync(couponCode);
+                Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+                Alert.alert('Copied!', 'Coupon code copied to clipboard.');
+              }}
+            >
+              <Ionicons name="copy-outline" size={18} color="#FFF" />
+              <Text style={styles.couponCopyText}>Copy Code</Text>
+            </Pressable>
+            <Pressable style={styles.couponDoneBtn} onPress={() => setShowCoupon(false)}>
+              <Text style={styles.couponDoneText}>Done</Text>
+            </Pressable>
+          </View>
+        </View>
+      )}
 
       <View style={[styles.bottomBar, { paddingBottom: bottomInset + 14 }]}>
         <Pressable
@@ -580,5 +612,85 @@ const styles = StyleSheet.create({
     fontFamily: 'Poppins_600SemiBold',
     color: Colors.primary,
     marginTop: 8,
+  },
+  couponOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 100,
+    padding: 30,
+  },
+  couponModal: {
+    backgroundColor: '#FFF',
+    borderRadius: 24,
+    padding: 28,
+    alignItems: 'center',
+    width: '100%' as any,
+    maxWidth: 340,
+  },
+  couponIconWrap: {
+    marginBottom: 12,
+  },
+  couponTitle: {
+    fontSize: 22,
+    fontFamily: 'Poppins_700Bold',
+    color: '#1C1C1E',
+    marginBottom: 4,
+  },
+  couponSubtitle: {
+    fontSize: 14,
+    fontFamily: 'Poppins_400Regular',
+    color: '#8E8E93',
+    marginBottom: 16,
+  },
+  couponCodeWrap: {
+    backgroundColor: '#F2F2F7',
+    borderRadius: 14,
+    paddingHorizontal: 24,
+    paddingVertical: 16,
+    marginBottom: 12,
+    borderWidth: 2,
+    borderColor: '#E5E5EA',
+    borderStyle: 'dashed',
+  },
+  couponCodeText: {
+    fontSize: 22,
+    fontFamily: 'Poppins_700Bold',
+    color: '#1C1C1E',
+    letterSpacing: 2,
+    textAlign: 'center' as const,
+  },
+  couponHint: {
+    fontSize: 12,
+    fontFamily: 'Poppins_400Regular',
+    color: '#8E8E93',
+    marginBottom: 20,
+    textAlign: 'center' as const,
+  },
+  couponCopyBtn: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
+    gap: 8,
+    backgroundColor: '#1A7A6D',
+    borderRadius: 50,
+    paddingVertical: 14,
+    paddingHorizontal: 28,
+    width: '100%' as any,
+    marginBottom: 10,
+  },
+  couponCopyText: {
+    fontSize: 16,
+    fontFamily: 'Poppins_600SemiBold',
+    color: '#FFF',
+  },
+  couponDoneBtn: {
+    paddingVertical: 10,
+  },
+  couponDoneText: {
+    fontSize: 15,
+    fontFamily: 'Poppins_500Medium',
+    color: '#8E8E93',
   },
 });
