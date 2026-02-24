@@ -32,7 +32,7 @@ export default function TabLayout() {
           isIOS ? (
             <BlurView
               intensity={80}
-              tint="dark"
+              tint="light"
               style={StyleSheet.absoluteFill}
             />
           ) : isWeb ? (

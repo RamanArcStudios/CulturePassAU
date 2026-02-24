@@ -2,6 +2,7 @@ import { View, Text, Pressable, StyleSheet, Platform } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
+import Colors from '@/constants/colors';
 
 interface CommunityCardProps {
   community: {
@@ -55,7 +56,7 @@ export default function CommunityCard({ community, index = 0 }: CommunityCardPro
 const styles = StyleSheet.create({
   card: {
     width: 180,
-    backgroundColor: '#1A1A22',
+    backgroundColor: Colors.surface,
     borderRadius: 18,
     padding: 16,
   },

@@ -1,5 +1,6 @@
 import { View, Text, Pressable, StyleSheet, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import Colors from '@/constants/colors';
 
 interface CategoryCardProps {
   item: {
@@ -37,7 +38,7 @@ export default function CategoryCard({ item, onPress }: CategoryCardProps) {
 const styles = StyleSheet.create({
   card: {
     width: 100,
-    backgroundColor: '#1A1A22',
+    backgroundColor: Colors.surface,
     borderRadius: 16,
     alignItems: 'center',
     paddingVertical: 16,

@@ -3,6 +3,7 @@ import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, { FadeInDown } from 'react-native-reanimated';
+import Colors from '@/constants/colors';
 
 interface EventCardProps {
   event: {
@@ -80,7 +81,7 @@ const styles = StyleSheet.create({
     height: 180,
     borderRadius: 20,
     overflow: 'hidden',
-    backgroundColor: '#141419',
+    backgroundColor: Colors.surfaceSecondary,
   },
   highlight: {
     width: '100%',

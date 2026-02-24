@@ -29,6 +29,7 @@ import EventCard from '@/components/Discover/EventCard';
 import CategoryCard from '@/components/Discover/CategoryCard';
 import CommunityCard from '@/components/Discover/CommunityCard';
 import CityCard from '@/components/Discover/CityCard';
+import Colors from '@/constants/colors';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -262,13 +263,13 @@ export default function HomeScreen() {
         <LocationPicker />
         <View style={styles.topBarRight}>
           <Pressable style={styles.iconButton} hitSlop={8} onPress={() => router.push('/search')}>
-            <Ionicons name="search" size={22} color="#FFF" />
+            <Ionicons name="search" size={22} color={Colors.text} />
           </Pressable>
           <Pressable style={styles.iconButton} hitSlop={8} onPress={() => router.push('/saved')}>
-            <Ionicons name="bookmark-outline" size={22} color="#FFF" />
+            <Ionicons name="bookmark-outline" size={22} color={Colors.text} />
           </Pressable>
           <Pressable style={styles.iconButton} hitSlop={8} onPress={() => router.push('/notifications')}>
-            <Ionicons name="notifications-outline" size={22} color="#FFF" />
+            <Ionicons name="notifications-outline" size={22} color={Colors.text} />
             <View style={styles.notifDot} />
           </Pressable>
         </View>
@@ -562,7 +563,7 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0A0A0F',
+    backgroundColor: Colors.background,
   },
   topBar: {
     flexDirection: 'row',
@@ -570,7 +571,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 20,
     paddingVertical: 10,
-    backgroundColor: '#0A0A0F',
+    backgroundColor: Colors.background,
   },
   topBarRight: {
     flexDirection: 'row',
@@ -607,7 +608,7 @@ const styles = StyleSheet.create({
   heroTitle: {
     fontSize: 26,
     fontFamily: 'Poppins_700Bold',
-    color: '#FFFFFF',
+    color: Colors.text,
     lineHeight: 34,
     letterSpacing: 0.2,
   },
@@ -653,7 +654,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    backgroundColor: '#1A1A22',
+    backgroundColor: Colors.surface,
     borderRadius: 14,
     paddingHorizontal: 14,
     paddingVertical: 10,
@@ -668,7 +669,7 @@ const styles = StyleSheet.create({
   quickPillLabel: {
     fontSize: 13,
     fontFamily: 'Poppins_500Medium',
-    color: '#FFFFFF',
+    color: Colors.text,
   },
   loadingWrap: {
     alignItems: 'center',
@@ -689,7 +690,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 20,
     fontFamily: 'Poppins_700Bold',
-    color: '#FFFFFF',
+    color: Colors.text,
     letterSpacing: 0.3,
   },
   sectionSubtitle: {
@@ -709,7 +710,7 @@ const styles = StyleSheet.create({
     height: 160,
     borderRadius: 20,
     overflow: 'hidden',
-    backgroundColor: '#1A1A22',
+    backgroundColor: Colors.surface,
   },
   spotlightBadge: {
     position: 'absolute',
@@ -817,7 +818,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 14,
-    backgroundColor: '#1A1A22',
+    backgroundColor: Colors.surface,
     borderRadius: 18,
     paddingHorizontal: 18,
     paddingVertical: 18,
@@ -833,7 +834,7 @@ const styles = StyleSheet.create({
   exploreCtaTitle: {
     fontSize: 16,
     fontFamily: 'Poppins_700Bold',
-    color: '#FFFFFF',
+    color: Colors.text,
   },
   exploreCtaSub: {
     fontSize: 13,

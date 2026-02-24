@@ -1,5 +1,6 @@
 import { View, Text, Pressable, StyleSheet, Image, Platform } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import Colors from '@/constants/colors';
 
 const CITY_IMAGES: Record<string, string> = {
   'Sydney': 'https://images.unsplash.com/photo-1506973035872-a4ec16b8e8d9?w=400&q=80',
@@ -54,7 +55,7 @@ const styles = StyleSheet.create({
     height: 120,
     borderRadius: 16,
     overflow: 'hidden',
-    backgroundColor: '#141419',
+    backgroundColor: Colors.surfaceSecondary,
   },
   content: {
     position: 'absolute',
