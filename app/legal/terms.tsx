@@ -17,7 +17,7 @@ const SECTIONS = [
   { title: '9. Community Guidelines', body: 'Users participating in community features must respect cultural diversity and maintain a welcoming environment. Hate speech, discrimination, harassment, and bullying are strictly prohibited. CulturePass reserves the right to moderate content and remove posts that violate these guidelines without notice.' },
   { title: '10. Limitation of Liability', body: 'CulturePass is provided "as is" without warranties of any kind. To the maximum extent permitted by law, CulturePass Pty Ltd shall not be liable for any indirect, incidental, special, consequential, or punitive damages arising from your use of the App. Our total liability shall not exceed the amount you paid to CulturePass in the 12 months preceding the claim.' },
   { title: '11. Governing Law', body: 'These Terms are governed by the laws of New South Wales, Australia. Any disputes arising from these Terms shall be resolved in the courts of New South Wales. For users in New Zealand, UAE, UK, or Canada, local consumer protection laws may also apply.' },
-  { title: '12. Contact', body: 'For questions about these Terms, contact us at:\n\nCulturePass Pty Ltd\nEmail: legal@culturepass.com\nPhone: 1800-CULTURE (1800 285 887)\nAddress: Level 10, 100 Market Street, Sydney NSW 2000, Australia' },
+  { title: '12. Contact', body: 'For questions about these Terms, contact us at:\n\nCulturePass Pty Ltd\nEmail: legal@culturepass.au\nPhone: 1800-CULTURE (1800 285 887)\nAddress: Level 10, 100 Market Street, Sydney NSW 2000, Australia' },
 ];
 
 export default function TermsScreen() {

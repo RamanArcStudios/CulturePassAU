@@ -10,6 +10,7 @@ import { useState } from 'react';
 import type { Profile, Review } from '@/shared/schema';
 import { getApiUrl } from '@/lib/query-client';
 import { fetch } from 'expo/fetch';
+import { confirmAndReport } from '@/lib/reporting';
 
 const ENTITY_COLORS: Record<string, string> = {
   community: '#E85D3A',
@@ -148,6 +149,12 @@ export default function ProfileDetailScreen() {
           <View style={styles.heroTopRow}>
             <Pressable style={styles.backButton} onPress={() => router.back()}>
               <Ionicons name="arrow-back" size={22} color="#FFF" />
+            </Pressable>
+            <Pressable
+              style={styles.shareButton}
+              onPress={() => confirmAndReport({ targetType: 'profile', targetId: String(profile.id), label: 'this profile' })}
+            >
+              <Ionicons name="flag-outline" size={20} color="#FFF" />
             </Pressable>
             <Pressable
               style={styles.shareButton}

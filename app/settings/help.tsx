@@ -16,7 +16,7 @@ const FAQ_ITEMS = [
 ];
 
 const CONTACT_OPTIONS = [
-  { icon: 'mail', label: 'Email Support', sub: 'support@culturepass.com', color: '#3498DB', action: () => Linking.openURL('mailto:support@culturepass.com') },
+  { icon: 'mail', label: 'Email Support', sub: 'support@culturepass.au', color: '#3498DB', action: () => Linking.openURL('mailto:support@culturepass.au') },
   { icon: 'call', label: 'Phone Support', sub: '1800-CULTURE (1800 285 887)', color: '#34C759', action: () => Linking.openURL('tel:1800285887') },
 ];
 
@@ -84,7 +84,7 @@ export default function SettingsHelpScreen() {
         <Animated.View entering={FadeInDown.delay(400).duration(400)} style={styles.section}>
           <Pressable style={styles.guidelinesCard} onPress={() => {
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-            Linking.openURL('https://culturepass.com/guidelines');
+            router.push('/legal/guidelines');
           }}>
             <View style={[styles.contactIcon, { backgroundColor: '#9B59B615' }]}>
               <Ionicons name="book-outline" size={20} color="#9B59B6" />
