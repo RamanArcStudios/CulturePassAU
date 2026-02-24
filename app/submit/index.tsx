@@ -4,10 +4,13 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Colors from '@/constants/colors';
 import { router } from 'expo-router';
 import * as Haptics from 'expo-haptics';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { apiRequest, queryClient } from '@/lib/query-client';
+import { apiRequest, getApiUrl, queryClient } from '@/lib/query-client';
 import Animated, { FadeInDown } from 'react-native-reanimated';
+import * as ImagePicker from 'expo-image-picker';
+import { manipulateAsync, SaveFormat } from 'expo-image-manipulator';
+import { fetch } from 'expo/fetch';
 
 type SubmitType = 'event' | 'organisation' | 'business' | 'artist' | 'perk';
 
@@ -67,11 +70,13 @@ export default function SubmitScreen() {
   const webBottom = Platform.OS === 'web' ? 34 : 0;
   const [activeTab, setActiveTab] = useState<SubmitType>('event');
   const [form, setForm] = useState({ ...initialForm });
+  const [imageUri, setImageUri] = useState<string | null>(null);
   const userId = useDemoUserId();
 
   const submitProfileMutation = useMutation({
     mutationFn: async (data: any) => {
-      await apiRequest('POST', '/api/profiles', data);
+      const res = await apiRequest('POST', '/api/profiles', data);
+      return res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/profiles'] });
@@ -94,6 +99,39 @@ export default function SubmitScreen() {
     },
     onError: (err: Error) => Alert.alert('Error', err.message),
   });
+
+  const uploadImage = async () => {
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permission.granted) {
+      Alert.alert('Permission needed', 'Please allow photo access to upload media.');
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, allowsEditing: true, quality: 1 });
+    if (!result.canceled && result.assets[0]?.uri) setImageUri(result.assets[0].uri);
+  };
+
+  const uploadAndAttach = async (targetType: 'event' | 'profile' | 'business' | 'post', targetId: string) => {
+    if (!imageUri) return;
+    const processed = await manipulateAsync(imageUri, [{ resize: { width: 1600 } }], { compress: 0.9, format: SaveFormat.JPEG });
+    const blobRes = await fetch(processed.uri);
+    const blob = await blobRes.blob();
+    const formData = new FormData();
+    formData.append('image', blob as any, 'upload.jpg');
+
+    const base = getApiUrl();
+    const uploadRes = await fetch(`${base}api/uploads/image`, { method: 'POST', body: formData });
+    if (!uploadRes.ok) throw new Error('Failed image upload');
+    const uploaded = await uploadRes.json();
+
+    await apiRequest('POST', '/api/media/attach', {
+      targetType,
+      targetId,
+      imageUrl: uploaded.imageUrl,
+      thumbnailUrl: uploaded.thumbnailUrl,
+      width: uploaded.width,
+      height: uploaded.height,
+    });
+  };
 
   const handleSubmit = () => {
     if (!form.name.trim()) {
@@ -143,6 +181,19 @@ export default function SubmitScreen() {
       });
     }
   };
+
+  useEffect(() => {
+    const maybeAttach = async () => {
+      const created = submitProfileMutation.data as any;
+      if (!created?.id || !imageUri) return;
+      const targetType = activeTab === 'event' ? 'event' : activeTab === 'business' ? 'business' : 'profile';
+      try {
+        await uploadAndAttach(targetType, created.id);
+      } catch {}
+    };
+    maybeAttach();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [submitProfileMutation.data]);
 
   const getCategoryOptions = () => {
     if (activeTab === 'event') return EVENT_CATEGORIES;
@@ -223,6 +274,11 @@ export default function SubmitScreen() {
               textAlignVertical="top"
               maxLength={500}
             />
+
+            <Pressable style={styles.mediaBtn} onPress={uploadImage}>
+              <Ionicons name="image-outline" size={16} color={Colors.primary} />
+              <Text style={styles.mediaBtnText}>{imageUri ? 'Replace Media' : 'Upload Media'}</Text>
+            </Pressable>
           </Animated.View>
 
           {activeTab === 'event' && (
@@ -439,6 +495,8 @@ const styles = StyleSheet.create({
   fieldLabel: { fontSize: 13, fontFamily: 'Poppins_600SemiBold', color: Colors.textSecondary, marginBottom: 6, marginTop: 12 },
   input: { backgroundColor: Colors.card, borderRadius: 12, padding: 14, fontSize: 15, fontFamily: 'Poppins_400Regular', color: Colors.text, borderWidth: 1, borderColor: Colors.cardBorder },
   textArea: { minHeight: 100, paddingTop: 14 },
+  mediaBtn: { marginTop: 12, alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 14, borderWidth: 1, borderColor: Colors.primary + '40', backgroundColor: Colors.primary + '10' },
+  mediaBtnText: { fontSize: 13, fontFamily: 'Poppins_600SemiBold', color: Colors.primary },
   rowFields: { flexDirection: 'row', gap: 12 },
   halfField: { flex: 1 },
   categoryGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },

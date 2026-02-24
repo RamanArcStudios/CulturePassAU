@@ -702,6 +702,12 @@ export default function ProfileScreen() {
               onPress={() => router.push('/legal/terms')}
             />
             <MenuItem
+              icon="shield-outline"
+              label="Community Guidelines"
+              color="#5E5CE6"
+              onPress={() => router.push('/legal/guidelines')}
+            />
+            <MenuItem
               icon="information-circle-outline"
               label="About CulturePass"
               color={Colors.primary}

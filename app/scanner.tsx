@@ -14,6 +14,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Colors from '@/constants/colors';
 import { router } from 'expo-router';
+import { goBackOrReplace } from '@/lib/navigation';
 import * as Haptics from 'expo-haptics';
 import { useState, useCallback, useRef } from 'react';
 import { getApiUrl } from '@/lib/query-client';
@@ -313,7 +314,7 @@ export default function ScannerScreen() {
   return (
     <View style={[styles.container, { paddingTop: topInset }]}>
       <View style={styles.header}>
-        <Pressable onPress={() => router.back()} style={styles.backBtn}>
+        <Pressable onPress={() => goBackOrReplace('/(tabs)')} style={styles.backBtn}>
           <Ionicons name="chevron-back" size={22} color={Colors.text} />
         </Pressable>
         <Text style={styles.headerTitle}>Scanner</Text>
