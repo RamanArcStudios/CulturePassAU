@@ -86,4 +86,31 @@ export function registerUsersRoutes(app: Express) {
       res.status(401).json({ error: e.message });
     }
   });
+
+  app.delete("/api/account/:id", async (req: Request, res: Response) => {
+    try {
+      const { password } = req.body;
+      if (!password) {
+        return res.status(400).json({ error: "Password is required to confirm deletion" });
+      }
+
+      const user = await usersService.getUser(p(req.params.id));
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      if (user.password !== password) {
+        return res.status(401).json({ error: "Incorrect password" });
+      }
+
+      const deleted = await usersService.deleteUser(p(req.params.id));
+      if (!deleted) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      res.json({ success: true });
+    } catch (e: any) {
+      res.status(400).json({ error: e.message });
+    }
+  });
 }

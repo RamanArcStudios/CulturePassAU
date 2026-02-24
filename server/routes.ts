@@ -2,6 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "node:http";
 
 import { registerUsersRoutes } from "./modules/users/users.routes";
+import { registerPrivacyRoutes } from "./modules/privacy/privacy.routes";
 import { registerProfilesRoutes } from "./modules/profiles/profiles.routes";
 import { registerFollowsRoutes } from "./modules/follows/follows.routes";
 import { registerWalletRoutes } from "./modules/wallet/wallet.routes";
@@ -28,6 +29,7 @@ import { seedApiEndpoint } from "./seed-data";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   registerUsersRoutes(app);
+  registerPrivacyRoutes(app);
   registerProfilesRoutes(app);
   registerFollowsRoutes(app);
   registerWalletRoutes(app);

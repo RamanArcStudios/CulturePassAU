@@ -95,6 +95,13 @@ export const users = pgTable(
 
     isVerified: boolean("is_verified").default(false),
 
+    privacySettings: jsonb("privacy_settings").$type<{
+      profileVisibility: boolean;
+      dataSharing: boolean;
+      activityStatus: boolean;
+      showLocation: boolean;
+    }>().default(sql`'{"profileVisibility":true,"dataSharing":false,"activityStatus":true,"showLocation":true}'::jsonb`),
+
     followersCount: integer("followers_count").default(0),
     followingCount: integer("following_count").default(0),
     likesCount: integer("likes_count").default(0),
@@ -889,10 +896,23 @@ export const traditionalLands = pgTable(
 );
 
 /* ======================================================
+   AUDIT LOGS
+====================================================== */
+
+export const auditLogs = pgTable("audit_logs", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull(),
+  event: text("event").notNull(),
+  metadata: jsonb("metadata").$type<Record<string, unknown>>(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+/* ======================================================
    TYPES
 ====================================================== */
 
 export type User = typeof users.$inferSelect;
+export type AuditLog = typeof auditLogs.$inferSelect;
 export type Wallet = typeof wallets.$inferSelect;
 export type Transaction = typeof transactions.$inferSelect;
 export type Follow = typeof follows.$inferSelect;
@@ -1000,3 +1020,4 @@ export type InsertCommunity = z.infer<typeof insertCommunitySchema>;
 export type InsertPerk = z.infer<typeof insertPerkSchema>;
 export type InsertNotification = z.infer<typeof insertNotificationSchema>;
 export type InsertTicket = z.infer<typeof insertTicketSchema>;
+export type InsertAuditLog = typeof auditLogs.$inferInsert;
