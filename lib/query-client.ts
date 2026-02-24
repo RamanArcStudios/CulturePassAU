@@ -86,8 +86,11 @@ export const getQueryFn: <T>(options: {
 function shouldRetry(failureCount: number, error: unknown): boolean {
   if (failureCount >= 2) return false;
   if (error instanceof Error) {
-    const status = Number(error.message.split(':')[0]);
-    if (status >= 400 && status < 500) return false;
+    const match = error.message.match(/^(\d{3}):/);
+    if (match) {
+      const status = Number(match[1]);
+      if (status >= 400 && status < 500) return false;
+    }
   }
   return true;
 }

@@ -31,5 +31,13 @@ export const SpringConfig = {
   gentle: { damping: 25, stiffness: 80, mass: 1.2 },
 } as const;
 
-/** Reduced motion flag — skip animations where the platform requests it */
-export const prefersReducedMotion = Platform.OS === 'web';
+/**
+ * Reduced motion preference.
+ * On web, checks the OS-level `prefers-reduced-motion` media query.
+ * On native, defaults to false (async AccessibilityInfo check should be
+ * done at runtime inside a hook if a more precise value is needed).
+ */
+export const prefersReducedMotion =
+  Platform.OS === 'web' && typeof window !== 'undefined'
+    ? window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false
+    : false;

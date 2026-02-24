@@ -86,7 +86,7 @@ In `app.json` set:
 - `android.versionCode` (increment each release)
 
 In `eas.json` → `submit.production.android` set:
-- `serviceAccountKeyPath` — path to Google Play service account JSON key
+- `serviceAccountKeyPath` — path to Google Play service account JSON key (gitignored; do not commit this file)
 - `track` — release track (`internal`, `alpha`, `beta`, or `production`)
 
 ### 2. Build
