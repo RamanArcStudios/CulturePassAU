@@ -17,6 +17,7 @@ CulturePass route files live under `app/` and are registered by Expo Router.
 2. **Code health checks**
    - Run: `npm run lint`
    - Run: `npm run typecheck`
+   - Run: `npm run qa:all`
 
 3. **Route file sanity check**
    - Confirm all route files in `app/` are valid and resolvable by Expo Router conventions.
@@ -27,6 +28,7 @@ CulturePass route files live under `app/` and are registered by Expo Router.
 Before publishing, ensure:
 
 - [ ] `npm run typecheck` passes
+- [ ] `npm run qa:all` passes
 - [ ] `npx expo export --platform web` succeeds
 - [ ] Lint has no new warnings/errors introduced by release changes
 - [ ] App versioning updated in `app.json` (`expo.version`, `ios.buildNumber`, `android.versionCode`)
@@ -70,3 +72,13 @@ Before publishing, ensure:
 - Reduce existing lint warnings to improve maintainability and catch regressions earlier.
 - Add CI pipeline gates for lint + typecheck + web export on every PR.
 - Add smoke-test script for key user journeys (onboarding, browse, event detail, saved flow, profile).
+
+## 7) Release sign-off gates (staged rollout)
+
+- [ ] **Internal (10%)**: `ROLLOUT_PHASE=internal` validated by QA/dev team.
+- [ ] **Pilot (25%)**: `ROLLOUT_PHASE=pilot` validated by pilot group and telemetry reviewed.
+- [ ] **Half (50%)**: `ROLLOUT_PHASE=half` validated for 24h with no P1 incidents.
+- [ ] **Full (100%)**: `ROLLOUT_PHASE=full` after sign-off from product + engineering.
+
+Rollout config endpoint for verification:
+- `GET /api/rollout/config?userId=<id>`

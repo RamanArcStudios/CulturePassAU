@@ -14,6 +14,7 @@ import {
   type SearchableItem,
   type SearchType,
 } from './services/search';
+import { getRolloutConfig, isFeatureEnabledForUser } from './services/rollout';
 
 type EntityType = 'community' | 'business' | 'venue' | 'artist' | 'organisation';
 type TicketStatus = 'confirmed' | 'used' | 'cancelled' | 'expired';
@@ -272,6 +273,22 @@ function getSearchCorpus(): SearchableItem[] {
     }));
 
   return [...eventItems, ...profileItems, ...communityItems];
+}
+
+app.get('/health', (_req, res) => res.json({ ok: true, at: nowIso() }));
+
+app.get('/api/rollout/config', (req, res) => {
+  const userId = String(req.query.userId ?? 'guest');
+  const rollout = getRolloutConfig();
+  res.json({
+    rollout,
+    flags: {
+      ticketingPhase6: isFeatureEnabledForUser('ticketingPhase6', userId),
+      mediaPipelinePhase4: isFeatureEnabledForUser('mediaPipelinePhase4', userId),
+      governancePhase3: isFeatureEnabledForUser('governancePhase3', userId),
+    },
+  });
+});
 function textHasProfanity(value: unknown): boolean {
   if (typeof value !== 'string') return false;
   const v = value.toLowerCase();

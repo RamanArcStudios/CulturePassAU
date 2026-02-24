@@ -15,6 +15,11 @@
     "lint": "npx expo lint",
     "lint:fix": "npx expo lint --fix",
     "typecheck": "tsc --noEmit",
+    "test:native-intent": "tsx scripts/test-native-intent.ts",
+    "test:unit": "tsx scripts/tests/unit-services-middleware.ts",
+    "test:integration": "tsx scripts/tests/integration-api-routes.ts",
+    "test:e2e:smoke": "tsx scripts/tests/e2e-critical-smoke.ts",
+    "qa:all": "npm run test:unit && npm run test:integration && npm run test:e2e:smoke"
     "test:native-intent": "tsx scripts/test-native-intent.ts"
   },
   "dependencies": {

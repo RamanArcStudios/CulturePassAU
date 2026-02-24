@@ -24,6 +24,7 @@ Full product documentation: [`docs/APP_DOCUMENTATION.md`](docs/APP_DOCUMENTATION
 Enhancement roadmap: [`docs/PROJECT_ENHANCEMENT_PLAN.md`](docs/PROJECT_ENHANCEMENT_PLAN.md)
 API reference (phase scaffold): [`docs/API_ENDPOINTS.md`](docs/API_ENDPOINTS.md)
 Route/API matrix (Phase 1): [`docs/ROUTE_API_MATRIX.md`](docs/ROUTE_API_MATRIX.md)
+Release notes: [`docs/RELEASE_NOTES.md`](docs/RELEASE_NOTES.md)
 
 ## Quick start
 
@@ -31,6 +32,7 @@ Route/API matrix (Phase 1): [`docs/ROUTE_API_MATRIX.md`](docs/ROUTE_API_MATRIX.m
 npm install
 npm run lint
 npm run typecheck
+npm run qa:all
 npm run expo:dev
 ```
 

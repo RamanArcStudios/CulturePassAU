@@ -10,6 +10,7 @@ This document describes the initial productionization backend scaffold added for
 
 ## Health
 - `GET /health`
+- `GET /api/rollout/config?userId=<id>`
 
 ## Users
 - `GET /api/users`
