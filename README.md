@@ -20,6 +20,8 @@ A cross-platform Expo + React Native app connecting cultural diaspora communitie
 
 Detailed architecture notes: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)
 
+Full product documentation: [`docs/APP_DOCUMENTATION.md`](docs/APP_DOCUMENTATION.md)
+
 ## Quick start
 
 ```bash
