@@ -83,7 +83,6 @@ type AppTicket = {
   staffAuditTrail?: Array<{ at: string; by: string; action: string; note?: string }>;
   stripePaymentIntentId?: string;
   walletPasses?: { apple?: string; google?: string };
-  ticketCode: string;
   imageColor?: string;
   createdAt: string;
   history: Array<{ at: string; status: TicketStatus; note: string }>;
@@ -105,8 +104,6 @@ const upload = multer({
   limits: { fileSize: 8 * 1024 * 1024 },
 });
 
-const rateBucket = new Map<string, { count: number; resetAt: number }>();
-const searchCache = new InMemoryTtlCache(45_000);
 const BAD_WORDS = ['hate', 'abuse', 'stupid', 'idiot'];
 
 const users: AppUser[] = [
@@ -142,10 +139,6 @@ const tickets: AppTicket[] = [];
 const paymentMethods = new Map<string, Array<{ id: string; brand: string; last4: string; isDefault: boolean }>>();
 const transactions = new Map<string, Array<{ id: string; type: 'charge' | 'refund'; amountCents: number; createdAt: string; description: string }>>();
 const scanEvents: Array<{ id: string; ticketId: string; ticketCode: string; scannedAt: string; scannedBy: string; outcome: 'accepted' | 'duplicate' | 'rejected' }> = [];
-const notifications = new Map<string, Array<{ id: string; title: string; message: string; read: boolean; createdAt: string }>>();
-const tickets: AppTicket[] = [];
-const paymentMethods = new Map<string, Array<{ id: string; brand: string; last4: string; isDefault: boolean }>>();
-const transactions = new Map<string, Array<{ id: string; type: 'charge' | 'refund'; amountCents: number; createdAt: string; description: string }>>();
 
 for (const user of users) {
   wallets.set(user.id, { id: `w-${user.id}`, userId: user.id, balance: 12500, currency: 'AUD', points: 1200 });
@@ -162,7 +155,6 @@ for (const user of users) {
       metadata: null,
       createdAt: new Date().toISOString(),
     },
-    { id: randomUUID(), title: 'Welcome to CulturePass', message: 'Your account is ready.', read: false, createdAt: new Date().toISOString() },
   ]);
   paymentMethods.set(user.id, [{ id: randomUUID(), brand: 'visa', last4: '4242', isDefault: true }]);
   transactions.set(user.id, []);
@@ -216,7 +208,6 @@ type UploadedMedia = {
 
 const reports: ContentReport[] = [];
 const uploadedMedia: UploadedMedia[] = [];
-const reports: ContentReport[] = [];
 
 function parseSearchQuery(req: Request): SearchQuery {
   const tagsInput = String(req.query.tags ?? '').trim();
@@ -522,11 +513,6 @@ app.post('/api/tickets', (req, res) => {
     staffAuditTrail: [{ at: nowIso(), by: 'system', action: 'ticket_created', note: 'Ticket created and paid' }],
     stripePaymentIntentId: `pi_mock_${randomUUID().slice(0, 8)}`,
     walletPasses: {},
-    quantity: Number(req.body?.quantity ?? 1),
-    totalPriceCents: Number(req.body?.totalPriceCents ?? 2500),
-    currency: 'AUD',
-    status: 'confirmed',
-    ticketCode: `CP-T-${Math.random().toString(36).slice(2, 8).toUpperCase()}`,
     imageColor: event.imageColor,
     createdAt: nowIso(),
     history: [{ at: nowIso(), status: 'confirmed', note: 'Ticket created' }],
@@ -727,12 +713,11 @@ app.delete('/api/notifications/:id', (req, res) => {
     }
   }
   return res.status(404).json({ error: 'Notification not found' });
-  res.json({ count: list.filter((n) => !n.read).length });
 });
 app.post('/api/notifications/:userId/:id/read', (req, res) => {
   const list = notifications.get(req.params.userId) ?? [];
   list.forEach((n) => {
-    if (n.id === req.params.id) n.read = true;
+    if (n.id === req.params.id) n.isRead = true;
   });
   res.json({ ok: true });
 });
