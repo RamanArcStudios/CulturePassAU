@@ -98,15 +98,15 @@ export default function EventCard({ event, highlight, index = 0 }: EventCardProp
 
 const styles = StyleSheet.create({
   card: {
-    width: 280,
-    height: 300,
-    borderRadius: 24,
+    width: 240,
+    height: 260,
+    borderRadius: 20,
     overflow: 'hidden',
     backgroundColor: Colors.surfaceSecondary,
   },
   highlight: {
-    width: 320,
-    height: 340,
+    width: 280,
+    height: 290,
     borderWidth: 1.5,
     borderColor: 'rgba(255, 215, 0, 0.5)',
   },
@@ -142,15 +142,15 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   title: {
-    fontSize: 18,
+    fontSize: 16,
     fontFamily: 'Poppins_700Bold',
     color: '#FFFFFF',
-    marginBottom: 10,
-    lineHeight: 24,
+    marginBottom: 8,
+    lineHeight: 22,
   },
   titleHighlight: {
-    fontSize: 22,
-    lineHeight: 28,
+    fontSize: 18,
+    lineHeight: 24,
   },
   metaRow: {
     flexDirection: 'row',

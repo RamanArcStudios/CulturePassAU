@@ -363,9 +363,9 @@ export default function HomeScreen() {
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
-              contentContainerStyle={{ paddingHorizontal: 20, gap: 16 }}
+              contentContainerStyle={{ paddingHorizontal: 20, gap: 14 }}
               decelerationRate="fast"
-              snapToInterval={296}
+              snapToInterval={254}
               snapToAlignment="start"
             >
               {popularEvents.map((event: any, i: number) => (
@@ -451,9 +451,9 @@ export default function HomeScreen() {
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
-              contentContainerStyle={{ paddingHorizontal: 20, gap: 16 }}
+              contentContainerStyle={{ paddingHorizontal: 20, gap: 14 }}
               decelerationRate="fast"
-              snapToInterval={296}
+              snapToInterval={254}
               snapToAlignment="start"
             >
               {section.items.filter((e: any) => !!e.venue).slice(0, 10).map((event: any, i: number) => (
@@ -632,21 +632,21 @@ const styles = StyleSheet.create({
   },
   heroSection: {
     paddingHorizontal: 20,
-    marginBottom: 28,
-    marginTop: 8,
+    marginBottom: 20,
+    marginTop: 6,
   },
   heroSubtitle: {
-    fontSize: 16,
+    fontSize: 14,
     fontFamily: 'Poppins_500Medium',
     color: Colors.tint,
-    marginBottom: 4,
+    marginBottom: 2,
   },
   heroTitle: {
-    fontSize: 32,
+    fontSize: 24,
     fontFamily: 'Poppins_700Bold',
     color: Colors.text,
-    lineHeight: 40,
-    letterSpacing: -0.5,
+    lineHeight: 32,
+    letterSpacing: -0.3,
   },
   landBanner: {
     borderRadius: 14,
