@@ -27,6 +27,7 @@ import CategoryCard from '@/components/Discover/CategoryCard';
 import CommunityCard from '@/components/Discover/CommunityCard';
 import CityCard from '@/components/Discover/CityCard';
 import Colors from '@/constants/colors';
+import { FilterChip } from '@/components/FilterChip';
 
 const isWeb = Platform.OS === 'web';
 
@@ -319,28 +320,22 @@ export default function HomeScreen() {
           </Animated.View>
         )}
 
-        <Animated.View entering={isWeb ? undefined : FadeInDown.delay(150).duration(500)} style={styles.quickGrid}>
-          {superAppSections.map((sec) => (
-            <Pressable
-              key={sec.id}
-              style={({ pressed }) => [
-                styles.quickBtn,
-                pressed && { transform: [{ scale: 0.95 }] },
-                Platform.OS === 'web' && { cursor: 'pointer' as any },
-              ]}
-              onPress={() => {
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                router.push(SECTION_ROUTES[sec.id] as any);
-              }}
-            >
-              <View style={[styles.quickBtnIconWrapper, Colors.shadows.small]}>
-                <View style={[styles.quickBtnIcon, { backgroundColor: sec.color + '15' }]}>
-                  <Ionicons name={sec.icon as any} size={24} color={sec.color} />
-                </View>
-              </View>
-              <Text style={styles.quickBtnLabel}>{sec.label}</Text>
-            </Pressable>
-          ))}
+        <Animated.View entering={isWeb ? undefined : FadeInDown.delay(150).duration(500)} style={styles.quickChipRow}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.quickChipScroll}
+            style={{ flexGrow: 0 }}
+          >
+            {superAppSections.map((sec) => (
+              <FilterChip
+                key={sec.id}
+                item={{ id: sec.id, label: sec.label, icon: sec.icon, color: sec.color }}
+                isActive={false}
+                onPress={() => router.push(SECTION_ROUTES[sec.id] as any)}
+              />
+            ))}
+          </ScrollView>
         </Animated.View>
 
         {discoverLoading && (
@@ -680,40 +675,13 @@ const styles = StyleSheet.create({
     marginTop: 3,
     marginLeft: 20,
   },
-  quickGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+  quickChipRow: {
+    marginBottom: 24,
+  },
+  quickChipScroll: {
     paddingHorizontal: 20,
-    justifyContent: 'space-between',
-    marginBottom: 36,
-    gap: 12,
-  },
-  quickBtn: {
-    width: '30%' as any,
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  quickBtnIconWrapper: {
-    width: 64,
-    height: 64,
-    borderRadius: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 8,
-    backgroundColor: Colors.surface,
-  },
-  quickBtnIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  quickBtnLabel: {
-    fontSize: 13,
-    fontFamily: 'Poppins_500Medium',
-    color: Colors.text,
-    textAlign: 'center',
+    gap: 8,
+    paddingVertical: 4,
   },
   loadingWrap: {
     alignItems: 'center',
