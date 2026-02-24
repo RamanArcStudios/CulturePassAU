@@ -194,6 +194,10 @@ Perks
 <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.22.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>
 Indigenous
 </div>
+<div class="nav-item" data-page="promotions" onclick="switchPage('promotions',this)">
+<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>
+Promotions
+</div>
 <div class="nav-section">Analytics</div>
 <div class="nav-item" data-page="analytics" onclick="switchPage('analytics',this)">
 <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z"/></svg>
@@ -462,6 +466,34 @@ Scan Ticket
 </div>
 </div>
 
+<!-- Promotions Page -->
+<div id="page-promotions" class="page-content" style="display:none">
+<div class="topbar"><h2>Promotions Manager</h2>
+<div class="topbar-actions">
+<button class="btn btn-primary" onclick="loadPromotions()">
+<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>
+Refresh
+</button>
+</div>
+</div>
+<p style="font-size:14px;color:var(--text2);margin-bottom:20px">Toggle items to appear in the "Popular" / "Featured" sections on browse pages. Promoted items appear at the top of each category page.</p>
+<div class="tab-nav" id="promo-tabs">
+<button class="tab-btn active" onclick="switchPromoTab('movies',this)">Movies</button>
+<button class="tab-btn" onclick="switchPromoTab('restaurants',this)">Restaurants</button>
+<button class="tab-btn" onclick="switchPromoTab('activities',this)">Activities</button>
+<button class="tab-btn" onclick="switchPromoTab('shopping',this)">Shopping</button>
+<button class="tab-btn" onclick="switchPromoTab('communities',this)">Communities</button>
+</div>
+<div class="card" style="margin-top:0;border-radius:0 0 var(--radius) var(--radius)">
+<div class="card-body no-pad">
+<table>
+<thead><tr><th style="width:40px"></th><th>Name</th><th style="width:120px;text-align:center">Status</th><th style="width:120px;text-align:center">Action</th></tr></thead>
+<tbody id="promo-table-body"></tbody>
+</table>
+</div>
+</div>
+</div>
+
 <!-- Revenue Page -->
 <div id="page-revenue" class="page-content" style="display:none">
 <div class="topbar"><h2>Revenue Dashboard</h2>
@@ -563,6 +595,7 @@ function switchPage(page, el) {
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   if (el) el.classList.add('active');
   if (page === 'revenue') loadRevenuePage();
+  if (page === 'promotions') loadPromotions();
 }
 
 function showToast(msg) {
@@ -932,6 +965,64 @@ async function loadRevenuePage() {
   } catch(e) {
     console.error('Revenue load error:', e);
     showToast('Error loading revenue data');
+  }
+}
+
+let promoData = {};
+let currentPromoTab = 'movies';
+
+async function loadPromotions() {
+  try {
+    const r = await fetch(API + '/api/dashboard/promotions');
+    promoData = await r.json();
+    renderPromoTable(currentPromoTab);
+  } catch(e) {
+    console.error('Promo load error:', e);
+    showToast('Error loading promotions');
+  }
+}
+
+function switchPromoTab(tab, btn) {
+  currentPromoTab = tab;
+  document.querySelectorAll('#promo-tabs .tab-btn').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  renderPromoTable(tab);
+}
+
+function renderPromoTable(tab) {
+  const items = promoData[tab] || [];
+  const tbody = document.getElementById('promo-table-body');
+  if (items.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--text2);padding:30px">No items found</td></tr>';
+    return;
+  }
+  tbody.innerHTML = items.map((item, i) => {
+    const promoted = item.isPromoted;
+    return '<tr>' +
+      '<td style="text-align:center;color:var(--text2);font-size:12px">' + (i+1) + '</td>' +
+      '<td><strong>' + (item.name || item.title || '-') + '</strong></td>' +
+      '<td style="text-align:center"><span class="badge ' + (promoted ? 'badge-success' : 'badge-neutral') + '">' +
+        (promoted ? '★ Promoted' : 'Not promoted') + '</span></td>' +
+      '<td style="text-align:center"><button class="btn btn-sm ' + (promoted ? 'btn-outline' : 'btn-primary') +
+        '" onclick="togglePromo(\'' + tab + '\',\'' + item.id + '\',' + !promoted + ')">' +
+        (promoted ? 'Remove' : 'Promote') + '</button></td>' +
+      '</tr>';
+  }).join('');
+}
+
+async function togglePromo(table, id, isPromoted) {
+  try {
+    const r = await fetch(API + '/api/dashboard/promotions', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ table, id, isPromoted })
+    });
+    if (!r.ok) throw new Error('Failed');
+    showToast(isPromoted ? 'Item promoted!' : 'Promotion removed');
+    await loadPromotions();
+  } catch(e) {
+    console.error('Toggle error:', e);
+    showToast('Error updating promotion');
   }
 }
 
