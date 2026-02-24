@@ -151,6 +151,38 @@ The backend provides RESTful endpoints for:
 - **Notifications** — Real-time notification feed
 - **Tickets** — Event ticket management
 
+## Release Build (iOS / Android)
+
+The project uses [EAS Build](https://docs.expo.dev/build/introduction/) to produce App Store-ready binaries.
+
+**Before submitting to the App Store**, fill in the `submit.production.ios` section of `eas.json`:
+
+| Field | Description |
+|---|---|
+| `appleId` | Apple ID email address used for App Store Connect |
+| `ascAppId` | Numeric App ID shown in App Store Connect → App Information |
+| `appleTeamId` | 10-character Apple Developer Team ID |
+
+```sh
+# Install EAS CLI
+npm install -g eas-cli
+
+# Configure project
+eas build:configure
+
+# Development build (simulator)
+eas build --profile development --platform ios
+
+# TestFlight / internal distribution
+eas build --profile preview --platform ios
+
+# Production archive
+eas build --profile production --platform ios
+
+# Submit to App Store Connect
+eas submit --profile production --platform ios
+```
+
 ## License
 
 All rights reserved.

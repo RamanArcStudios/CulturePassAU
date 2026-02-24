@@ -1,4 +1,5 @@
 import type { Express, Request, Response } from "express";
+import bcrypt from "bcryptjs";
 import * as usersService from "./users.service";
 
 function p(val: string | string[]): string { return Array.isArray(val) ? val[0] : val; }
@@ -40,8 +41,11 @@ export function registerUsersRoutes(app: Express) {
         return res.status(400).json({ error: "Username already taken" });
       }
 
+      // Hash password before storing
+      const hashedPassword = await bcrypt.hash(password, 12);
+
       // Create new user
-      const user = await usersService.createUser({ username, password });
+      const user = await usersService.createUser({ username, password: hashedPassword });
       const updatedUser = await usersService.updateUser(user.id, { displayName, email });
 
       // Return user without password
@@ -68,8 +72,9 @@ export function registerUsersRoutes(app: Express) {
         return res.status(401).json({ error: "Invalid username or password" });
       }
 
-      // Compare password directly (plain text for MVP)
-      if (user.password !== password) {
+      // Compare password against stored hash
+      const passwordMatch = await bcrypt.compare(password, user.password);
+      if (!passwordMatch) {
         return res.status(401).json({ error: "Invalid username or password" });
       }
 
@@ -99,7 +104,8 @@ export function registerUsersRoutes(app: Express) {
         return res.status(404).json({ error: "User not found" });
       }
 
-      if (user.password !== password) {
+      const passwordMatch = await bcrypt.compare(password, user.password);
+      if (!passwordMatch) {
         return res.status(401).json({ error: "Incorrect password" });
       }
 
