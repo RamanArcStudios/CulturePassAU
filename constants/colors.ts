@@ -187,12 +187,52 @@ export const shadows = {
   } satisfies ShadowStyle,
 };
 
+/**
+ * Glassmorphism and futuristic surface presets.
+ * Use these on cards/modals for a modern frosted-glass feel.
+ */
+export const glass = {
+  light: {
+    backgroundColor: 'rgba(255,255,255,0.72)',
+    borderColor: 'rgba(255,255,255,0.35)',
+  },
+  dark: {
+    backgroundColor: 'rgba(28,28,30,0.72)',
+    borderColor: 'rgba(255,255,255,0.08)',
+  },
+  /** Semi-transparent overlay for modals/popovers */
+  overlay: {
+    backgroundColor: 'rgba(0,0,0,0.55)',
+  },
+} as const;
+
+/**
+ * Gradient tuples ready for LinearGradient `colors` prop.
+ * Each pair is [start, end].
+ */
+export const gradients = {
+  /** Primary brand gradient */
+  primary: ['#007AFF', '#5856D6'] as [string, string],
+  /** Warm accent gradient for CTAs and highlights */
+  accent: ['#FF9500', '#FF6B6B'] as [string, string],
+  /** Premium gold gradient for membership/pro badges */
+  gold: ['#FFD700', '#F4A100'] as [string, string],
+  /** Dark surface gradient for cards on dark mode */
+  darkSurface: ['#1C1C1E', '#2C2C2E'] as [string, string],
+  /** Hero banner overlay (transparent → dark) */
+  heroOverlay: ['transparent', 'rgba(0,0,0,0.75)'] as [string, string],
+  /** Success / positive action */
+  success: ['#34C759', '#30B050'] as [string, string],
+} as const;
+
 const Colors = {
   ...light, // Default export maps to light mode variables
   light,
   dark,
   shadow: shadows,
   shadows,
+  glass,
+  gradients,
 } as const;
 
 export default Colors;

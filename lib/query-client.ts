@@ -8,6 +8,11 @@ function normalizeBaseUrl(url: string): string {
 
 /**
  * Resolves API base URL for native and web runtime.
+ * Priority order:
+ *   1. EXPO_PUBLIC_API_URL (explicit, recommended for production)
+ *   2. EXPO_PUBLIC_DOMAIN  (legacy Replit fallback)
+ *   3. window.location.origin (web only)
+ *   4. http://localhost:5000/ (local dev fallback)
  */
 export function getApiUrl(): string {
   const explicit = process.env.EXPO_PUBLIC_API_URL;
@@ -74,6 +79,19 @@ export const getQueryFn: <T>(options: {
     return await res.json();
   };
 
+/**
+ * Determines whether a failed query should be retried.
+ * Skips retry for client errors (4xx) that won't resolve on their own.
+ */
+function shouldRetry(failureCount: number, error: unknown): boolean {
+  if (failureCount >= 2) return false;
+  if (error instanceof Error) {
+    const status = Number(error.message.split(':')[0]);
+    if (status >= 400 && status < 500) return false;
+  }
+  return true;
+}
+
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -82,7 +100,7 @@ export const queryClient = new QueryClient({
       gcTime: 300_000,
       refetchInterval: false,
       refetchOnWindowFocus: false,
-      retry: 1,
+      retry: shouldRetry,
     },
     mutations: {
       retry: 1,
