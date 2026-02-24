@@ -21,8 +21,6 @@
     "test:e2e:smoke": "tsx scripts/tests/e2e-critical-smoke.ts",
     "qa:all": "npm run test:package-json && npm run test:unit && npm run test:integration && npm run test:e2e:smoke",
     "test:package-json": "tsx scripts/tests/validate-package-json.ts"
-    "qa:all": "npm run test:unit && npm run test:integration && npm run test:e2e:smoke"
-    "test:native-intent": "tsx scripts/test-native-intent.ts"
   },
   "dependencies": {
     "@expo-google-fonts/poppins": "^0.4.1",
