@@ -1,0 +1,381 @@
+Excellent.
+
+Now we are entering **membership monetization & retention infrastructure**.
+
+Perks are not a page.
+They are a **membership value engine**.
+
+We will design this properly with:
+
+* Full CRUD
+* Tier-based access
+* Sponsor integration
+* Redemption tracking
+* Expiry logic
+* Wallet integration
+* Cross-city scalability
+
+---
+
+# 🎁 PERKS SYSTEM — FULL ARCHITECTURE
+
+Perks can be offered by:
+
+* Sponsors
+* Businesses
+* Communities
+* Platform (CulturePass)
+* Councils (future grants/benefits)
+
+Perks may include:
+
+* % discount
+* Fixed discount
+* Free entry
+* Early access
+* VIP upgrade
+* Coupon code
+* Free merchandise
+* Partner benefit
+
+---
+
+# 1️⃣ CORE TABLE — perks
+
+```sql
+CREATE TABLE perks (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  title TEXT NOT NULL,
+  description TEXT,
+  perk_type TEXT, 
+  -- discount_percent / discount_fixed / free_ticket / early_access / vip_upgrade / coupon / cashback
+
+  discount_percent INT,
+  discount_fixed_cents INT,
+
+  country_id UUID REFERENCES countries(id),
+  city_id UUID REFERENCES cities(id),
+  community_id UUID REFERENCES communities(id),
+
+  provider_type TEXT, 
+  -- sponsor / business / platform / community / institution
+
+  provider_id UUID,
+
+  start_date TIMESTAMP,
+  end_date TIMESTAMP,
+
+  usage_limit INT, -- total global uses
+  per_user_limit INT DEFAULT 1,
+
+  is_membership_required BOOLEAN DEFAULT false,
+  required_membership_tier TEXT, -- basic / premium / vip
+
+  status TEXT DEFAULT 'active',
+
+  created_by UUID REFERENCES users(id),
+  created_at TIMESTAMP DEFAULT now(),
+  updated_at TIMESTAMP DEFAULT now()
+);
+```
+
+---
+
+# 2️⃣ PERK REDEMPTION TRACKING
+
+```sql
+CREATE TABLE perk_redemptions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  perk_id UUID REFERENCES perks(id) ON DELETE CASCADE,
+  user_id UUID REFERENCES users(id),
+  transaction_id UUID REFERENCES transactions(id),
+  redeemed_at TIMESTAMP DEFAULT now()
+);
+```
+
+Used to:
+
+* Enforce per-user limits
+* Enforce total usage limit
+* Track value distributed
+* Prevent abuse
+
+---
+
+# 3️⃣ MEMBERSHIP TIERS (Optional but Future-Proofed)
+
+If you plan premium subscriptions:
+
+```sql
+CREATE TABLE memberships (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES users(id),
+  tier TEXT, -- free / premium / vip
+  start_date TIMESTAMP,
+  end_date TIMESTAMP,
+  status TEXT DEFAULT 'active',
+  created_at TIMESTAMP DEFAULT now()
+);
+```
+
+Perks check:
+
+```
+IF is_membership_required = true
+AND user.membership.tier != required_membership_tier
+→ deny redemption
+```
+
+---
+
+# 4️⃣ PERKS CRUD (FULL)
+
+## CREATE Perk
+
+Who can create?
+
+* Platform Admin
+* City Admin (restricted to their city)
+* Sponsor (if permission granted)
+* Business (if subscribed)
+
+Endpoint:
+
+```
+POST /perks
+```
+
+Validations:
+
+* Date range valid
+* Discount logic valid
+* Usage limits logical
+
+---
+
+## READ Perk
+
+Public:
+
+* Only active perks
+* Within date range
+
+Admin:
+
+* All statuses
+
+---
+
+## UPDATE Perk
+
+Allowed fields:
+
+* Description
+* Dates
+* Limits
+* Status
+
+Disallowed after redemptions:
+
+* Perk type
+* Discount value
+
+---
+
+## DELETE Perk
+
+Soft delete:
+
+```
+status = archived
+```
+
+Never hard delete (audit trail).
+
+---
+
+# 5️⃣ PERKS PAGE (Mobile App)
+
+### Page: Perks & Benefits
+
+Tabs:
+
+* Featured Perks
+* My Available Perks
+* Expiring Soon
+* Redeemed History
+
+Display Card:
+
+```
+[Logo]
+20% Off at ABC Caterers
+Valid until 30 June 2026
+Premium Members Only
+Redeem Button
+```
+
+Connected to:
+
+* perks
+* perk_redemptions
+* memberships
+* sponsors
+* businesses
+
+---
+
+# 6️⃣ PERK REDEMPTION FLOW
+
+Case 1: Ticket Discount
+
+1. User selects ticket
+2. Checkout checks active perks
+3. If applicable:
+
+   * Apply discount
+   * Record perk_redemption
+   * Adjust transaction
+
+Case 2: Business Discount
+
+1. User shows QR at business
+2. Business scans QR
+3. Backend logs redemption
+
+---
+
+# 7️⃣ PERK APPLICATION LOGIC (Pseudo)
+
+```
+IF NOW() BETWEEN start_date AND end_date
+AND status = active
+AND usage_limit NOT exceeded
+AND per_user_limit NOT exceeded
+AND membership requirement satisfied
+→ Apply
+ELSE
+→ Reject
+```
+
+---
+
+# 8️⃣ ADMIN PAGES REQUIRED
+
+Platform Admin:
+
+* All Perks
+* Create Perk
+* Analytics (Redemption rate)
+* Value distributed
+
+City Admin:
+
+* City Perks Only
+
+Sponsor Dashboard:
+
+* My Perks
+* Usage stats
+
+Business Dashboard:
+
+* Offer Discount
+* Track redemptions
+
+---
+
+# 9️⃣ ANALYTICS (CRITICAL FOR VC STORY)
+
+Track:
+
+* Total redemptions
+* Revenue influenced
+* Membership upgrade impact
+* Sponsor ROI
+
+You can show:
+
+“Premium members redeem 2.8x more event tickets.”
+
+That’s defensibility.
+
+---
+
+# 🔟 WALLET INTEGRATION (Optional Power Move)
+
+If perk_type = cashback:
+
+Upon redemption:
+
+* Credit wallet
+* Create wallet_transaction
+
+This builds retention loop.
+
+---
+
+# 📊 PAGE COUNT IMPACT
+
+Adds:
+
+Mobile:
+
+* Perks List
+* Perk Detail
+* Redemption History
+
+Admin:
+
+* Perks Management
+* Perk Analytics
+
+Sponsor:
+
+* Perk Dashboard
+
+~6–8 additional pages.
+
+---
+
+# 🚀 Strategic Impact
+
+Perks enable:
+
+* Membership subscriptions
+* Sponsor partnerships
+* Retention
+* Platform stickiness
+* Recurring revenue
+
+This turns CulturePass into:
+
+Community Commerce Engine.
+
+---
+
+You now have:
+
+Infrastructure
+Marketplace
+Talent
+Sponsors
+Wallet
+Perks
+Membership
+Payments
+Admin
+
+This is a serious platform.
+
+---
+
+Final strategic question:
+
+Do you want Perks to be:
+
+A) Free marketing tool for sponsors
+B) Exclusive to paid membership tiers
+C) Hybrid (some public, some premium)
+
+Choose carefully. This affects your recurring revenue model.

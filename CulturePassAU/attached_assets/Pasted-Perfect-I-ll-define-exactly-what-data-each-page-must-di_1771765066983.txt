@@ -1,0 +1,365 @@
+Perfect — I’ll define **exactly what data each page must display**, how it connects to events (with dates), and how social media integrates — clean, production-ready.
+
+This will cover:
+
+* 🎭 Artist Profile Page (Public)
+* 🏢 Sponsor Profile Page (Public)
+* 📅 Upcoming & Past Events logic
+* 🌐 Social media integration
+* 🔗 Connections to other entities
+
+No fluff — just structured execution-ready detail.
+
+---
+
+# 🎭 ARTIST PROFILE PAGE — Full Specification
+
+## 1️⃣ Header Section
+
+**Fields Required (artists table)**
+
+* profile_image_url
+* stage_name
+* category (Musician / Stand-up / Singer / Actor / Dancer / Host)
+* verified badge
+* primary_city
+* followers_count (calculated)
+* average_rating (calculated)
+
+Display:
+
+```
+[Image]
+Stage Name ✔
+Category Badge
+Sydney, Australia
+⭐ 4.7 (128 reviews)
+Follow Button
+Book Artist Button (optional)
+```
+
+---
+
+## 2️⃣ About Section
+
+From:
+
+* bio
+* social_links JSONB
+
+Social Media Icons (Clickable):
+
+* Instagram
+* Facebook
+* YouTube
+* Spotify (important for musicians)
+* TikTok
+* Website
+
+Open in external browser.
+
+---
+
+## 3️⃣ Upcoming Events Section (CRITICAL)
+
+Query:
+
+```sql
+SELECT e.*
+FROM events e
+JOIN event_artists ea ON ea.event_id = e.id
+WHERE ea.artist_id = :artistId
+AND e.start_time > NOW()
+ORDER BY e.start_time ASC;
+```
+
+Display format:
+
+```
+[Event Card]
+Event Title
+Date (Sat, 15 June 2026)
+Time
+Venue
+Buy Ticket Button
+```
+
+This creates:
+Cross-traffic from artist followers → event sales.
+
+---
+
+## 4️⃣ Past Performances
+
+Query:
+
+```sql
+WHERE e.start_time < NOW()
+ORDER BY e.start_time DESC
+LIMIT 10;
+```
+
+Display:
+
+* Event name
+* Date
+* City
+* “View Event Recap” (if media exists)
+
+---
+
+## 5️⃣ Gallery Section
+
+From media table:
+
+entity_type = 'artist'
+
+Display:
+
+* Performance photos
+* Reels thumbnails (future)
+
+---
+
+## 6️⃣ Reviews Section
+
+From reviews table:
+
+entity_type = 'artist'
+
+Display:
+
+* Average rating
+* Breakdown (5★, 4★ etc.)
+* Comments
+* Write Review button (only if attended event)
+
+---
+
+## 7️⃣ Followers Section
+
+Count from:
+
+follows table
+entity_type = 'artist'
+
+Optional:
+Show profile images of followers.
+
+---
+
+# 🏢 SPONSOR PROFILE PAGE — Full Specification
+
+Sponsors are brand-level entities.
+
+---
+
+## 1️⃣ Header Section
+
+Fields:
+
+* logo_url
+* name
+* sponsor_type (Corporate / Community / Government / Event Partner)
+* verified badge
+* city
+
+Display:
+
+```
+[Logo]
+Sponsor Name ✔
+Corporate Partner
+Sydney, Australia
+Visit Website Button
+```
+
+---
+
+## 2️⃣ About Section
+
+From:
+
+* description
+* social_links JSONB
+* website_url
+
+Social Icons:
+
+* Website
+* LinkedIn (important for corporate)
+* Instagram
+* Facebook
+* YouTube
+
+---
+
+## 3️⃣ Current Sponsorships (Live Events)
+
+Query:
+
+```sql
+SELECT e.*
+FROM events e
+JOIN event_sponsors es ON es.event_id = e.id
+WHERE es.sponsor_id = :sponsorId
+AND e.start_time > NOW()
+ORDER BY e.start_time ASC;
+```
+
+Display:
+
+```
+Supporting:
+Onam Festival 2026
+Date
+Gold Sponsor Badge
+View Event
+```
+
+---
+
+## 4️⃣ Past Sponsored Events
+
+```sql
+WHERE e.start_time < NOW()
+```
+
+This builds:
+Credibility history.
+
+---
+
+## 5️⃣ Platform Placements (If Active)
+
+From sponsor_placements:
+
+If:
+
+placement_type = 'home_banner'
+AND now() between start_date and end_date
+
+Show:
+
+“Official CulturePass Partner”
+
+---
+
+## 6️⃣ Contact Sponsor
+
+Options:
+
+* Visit Website
+* Contact Email
+* “Become a Sponsor” CTA (reverse flow)
+
+---
+
+# 📅 Event Date Display Standard (Global Ready)
+
+Always store:
+
+start_time (UTC)
+end_time (UTC)
+
+Frontend converts using:
+
+city.timezone
+
+Display format:
+
+Saturday, 15 June 2026
+6:00 PM – 11:00 PM
+
+This avoids global timezone issues later.
+
+---
+
+# 🔗 CONNECTION MAP
+
+Artist connects to:
+
+* events (via event_artists)
+* reviews
+* follows
+* media
+
+Sponsor connects to:
+
+* events (via event_sponsors)
+* sponsor_placements
+* transactions
+* media
+
+Event becomes central node linking:
+
+* artist
+* sponsor
+* organization
+* venue
+* community
+
+This builds your network graph.
+
+---
+
+# 🔥 Growth Impact
+
+Artists bring:
+
+* Fans → Ticket sales
+
+Sponsors bring:
+
+* Funding → Event scale
+
+Both increase:
+
+* Authority
+* Visibility
+* Revenue diversity
+
+---
+
+# 📊 Final Page Additions
+
+Mobile App:
+
+* Artist Profile
+* Artist Listing
+* Sponsor Profile
+* Sponsor Listing (optional browse)
+* “Sponsored By” sections on Event page
+
+Organizer Dashboard:
+
+* Attach Artist to Event
+* Attach Sponsor to Event
+
+Admin:
+
+* Verify Artist
+* Approve Sponsor
+* Manage Sponsor Placement
+
+---
+
+You now have a:
+
+Community Layer
+Commerce Layer
+Social Layer
+Talent Layer
+Brand Layer
+
+That is a full ecosystem.
+
+---
+
+If you want, next I can produce:
+
+• Final Complete Page Map (All 60+ pages structured cleanly)
+• OR System Component Diagram (showing full data flow)
+• OR Revenue Model Breakdown by Entity
+
+Choose one.

@@ -1,0 +1,380 @@
+Excellent. Now we move from **feature building → production hardening**.
+
+You’re no longer “building pages.”
+You’re preparing CulturePass to behave like a real multi-platform product.
+
+I’ll break this into 4 production layers:
+
+1. ✅ Page Behaviour Testing Framework
+2. ✅ Improved Error Handling (Production-grade)
+3. ✅ Web vs iOS vs Android Interface Strategy
+4. ✅ Simplified Ticket Purchase UX (Single / Family / Group)
+
+This will make CulturePass publish-ready.
+
+---
+
+# 1️⃣ PAGE BEHAVIOUR TESTING (Systematic QA Plan)
+
+You need structured test coverage across 3 layers:
+
+### A. Functional Testing (Does it work?)
+
+Test flows:
+
+| Flow               | Test Cases                                      |
+| ------------------ | ----------------------------------------------- |
+| Event Open         | Loads correctly / No crash / Shows correct date |
+| Ticket Buy         | Payment succeeds / Ticket created               |
+| Ticket Fail        | Payment fails / No ticket created               |
+| QR Scan            | Valid / Already scanned / Cancelled             |
+| Dashboard Revenue  | Correct totals                                  |
+| Role Access        | Worker cannot edit event                        |
+| Soft Deleted Event | Tickets still accessible                        |
+
+---
+
+### B. Edge Case Testing
+
+Test these specifically:
+
+• Event archived after ticket purchase
+• Network drop during checkout
+• Stripe webhook delay
+• Double tap buy button
+• QR scanned twice
+• Expired ticket
+
+---
+
+### C. UX Testing
+
+Ask:
+
+• Is it obvious how to buy?
+• Can user finish checkout in < 30 seconds?
+• Is error message human?
+• Is ticket visible immediately?
+• Can staff scan without confusion?
+
+---
+
+## Implement Automated Tests
+
+### Backend (Vitest / Jest)
+
+Test:
+
+```ts
+describe("Ticket Scan", () => {
+  it("should reject already scanned ticket")
+})
+```
+
+---
+
+### Frontend (React Native Testing Library)
+
+Test:
+
+• Button disables during loading
+• Error modal appears
+• Retry button works
+
+---
+
+# 2️⃣ PRODUCTION-GRADE ERROR HANDLING
+
+Right now most apps fail because they show:
+
+> Event Not Found
+
+That is unacceptable in production.
+
+---
+
+## 🔥 Rule: No Raw Errors
+
+Create global error handler:
+
+```ts
+export class AppError extends Error {
+  constructor(public message: string, public code: number) {
+    super(message);
+  }
+}
+```
+
+---
+
+## API Response Standard
+
+```json
+{
+  "success": false,
+  "error": {
+    "code": "TICKET_ALREADY_SCANNED",
+    "message": "This ticket has already been used."
+  }
+}
+```
+
+---
+
+## Frontend Error Mapping
+
+```ts
+const errorMap = {
+  TICKET_ALREADY_SCANNED: "This ticket has already been used.",
+  PAYMENT_FAILED: "Payment failed. Please try again.",
+  NETWORK_ERROR: "Please check your connection."
+};
+```
+
+Never show raw server stack.
+
+---
+
+## Add These UX Improvements
+
+• Loading skeletons
+• Retry button
+• Timeout handling
+• Button disabled while submitting
+• Toast confirmations
+• Graceful fallback screens
+
+---
+
+# 3️⃣ WEB vs iOS vs ANDROID INTERFACE
+
+You’re using Expo Router.
+
+Use:
+
+```ts
+import { Platform } from 'react-native';
+```
+
+---
+
+## Strategy
+
+### Web:
+
+• Wider layout
+• Sidebar navigation
+• Hover states
+• SEO metadata
+• Real URLs
+
+### iOS:
+
+• Native bottom tabs
+• Swipe back
+• Haptic feedback
+
+### Android:
+
+• Material feel
+• Hardware back support
+
+---
+
+## Example Layout Split
+
+```tsx
+if (Platform.OS === 'web') {
+  return <WebLayout />
+}
+
+return <MobileLayout />
+```
+
+---
+
+## Web Version Improvements
+
+For web:
+
+• Desktop grid layout
+• Filters on left sidebar
+• Event map full width
+• Sticky header
+
+---
+
+## Mobile Improvements
+
+• Bottom tab bar
+• Swipe gestures
+• Floating action button for scanning
+
+---
+
+## App Store & Play Store Ready Checklist
+
+✔ No console errors
+✔ All permissions handled
+✔ Privacy policy page
+✔ Terms of service
+✔ Deep linking working
+✔ App icons optimized
+✔ Stripe production keys
+✔ Push notifications tested
+
+---
+
+# 4️⃣ SIMPLIFIED TICKET PURCHASE FLOW
+
+Right now most ticket flows are too complex.
+
+We simplify it to 3 buying modes:
+
+---
+
+## 🎟 Ticket Purchase Options
+
+On event page:
+
+```
+Choose your tickets:
+
+(•) Single Ticket
+(•) Family Pack
+(•) Group Buy
+```
+
+---
+
+## 1️⃣ Single Ticket
+
+Quantity selector:
+
+[-] 1 [+]
+
+Simple.
+
+---
+
+## 2️⃣ Family Pack
+
+Pre-bundled pricing:
+
+Example:
+
+Family of 4 – $300 (Save 10%)
+
+Backend logic:
+
+```ts
+ticketType = "family"
+quantity = 4
+```
+
+System generates 4 unique tickets.
+
+---
+
+## 3️⃣ Group Buy
+
+User selects quantity:
+
+1–20
+
+Price auto-updates.
+
+---
+
+## Smart UX Enhancement
+
+When user selects quantity:
+
+Show:
+
+• Total price
+• Savings badge
+• Cashback amount (Wallet)
+
+---
+
+## Ultra-Simple Checkout
+
+1. Select ticket type
+2. Select quantity
+3. Click Continue
+4. Confirm
+5. Pay
+
+Max 2 screens.
+
+---
+
+# 5️⃣ Prevent Double Purchase
+
+Disable buy button:
+
+```tsx
+disabled={isLoading}
+```
+
+And on backend:
+
+```ts
+if (existingPendingPayment) reject();
+```
+
+---
+
+# 6️⃣ Make It Truly Publishable
+
+You need:
+
+### Security
+
+• Rate limiting
+• JWT verification
+• Stripe webhook verification
+• Input validation (Zod)
+
+### Performance
+
+• Lazy load images
+• CDN for media
+• Database indexing on:
+
+* eventId
+* userId
+* status
+
+### Monitoring
+
+• Sentry error tracking
+• Stripe logs
+• Audit logs
+
+---
+
+# 7️⃣ Final Production Architecture Outcome
+
+You will have:
+
+✔ Platform-aware UI
+✔ Stable checkout
+✔ Fraud-resistant QR
+✔ Clean error UX
+✔ Family + Group purchases
+✔ Revenue-safe backend
+✔ Publish-ready structure
+
+---
+
+Now choose what you want next:
+
+1. Full Purchase Flow UI structure
+2. Full Stripe production integration
+3. Full testing checklist document
+4. Production deployment checklist
+5. Complete role-permission matrix
+
+We are now moving from MVP → scalable infrastructure.

@@ -1,0 +1,464 @@
+Perfect. I will give you a **complete pre-planned architecture expansion** covering:
+
+* Social layer
+* Profiles
+* Reviews
+* Followers
+* Media
+* CRUD for all entities
+* Payments + Wallet
+* Notifications
+* Frontend structure
+* Backend services structure
+
+This will integrate cleanly into the schema we already defined — no rewrites later.
+
+---
+
+# SPEC-2 — CulturePass Social + Commerce Layer
+
+---
+
+# 1️⃣ UNIVERSAL PROFILE SYSTEM (All Entities)
+
+We standardize all public-facing entities to behave like “profiles”.
+
+Entities with profiles:
+
+* Users
+* Communities
+* Organizations
+* Businesses
+* Venues
+* Councils
+* Government Bodies
+
+---
+
+## Core Additions to Existing Tables
+
+### 🌐 Social Media Links (Reusable JSONB)
+
+Add to all profile tables:
+
+```sql
+ALTER TABLE users ADD COLUMN social_links JSONB;
+ALTER TABLE communities ADD COLUMN social_links JSONB;
+ALTER TABLE organizations ADD COLUMN social_links JSONB;
+ALTER TABLE businesses ADD COLUMN social_links JSONB;
+ALTER TABLE venues ADD COLUMN social_links JSONB;
+```
+
+Example structure:
+
+```json
+{
+  "website": "https://...",
+  "instagram": "https://instagram.com/...",
+  "facebook": "...",
+  "youtube": "...",
+  "linkedin": "..."
+}
+```
+
+---
+
+# 2️⃣ MEDIA SYSTEM (Images & Galleries)
+
+Centralized table:
+
+```sql
+CREATE TABLE media (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  entity_type TEXT NOT NULL, -- user/community/org/business/venue/council
+  entity_id UUID NOT NULL,
+  url TEXT NOT NULL,
+  type TEXT DEFAULT 'image',
+  created_at TIMESTAMP DEFAULT now()
+);
+```
+
+This allows:
+
+* Event galleries
+* Venue photos
+* Business portfolios
+* Community banners
+
+Storage:
+AWS S3 or Supabase Storage (CDN enabled)
+
+---
+
+# 3️⃣ REVIEWS SYSTEM
+
+Applies to:
+
+* Organizations
+* Businesses
+* Venues
+* Communities
+
+```sql
+CREATE TABLE reviews (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  reviewer_id UUID REFERENCES users(id),
+  entity_type TEXT NOT NULL,
+  entity_id UUID NOT NULL,
+  rating INT CHECK (rating BETWEEN 1 AND 5),
+  comment TEXT,
+  created_at TIMESTAMP DEFAULT now()
+);
+```
+
+Index:
+
+```sql
+CREATE INDEX idx_reviews_entity
+ON reviews(entity_type, entity_id);
+```
+
+Frontend shows:
+
+⭐ 4.6 (128 reviews)
+
+---
+
+# 4️⃣ FOLLOW & LIKE SYSTEM
+
+## Followers (Graph Edge Table)
+
+```sql
+CREATE TABLE follows (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  follower_id UUID REFERENCES users(id),
+  entity_type TEXT NOT NULL,
+  entity_id UUID NOT NULL,
+  created_at TIMESTAMP DEFAULT now()
+);
+```
+
+Use cases:
+
+* Follow Community
+* Follow Organization
+* Follow Business
+* Follow Venue
+
+---
+
+## Likes (For Events)
+
+```sql
+CREATE TABLE likes (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES users(id),
+  event_id UUID REFERENCES events(id),
+  created_at TIMESTAMP DEFAULT now()
+);
+```
+
+Used for:
+
+* Trending algorithm
+* Featured ranking weight
+* Engagement scoring
+
+---
+
+# 5️⃣ MEMBER PROFILES (Public)
+
+Users now have:
+
+```sql
+ALTER TABLE users ADD COLUMN bio TEXT;
+ALTER TABLE users ADD COLUMN profile_image_url TEXT;
+ALTER TABLE users ADD COLUMN is_public BOOLEAN DEFAULT true;
+```
+
+Profile Page Shows:
+
+* Avatar
+* Bio
+* Communities joined
+* Events attended
+* Followers count
+* Following count
+
+Optional privacy toggle.
+
+---
+
+# 6️⃣ COUNCILS & GOVERNMENT TABLES
+
+```sql
+CREATE TABLE institutions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  city_id UUID REFERENCES cities(id),
+  name TEXT NOT NULL,
+  type TEXT CHECK (type IN ('council','government')),
+  description TEXT,
+  website TEXT,
+  contact_email TEXT,
+  location GEOGRAPHY(Point, 4326),
+  verified BOOLEAN DEFAULT true,
+  created_at TIMESTAMP DEFAULT now()
+);
+```
+
+They get:
+
+* Profile page
+* Events listing
+* Venue ownership linking
+* Grant announcements (future module)
+
+---
+
+# 7️⃣ FULL CRUD CAPABILITY
+
+Every entity must support:
+
+Create
+Read
+Update
+Delete (soft delete using status)
+
+Backend pattern:
+
+REST endpoints:
+
+```
+POST /communities
+GET /communities/:id
+PUT /communities/:id
+DELETE /communities/:id
+```
+
+Soft delete field:
+
+```
+status = active / suspended / archived
+```
+
+Access control:
+
+* user
+* orgAdmin
+* cityAdmin
+* platformAdmin
+
+All CRUD guarded by RBAC middleware.
+
+---
+
+# 8️⃣ PAYMENT & BILLING SYSTEM
+
+## Add Payment Methods
+
+```sql
+CREATE TABLE payment_methods (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES users(id),
+  stripe_payment_method_id TEXT,
+  brand TEXT,
+  last4 TEXT,
+  exp_month INT,
+  exp_year INT,
+  created_at TIMESTAMP DEFAULT now()
+);
+```
+
+---
+
+## Transaction History
+
+```sql
+CREATE TABLE transactions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES users(id),
+  type TEXT, -- ticket, subscription, featured, service_fee
+  amount_cents INT,
+  currency TEXT,
+  stripe_payment_intent_id TEXT,
+  status TEXT,
+  created_at TIMESTAMP DEFAULT now()
+);
+```
+
+---
+
+# 9️⃣ CULTUREPASS WALLET
+
+Internal ledger system:
+
+```sql
+CREATE TABLE wallet_accounts (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES users(id),
+  balance_cents INT DEFAULT 0,
+  updated_at TIMESTAMP DEFAULT now()
+);
+
+CREATE TABLE wallet_transactions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  wallet_id UUID REFERENCES wallet_accounts(id),
+  amount_cents INT,
+  type TEXT, -- credit/debit
+  reference TEXT,
+  created_at TIMESTAMP DEFAULT now()
+);
+```
+
+Use cases:
+
+* Refund credits
+* Event credits
+* Promotion bonuses
+* Referral rewards
+
+Wallet is internal ledger, NOT replacing Stripe.
+
+---
+
+# 🔔 NOTIFICATION SYSTEM
+
+```sql
+CREATE TABLE notifications (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES users(id),
+  title TEXT,
+  message TEXT,
+  type TEXT,
+  is_read BOOLEAN DEFAULT false,
+  created_at TIMESTAMP DEFAULT now()
+);
+```
+
+Push:
+Firebase Cloud Messaging
+
+Email:
+SendGrid / Resend
+
+Event reminder logic:
+
+Cron job:
+
+```
+SELECT events WHERE start_time - now() = 24 hours
+Notify ticket holders
+```
+
+---
+
+# 🖥 FRONTEND ARCHITECTURE
+
+## Mobile App (React Native)
+
+Main Tabs:
+
+* Home
+* Calendar
+* Map
+* Wallet
+* Notifications
+* Profile
+
+Profile includes:
+
+* Payment methods
+* Transaction history
+* Wallet
+* Followed entities
+* Settings
+
+---
+
+## Web Dashboards (Next.js)
+
+### Organizer Dashboard
+
+* Events CRUD
+* Tickets
+* Revenue
+* Service Requests
+* Media
+* Reviews
+
+### Business Dashboard
+
+* Leads
+* Quotes
+* Subscription billing
+* Reviews
+
+### City Admin Dashboard
+
+* Approvals
+* Revenue share
+* Featured management
+
+### Platform Admin
+
+* Global analytics
+* Commission control
+* Fraud monitoring
+
+---
+
+# 🔐 SECURITY & BEST PRACTICES
+
+* Row-level security per city/community
+* Stripe webhooks validated
+* Idempotency keys on payment endpoints
+* Soft deletes everywhere
+* Audit logs table:
+
+```sql
+CREATE TABLE audit_logs (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  entity_type TEXT,
+  entity_id UUID,
+  action TEXT,
+  performed_by UUID,
+  created_at TIMESTAMP DEFAULT now()
+);
+```
+
+---
+
+# 🧠 FINAL RESULT
+
+You now have:
+
+✔ Multi-country scalable schema
+✔ Social graph
+✔ Marketplace
+✔ Wallet
+✔ Commission engine
+✔ Stripe Connect
+✔ Reviews
+✔ Follows
+✔ Promotion system
+✔ Institutional layer
+✔ Notification system
+✔ Full CRUD
+✔ Admin governance
+
+This is not MVP anymore.
+
+This is infrastructure-grade.
+
+---
+
+Next move:
+
+Do you want me to now produce:
+
+A) 12-week execution breakdown (team roles + sprint plan)
+B) Full backend service architecture (microservices split plan)
+C) UI/UX system structure (component hierarchy + navigation map)
+D) Investor-level system overview
+
+Pick one.

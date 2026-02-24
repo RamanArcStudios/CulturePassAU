@@ -1,0 +1,425 @@
+Perfect. Now we move from **vision** to **AI-executable architecture** for Replit.
+
+You don’t just need clean code.
+You need **machine-understandable system design** so AI agents (Replit AI, Cursor, Copilot, etc.) can reason about it safely.
+
+Below is a **production-ready architecture blueprint** for CulturePass powered by CultureOS — optimised for:
+
+• Replit
+• PostgreSQL + PostGIS
+• Drizzle ORM
+• AI-assisted development
+• Multi-country scale
+• Cultural + geo-aware discovery
+
+---
+
+# 🏗 CULTUREPASS — AI-FIRST SYSTEM ARCHITECTURE
+
+---
+
+# 1️⃣ Architectural Principles
+
+### 1. Domain-Driven Structure (DDD)
+
+Each core entity lives in its own module:
+
+```
+/src/modules/
+  users/
+  locations/
+  communities/
+  events/
+  artists/
+  businesses/
+  sponsors/
+  institutions/
+  perks/
+  memberships/
+  wallet/
+  recommendations/
+```
+
+AI can now:
+
+* Understand boundaries
+* Modify isolated logic safely
+* Avoid breaking the entire app
+
+---
+
+### 2. Feature-Based Folder Structure (Not File Chaos)
+
+Instead of:
+
+```
+/pages
+/components
+/utils
+```
+
+Use:
+
+```
+/modules/events
+  event.schema.ts
+  event.service.ts
+  event.repository.ts
+  event.controller.ts
+  event.types.ts
+```
+
+AI understands:
+
+* What is data
+* What is logic
+* What is API
+* What is database
+
+---
+
+# 2️⃣ Core Infrastructure Stack (Replit Optimised)
+
+Frontend:
+
+* Expo (React Native)
+* Expo Router
+* TanStack Query
+* Zustand
+
+Backend:
+
+* Node.js
+* Express
+* Drizzle ORM
+* PostgreSQL
+* PostGIS
+
+Payments:
+
+* Stripe Connect Express
+
+Auth:
+
+* Firebase Auth OR Clerk
+
+Hosting (when migrating):
+
+* Firebase OR AWS
+
+---
+
+# 3️⃣ Database Design — Culture-Aware Schema
+
+## 🌍 locations table
+
+```ts
+countries
+states
+cities
+```
+
+With:
+
+```
+id
+name
+type (country/state/city)
+parent_id
+geo_point (PostGIS)
+```
+
+This creates a tree hierarchy.
+
+---
+
+## 🌐 communities table
+
+```ts
+id
+name
+type (language / diaspora / indigenous / religion / region)
+country_id (nullable)
+description
+verified
+```
+
+Example community types:
+
+* Malayalam Language
+* Tamil Community
+* Aboriginal Community
+* Sikh Community
+* Māori Community
+
+---
+
+## 👤 users table (expanded)
+
+```ts
+primary_country_id
+primary_state_id
+primary_city_id
+
+origin_country_id
+origin_state_id
+origin_city_id
+
+radius_preference_km
+
+indigenous_visibility_enabled boolean
+homeland_visibility_enabled boolean
+```
+
+---
+
+## 👥 user_communities (join table)
+
+```ts
+user_id
+community_id
+```
+
+Multi-select.
+
+---
+
+## 🎟 events table
+
+```ts
+country_id
+state_id
+city_id
+
+geo_point (PostGIS)
+
+indigenous_flag boolean
+
+cultural_category
+language_tags text[]
+
+visibility_scope (public/community/private)
+```
+
+---
+
+## 🎟 event_communities (join table)
+
+```ts
+event_id
+community_id
+```
+
+This enables diaspora + Indigenous filtering.
+
+---
+
+# 4️⃣ AI-Friendly Recommendation Engine
+
+Create:
+
+```
+/modules/recommendations/
+  scoring.service.ts
+```
+
+Scoring formula (example):
+
+```ts
+score =
+  (cityMatch * 50) +
+  (stateMatch * 30) +
+  (communityMatch * 40) +
+  (originMatch * 20) +
+  (languageMatch * 25) +
+  (followedArtistMatch * 35) +
+  (indigenousPriorityBoost * 45)
+```
+
+Then:
+
+```
+ORDER BY score DESC, event_date ASC
+```
+
+AI can adjust weights safely.
+
+---
+
+# 5️⃣ Discover API Endpoint
+
+```
+GET /api/discover
+```
+
+Server logic:
+
+1. Fetch user profile
+2. Build weighted SQL query
+3. Apply PostGIS radius filter
+4. Apply community match
+5. Apply Indigenous spotlight logic (if Australia)
+
+---
+
+# 6️⃣ PostGIS Radius Query (Critical)
+
+Instead of naive filtering:
+
+```sql
+ST_DWithin(
+  event.geo_point,
+  user.geo_point,
+  radius_in_meters
+)
+```
+
+This enables:
+
+• Sydney 20km
+• NSW state fallback
+• Homeland fallback
+
+Geo intelligence built-in.
+
+---
+
+# 7️⃣ Indigenous Priority Layer
+
+If user.country = Australia:
+
+Boost events where:
+
+```
+indigenous_flag = true
+```
+
+During:
+
+* NAIDOC Week
+* National Reconciliation Week
+
+Make it time-based.
+
+---
+
+# 8️⃣ Discover Page Response Structure
+
+Instead of one giant list:
+
+Return structured sections:
+
+```json
+{
+  "nearYou": [],
+  "yourCommunities": [],
+  "firstNationsSpotlight": [],
+  "fromYourHomeland": [],
+  "recommended": []
+}
+```
+
+This keeps frontend clean.
+
+---
+
+# 9️⃣ Permissions + Multi-Tenant Safety
+
+Every query must enforce:
+
+```
+event.status = 'active'
+city.status = 'approved'
+community.status = 'approved'
+```
+
+Never expose soft-deleted data.
+
+---
+
+# 🔟 AI-Readable Code Practices
+
+To make AI agents powerful in Replit:
+
+### ✅ Use explicit types everywhere
+
+### ✅ Avoid giant files
+
+### ✅ Keep services pure (no side effects)
+
+### ✅ Separate DB from logic
+
+### ✅ Add JSDoc on services
+
+Example:
+
+```ts
+/**
+ * Returns structured discover sections for a user.
+ * Applies geo, community, indigenous and homeland weighting.
+ */
+export async function getDiscoverFeed(userId: string)
+```
+
+AI understands intent.
+
+---
+
+# 1️⃣1️⃣ Future Scale Layer (CultureOS Vision)
+
+Later you can add:
+
+• Redis caching for Discover
+• Feature flag system
+• A/B algorithm testing
+• City revenue analytics
+• AI-curated cultural summaries
+
+---
+
+# 🧠 Why This Architecture Is Superior
+
+Because:
+
+It is not a CRUD app.
+
+It is:
+
+• Geo-indexed
+• Community-indexed
+• Identity-aware
+• Indigenous-prioritised
+• Diaspora-connected
+• AI-adjustable
+• Multi-country scalable
+
+---
+
+# 🚀 Replit Action Plan (Immediate)
+
+Step 1:
+Refactor into `/modules/` structure.
+
+Step 2:
+Implement `locations`, `communities`, `user_communities`, `event_communities`.
+
+Step 3:
+Enable PostGIS.
+
+Step 4:
+Build `/discover` endpoint returning structured sections.
+
+Step 5:
+Add scoring service.
+
+---
+
+If you want next, I can:
+
+* Write the full Drizzle schema
+* Generate the SQL for PostGIS
+* Build the full discover endpoint code
+* Create the folder structure template
+* Design the AI prompt template for Replit to auto-generate modules
+
+What do we build next?
