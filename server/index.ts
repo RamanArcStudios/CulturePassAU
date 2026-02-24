@@ -601,16 +601,6 @@ app.get('/api/tickets/:id/wallet/google', (req, res) => {
   res.json({ url, provider: 'google', ticketId: ticket.id });
 });
 
-  const ticket = tickets.find((t) => t.ticketCode === ticketCode);
-  if (!ticket) return res.status(404).json({ valid: false, error: 'Invalid ticket code' });
-  if (ticket.status !== 'confirmed') {
-    return res.status(400).json({ valid: false, error: `Ticket is ${ticket.status}`, ticket });
-  }
-  ticket.status = 'used';
-  ticket.history.unshift({ at: nowIso(), status: 'used', note: `Scanned by ${String(req.body?.scannedBy ?? 'staff')}` });
-  res.json({ valid: true, message: 'Ticket scanned successfully', ticket });
-});
-
 const perks = [
   {
     id: 'p1',
@@ -988,28 +978,6 @@ app.post('/api/stripe/webhook', (req, res) => {
   }
 
   return res.json({ received: true });
-});
-  const q = String(req.query.q ?? '').trim();
-  const type = String(req.query.type ?? 'all');
-  const city = String(req.query.city ?? '');
-  if (!q) return res.json({ results: [] });
-
-  const buckets: Array<{ id: string; type: string; title: string; subtitle: string; score: number }> = [];
-  if (type === 'all' || type === 'event') {
-    for (const e of events) {
-      const score = rankItem(e, q, city);
-      if (score > 0) buckets.push({ id: e.id, type: 'event', title: e.title, subtitle: `${e.communityTag} · ${e.venue}`, score });
-    }
-  }
-  if (type === 'all' || type === 'community') {
-    for (const c of profiles.filter((p) => p.entityType === 'community')) {
-      const score = rankItem(c, q, city);
-      if (score > 0) buckets.push({ id: c.id, type: 'community', title: c.name, subtitle: `${c.category} · ${c.members ?? 0} members`, score });
-    }
-  }
-
-  buckets.sort((a, b) => b.score - a.score);
-  res.json({ results: buckets.map(({ score, ...rest }) => rest) });
 });
 
 app.get('/api/search/suggest', (req, res) => {
