@@ -16,8 +16,8 @@ import Colors from '@/constants/colors';
 import { router } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { useState, useCallback, useRef } from 'react';
-import { apiRequest, getApiUrl } from '@/lib/query-client';
-import { useContacts, SavedContact } from '@/contexts/ContactsContext';
+import { getApiUrl } from '@/lib/query-client';
+import { useContacts } from '@/contexts/ContactsContext';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { fetch } from 'expo/fetch';
@@ -196,20 +196,27 @@ export default function ScannerScreen() {
     setIsScanning(true);
     Keyboard.dismiss();
     try {
-      const res = await apiRequest('POST', '/api/tickets/scan', { ticketCode: code, scannedBy: 'staff' });
+      const base = getApiUrl();
+      const res = await fetch(`${base}api/tickets/scan`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ticketCode: code, scannedBy: 'staff' }),
+      });
       const data = await res.json();
-      const result: ScanResult = { valid: true, message: data.message || 'Ticket scanned successfully', ticket: data.ticket };
-      setScanResult(result);
-      setScanHistory(prev => [result, ...prev]);
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      setTicketCode('');
+      if (res.ok && data.valid !== false) {
+        const result: ScanResult = { valid: true, message: data.message || 'Ticket scanned successfully', ticket: data.ticket };
+        setScanResult(result);
+        setScanHistory(prev => [result, ...prev]);
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        setTicketCode('');
+      } else {
+        const result: ScanResult = { valid: false, message: data.error || data.message || 'Invalid ticket code', ticket: data.ticket };
+        setScanResult(result);
+        setScanHistory(prev => [result, ...prev]);
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      }
     } catch (e: any) {
-      let errorData: any = {};
-      try {
-        const jsonMatch = (e.message || '').match(/\d+: (.*)/);
-        if (jsonMatch) errorData = JSON.parse(jsonMatch[1]);
-      } catch {}
-      const result: ScanResult = { valid: false, message: errorData.error || e.message || 'Failed to scan ticket', ticket: errorData.ticket };
+      const result: ScanResult = { valid: false, message: e.message || 'Network error - could not scan ticket' };
       setScanResult(result);
       setScanHistory(prev => [result, ...prev]);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
@@ -266,14 +273,16 @@ export default function ScannerScreen() {
     Alert.alert('Contact Saved', `${cpContact.name || cpContact.cpid} has been saved to your CulturePass contacts.`);
   }, [cpContact, addContact]);
 
+  const contactAlreadySaved = cpContact ? isContactSaved(cpContact.cpid) : false;
+
   const handleViewProfile = useCallback(() => {
-    if (!cpContact?.userId) {
-      Alert.alert('Profile', `CPID: ${cpContact?.cpid}\n\nFull profile is not available for this contact.`);
-      return;
-    }
+    if (!cpContact) return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    router.push({ pathname: '/profile/[id]', params: { id: cpContact.userId } });
-  }, [cpContact]);
+    if (!contactAlreadySaved) {
+      handleSaveContact();
+    }
+    router.push({ pathname: '/contacts/[cpid]' as any, params: { cpid: cpContact.cpid } });
+  }, [cpContact, contactAlreadySaved, handleSaveContact]);
 
   const clearCpContact = useCallback(() => {
     setCpContact(null);
@@ -301,8 +310,6 @@ export default function ScannerScreen() {
     lastScannedRef.current = '';
     setCameraActive(true);
   }, [permission, requestPermission]);
-
-  const contactAlreadySaved = cpContact ? isContactSaved(cpContact.cpid) : false;
 
   return (
     <View style={[styles.container, { paddingTop: topInset }]}>

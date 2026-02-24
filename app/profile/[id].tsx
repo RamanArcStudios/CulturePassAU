@@ -75,6 +75,16 @@ export default function ProfileDetailScreen() {
     enabled: !!id,
   });
 
+  const { data: allEventsData = [] } = useQuery<any[]>({
+    queryKey: ['/api/events'],
+    queryFn: async () => {
+      const base = getApiUrl();
+      const res = await fetch(`${base}api/events`);
+      if (!res.ok) throw new Error(`${res.status}`);
+      return res.json();
+    },
+  });
+
   if (isLoading) {
     return (
       <View style={[styles.container, { paddingTop: topInset, justifyContent: 'center', alignItems: 'center' }]}>
@@ -106,15 +116,6 @@ export default function ProfileDetailScreen() {
   const profileCategory = (profile.category || '').toLowerCase();
   const profileTags = (profile.tags || []) as string[];
   const profileLocation = (profile.city || profile.location || '').toLowerCase();
-  const { data: allEventsData = [] } = useQuery<any[]>({
-    queryKey: ['/api/events'],
-    queryFn: async () => {
-      const base = getApiUrl();
-      const res = await fetch(`${base}api/events`);
-      if (!res.ok) throw new Error(`${res.status}`);
-      return res.json();
-    },
-  });
 
   const matchedEvents = allEventsData.filter(ev => {
     const tag = (ev.communityTag || '').toLowerCase();

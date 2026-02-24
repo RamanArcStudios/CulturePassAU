@@ -127,14 +127,7 @@ export default function ContactsScreen() {
 
   const handleContactPress = useCallback((contact: SavedContact) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    if (contact.userId) {
-      router.push({ pathname: '/profile/[id]', params: { id: contact.userId } });
-    } else {
-      Alert.alert(
-        contact.name || 'Contact',
-        `CPID: ${contact.cpid}\n${contact.username ? `Username: @${contact.username}\n` : ''}${contact.city ? `Location: ${contact.city}${contact.country ? `, ${contact.country}` : ''}\n` : ''}${contact.bio || ''}`,
-      );
-    }
+    router.push({ pathname: '/contacts/[cpid]' as any, params: { cpid: contact.cpid } });
   }, []);
 
   const renderItem = useCallback(({ item }: { item: SavedContact }) => (

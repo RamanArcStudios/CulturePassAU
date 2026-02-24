@@ -23,27 +23,25 @@ import { LinearGradient } from 'expo-linear-gradient';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const CARD_WIDTH = SCREEN_WIDTH - 48;
-const QR_SIZE = Math.min(CARD_WIDTH - 80, 220);
+const QR_SIZE = Math.min(CARD_WIDTH - 80, 200);
 
 function capitalize(s: string): string {
   return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
-const TIER_CONFIG: Record<string, { colors: string[]; label: string; icon: string }> = {
-  free: { colors: ['#8E8E93', '#636366'], label: 'Standard', icon: 'shield-outline' },
-  plus: { colors: ['#3498DB', '#2980B9'], label: 'Plus', icon: 'star' },
-  premium: { colors: ['#F39C12', '#E67E22'], label: 'Premium', icon: 'diamond' },
-  pro: { colors: ['#3498DB', '#2980B9'], label: 'Pro', icon: 'star' },
-  vip: { colors: ['#F39C12', '#E67E22'], label: 'VIP', icon: 'diamond' },
+const TIER_CONFIG: Record<string, { gradient: string[]; label: string; icon: string; accent: string }> = {
+  free: { gradient: ['#636366', '#48484A'], label: 'Standard', icon: 'shield-outline', accent: '#8E8E93' },
+  plus: { gradient: ['#3498DB', '#2471A3'], label: 'Plus', icon: 'star', accent: '#3498DB' },
+  premium: { gradient: ['#F4A623', '#D4871E'], label: 'Premium', icon: 'diamond', accent: '#F4A623' },
+  pro: { gradient: ['#3498DB', '#2471A3'], label: 'Pro', icon: 'star', accent: '#3498DB' },
+  vip: { gradient: ['#F4A623', '#D4871E'], label: 'VIP', icon: 'diamond', accent: '#F4A623' },
 };
-
-type QRMode = 'id' | 'card';
 
 export default function QRScreen() {
   const insets = useSafeAreaInsets();
   const topInset = Platform.OS === 'web' ? 67 : insets.top;
   const bottomInset = Platform.OS === 'web' ? 34 : insets.bottom;
-  const [mode, setMode] = useState<QRMode>('id');
+  const [copied, setCopied] = useState(false);
 
   const { data: usersData } = useQuery<User[]>({ queryKey: ['/api/users'] });
   const user = usersData?.[0];
@@ -60,38 +58,14 @@ export default function QRScreen() {
   const displayName = user?.displayName ?? 'CulturePass User';
   const username = user?.username ?? 'user';
 
-  const nameParts = displayName.split(' ');
-  const firstName = nameParts[0] ?? '';
-  const lastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : '';
-
-  const qrValueId = useMemo(() => {
+  const qrValue = useMemo(() => {
     return JSON.stringify({
       type: 'culturepass_id',
       cpid,
       name: displayName,
       username,
-      tier,
-      verified: true,
     });
-  }, [cpid, displayName, username, tier]);
-
-  const vCardString = useMemo(() => {
-    return [
-      'BEGIN:VCARD',
-      'VERSION:3.0',
-      `FN:${displayName}`,
-      `N:${lastName};${firstName};;;`,
-      'ORG:CulturePass',
-      `TITLE:${tierConf.label} Member`,
-      'TEL;TYPE=CELL:',
-      'EMAIL:',
-      `URL:https://culturepass.app/u/${username}`,
-      `NOTE:CulturePass ID: ${cpid}`,
-      'END:VCARD',
-    ].join('\n');
-  }, [displayName, lastName, firstName, tierConf.label, username, cpid]);
-
-  const qrValue = mode === 'card' ? vCardString : qrValueId;
+  }, [cpid, displayName, username]);
 
   const memberSince = useMemo(() => {
     if (!user?.createdAt) return 'Member';
@@ -112,38 +86,10 @@ export default function QRScreen() {
   };
 
   const handleCopy = () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    Alert.alert('Copied!', `CulturePass ID ${cpid} copied to clipboard.`);
-  };
-
-  const handleSaveToContact = () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    if (Platform.OS === 'web') {
-      try {
-        const blob = new Blob([vCardString], { type: 'text/vcard' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `${username}_culturepass.vcf`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-      } catch {
-        Alert.alert('Save to Contact', 'Could not generate contact file.');
-      }
-    } else {
-      Alert.alert(
-        'Save to Contact',
-        'Switch to "Business Card" mode, then screenshot the QR code and scan it with your phone\'s camera app to add this contact.',
-        [{ text: 'OK' }]
-      );
-    }
-  };
-
-  const toggleMode = () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    setMode(m => (m === 'id' ? 'card' : 'id'));
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+    Alert.alert('Copied', `CulturePass ID ${cpid} copied to clipboard.`);
   };
 
   return (
@@ -152,32 +98,12 @@ export default function QRScreen() {
         <Pressable style={styles.backBtn} onPress={() => router.back()}>
           <Ionicons name="chevron-back" size={22} color={Colors.text} />
         </Pressable>
-        <Text style={styles.headerTitle}>{mode === 'id' ? 'Digital ID' : 'Business Card'}</Text>
+        <Text style={styles.headerTitle}>CulturePass Digital ID</Text>
         <View style={styles.headerRight}>
           <Pressable style={styles.headerAction} onPress={() => router.push('/scanner')}>
             <Ionicons name="scan-outline" size={20} color={Colors.primary} />
           </Pressable>
-          <Pressable style={styles.headerAction} onPress={handleShare}>
-            <Ionicons name="share-outline" size={20} color={Colors.primary} />
-          </Pressable>
         </View>
-      </View>
-
-      <View style={styles.toggleRow}>
-        <Pressable
-          style={[styles.toggleBtn, mode === 'id' && styles.toggleBtnActive]}
-          onPress={() => { if (mode !== 'id') toggleMode(); }}
-        >
-          <Ionicons name="id-card-outline" size={16} color={mode === 'id' ? '#FFF' : Colors.textSecondary} />
-          <Text style={[styles.toggleText, mode === 'id' && styles.toggleTextActive]}>Digital ID</Text>
-        </Pressable>
-        <Pressable
-          style={[styles.toggleBtn, mode === 'card' && styles.toggleBtnActive]}
-          onPress={() => { if (mode !== 'card') toggleMode(); }}
-        >
-          <Ionicons name="person-outline" size={16} color={mode === 'card' ? '#FFF' : Colors.textSecondary} />
-          <Text style={[styles.toggleText, mode === 'card' && styles.toggleTextActive]}>Business Card</Text>
-        </Pressable>
       </View>
 
       <ScrollView
@@ -187,139 +113,159 @@ export default function QRScreen() {
         <Animated.View entering={FadeInDown.duration(500)} style={styles.cardOuter}>
           <View style={styles.card}>
             <LinearGradient
-              colors={[Colors.primary, '#B8411F']}
+              colors={['#1A1A2E', '#16213E', '#0F3460']}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
-              style={styles.cardHeader}
+              style={styles.cardTop}
             >
-              <View style={styles.cardHeaderTop}>
-                <View style={styles.logoRow}>
-                  <View style={styles.logoIcon}>
-                    <Ionicons name="globe" size={16} color={Colors.primary} />
+              <View style={styles.cardPattern}>
+                <View style={styles.patternCircle1} />
+                <View style={styles.patternCircle2} />
+              </View>
+
+              <View style={styles.cardHeaderRow}>
+                <View style={styles.brandRow}>
+                  <View style={styles.logoMark}>
+                    <Ionicons name="globe" size={14} color="#FFF" />
                   </View>
-                  <Text style={styles.logoText}>CulturePass</Text>
+                  <View>
+                    <Text style={styles.brandName}>CULTUREPASS</Text>
+                    <Text style={styles.brandSub}>DIGITAL ID</Text>
+                  </View>
                 </View>
-                <View style={styles.tierPill}>
-                  <Ionicons name={tierConf.icon as any} size={12} color="#FFF" />
-                  <Text style={styles.tierPillText}>{tierConf.label}</Text>
+                <View style={[styles.tierBadge, { backgroundColor: tierConf.accent + '30' }]}>
+                  <Ionicons name={tierConf.icon as any} size={11} color={tierConf.accent} />
+                  <Text style={[styles.tierText, { color: tierConf.accent }]}>{tierConf.label}</Text>
                 </View>
               </View>
 
-              <View style={styles.userInfo}>
-                <Text style={styles.userName}>{displayName}</Text>
-                <Text style={styles.userHandle}>@{username}</Text>
+              <View style={styles.userSection}>
+                <View style={styles.avatarRing}>
+                  <View style={styles.avatarInner}>
+                    <Text style={styles.avatarInitials}>
+                      {(displayName || 'U').split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()}
+                    </Text>
+                  </View>
+                </View>
+                <View style={styles.userDetails}>
+                  <Text style={styles.userName} numberOfLines={1}>{displayName}</Text>
+                  <Text style={styles.userHandle}>@{username}</Text>
+                </View>
               </View>
 
-              <View style={styles.headerMeta}>
-                <View style={styles.metaChip}>
-                  <Ionicons name="id-card-outline" size={12} color="rgba(255,255,255,0.9)" />
-                  <Text style={styles.metaChipText}>{cpid}</Text>
+              <View style={styles.metaRow}>
+                <View style={styles.metaItem}>
+                  <Ionicons name="finger-print" size={12} color="rgba(255,255,255,0.6)" />
+                  <Text style={styles.metaText}>{cpid}</Text>
                 </View>
-                <View style={styles.metaChip}>
-                  <Ionicons name="calendar-outline" size={12} color="rgba(255,255,255,0.9)" />
-                  <Text style={styles.metaChipText}>{memberSince}</Text>
+                <View style={styles.metaDot} />
+                <View style={styles.metaItem}>
+                  <Ionicons name="calendar-outline" size={12} color="rgba(255,255,255,0.6)" />
+                  <Text style={styles.metaText}>{memberSince}</Text>
                 </View>
               </View>
             </LinearGradient>
 
             <View style={styles.qrSection}>
-              <View style={styles.qrFrame}>
+              <View style={styles.qrContainer}>
                 <View style={styles.cornerTL} />
                 <View style={styles.cornerTR} />
                 <View style={styles.cornerBL} />
                 <View style={styles.cornerBR} />
-
                 <View style={styles.qrInner}>
                   <QRCode
                     value={qrValue}
                     size={QR_SIZE}
-                    color={Colors.text}
+                    color="#1A1A2E"
                     backgroundColor="#FFFFFF"
                     ecl="H"
                   />
                 </View>
               </View>
-
-              <Text style={styles.scanHint}>
-                {mode === 'id' ? 'Scan to verify identity' : 'Scan to add contact'}
-              </Text>
+              <Text style={styles.scanLabel}>Scan to verify identity</Text>
             </View>
 
-            <View style={styles.cardFooter}>
-              <View style={styles.footerDivider} />
-              <View style={styles.footerContent}>
-                <View style={styles.footerLeft}>
-                  <Ionicons name={mode === 'id' ? 'shield-checkmark' : 'card-outline'} size={16} color={Colors.success} />
-                  <Text style={styles.footerVerified}>
-                    {mode === 'id' ? 'Verified Digital ID' : 'CulturePass Card'}
-                  </Text>
+            <View style={styles.cardBottom}>
+              <View style={styles.bottomDivider} />
+              <View style={styles.bottomRow}>
+                <View style={styles.verifiedRow}>
+                  <Ionicons name="shield-checkmark" size={15} color={Colors.success} />
+                  <Text style={styles.verifiedText}>Verified Member</Text>
                 </View>
-                <View style={styles.hologram}>
-                  <Ionicons name="finger-print" size={18} color={Colors.primary + '40'} />
+                <View style={styles.chipRow}>
+                  <View style={styles.nfcChip}>
+                    <Ionicons name="wifi" size={10} color="rgba(255,255,255,0.4)" style={{ transform: [{ rotate: '90deg' }] }} />
+                  </View>
+                  <View style={styles.hologram}>
+                    <Ionicons name="finger-print" size={16} color={Colors.primary + '35'} />
+                  </View>
                 </View>
               </View>
             </View>
           </View>
         </Animated.View>
 
-        <Animated.View entering={FadeInDown.delay(150).duration(400)} style={styles.cpidDisplay}>
+        <Animated.View entering={FadeInDown.delay(150).duration(400)} style={styles.cpidSection}>
           <Text style={styles.cpidLabel}>CULTUREPASS ID</Text>
           <Pressable onPress={handleCopy} style={styles.cpidRow}>
             <Text style={styles.cpidValue}>{cpid}</Text>
-            <View style={styles.cpidCopyIcon}>
-              <Ionicons name="copy-outline" size={16} color={Colors.primary} />
+            <View style={[styles.cpidCopyBtn, copied && styles.cpidCopyBtnActive]}>
+              <Ionicons
+                name={copied ? 'checkmark' : 'copy-outline'}
+                size={16}
+                color={copied ? '#FFF' : Colors.primary}
+              />
             </View>
           </Pressable>
         </Animated.View>
 
-        <Animated.View entering={FadeInDown.delay(250).duration(400)} style={styles.actionsRow}>
-          <Pressable style={styles.actionBtn} onPress={handleShare}>
-            <View style={[styles.actionIconWrap, { backgroundColor: Colors.primary }]}>
-              <Ionicons name="share-outline" size={20} color="#FFF" />
+        <Animated.View entering={FadeInDown.delay(250).duration(400)} style={styles.actionsGrid}>
+          <Pressable style={styles.actionCard} onPress={handleShare}>
+            <View style={[styles.actionIcon, { backgroundColor: Colors.primary + '15' }]}>
+              <Ionicons name="share-outline" size={22} color={Colors.primary} />
             </View>
-            <Text style={styles.actionLabel}>Share</Text>
-            <Text style={styles.actionSub}>Send your ID</Text>
+            <Text style={styles.actionTitle}>Share</Text>
+            <Text style={styles.actionDesc}>Send your ID</Text>
           </Pressable>
 
-          <Pressable style={styles.actionBtn} onPress={handleCopy}>
-            <View style={[styles.actionIconWrap, { backgroundColor: Colors.secondary }]}>
-              <Ionicons name="copy-outline" size={20} color="#FFF" />
+          <Pressable style={styles.actionCard} onPress={handleCopy}>
+            <View style={[styles.actionIcon, { backgroundColor: Colors.secondary + '15' }]}>
+              <Ionicons name="copy-outline" size={22} color={Colors.secondary} />
             </View>
-            <Text style={styles.actionLabel}>Copy</Text>
-            <Text style={styles.actionSub}>Copy CPID</Text>
+            <Text style={styles.actionTitle}>Copy</Text>
+            <Text style={styles.actionDesc}>Copy CPID</Text>
           </Pressable>
 
-          <Pressable style={styles.actionBtn} onPress={handleSaveToContact}>
-            <View style={[styles.actionIconWrap, { backgroundColor: Colors.accent }]}>
-              <Ionicons name="person-add-outline" size={20} color="#FFF" />
+          <Pressable style={styles.actionCard} onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); router.push('/scanner'); }}>
+            <View style={[styles.actionIcon, { backgroundColor: Colors.accent + '15' }]}>
+              <Ionicons name="scan-outline" size={22} color={Colors.accent} />
             </View>
-            <Text style={styles.actionLabel}>Contact</Text>
-            <Text style={styles.actionSub}>Save to contact</Text>
+            <Text style={styles.actionTitle}>Scan</Text>
+            <Text style={styles.actionDesc}>Scan others</Text>
           </Pressable>
         </Animated.View>
 
-        <Animated.View entering={FadeInDown.delay(350).duration(400)} style={styles.infoSection}>
-          <View style={styles.infoCard}>
-            <View style={styles.infoRow}>
-              <Ionicons name="information-circle-outline" size={18} color={Colors.primary} />
-              <Text style={styles.infoText}>
-                {mode === 'id'
-                  ? 'Your CulturePass Digital ID is a unique identifier that can be scanned at events, venues, and partner locations for quick check-in and verification.'
-                  : 'Your CulturePass Business Card encodes your contact info as a vCard QR code. Others can scan it to instantly add you to their contacts.'}
-              </Text>
-            </View>
+        <Animated.View entering={FadeInDown.delay(350).duration(400)} style={styles.infoCard}>
+          <View style={styles.infoIconWrap}>
+            <Ionicons name="information-circle-outline" size={18} color={Colors.primary} />
           </View>
+          <Text style={styles.infoText}>
+            Your CulturePass Digital ID is a unique identifier that can be scanned at events, venues, and partner locations for quick check-in and verification.
+          </Text>
         </Animated.View>
       </ScrollView>
     </View>
   );
 }
 
-const CORNER_SIZE = 20;
+const CORNER_SIZE = 18;
 const CORNER_WIDTH = 3;
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
+  container: {
+    flex: 1,
+    backgroundColor: Colors.background,
+  },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -338,7 +284,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontFamily: 'Poppins_700Bold',
-    fontSize: 18,
+    fontSize: 17,
     color: Colors.text,
   },
   headerRight: {
@@ -353,41 +299,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  toggleRow: {
-    flexDirection: 'row',
-    marginHorizontal: 24,
-    marginBottom: 8,
-    backgroundColor: Colors.surface,
-    borderRadius: 14,
-    padding: 4,
-    ...Colors.shadow.small,
-  },
-  toggleBtn: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    paddingVertical: 10,
-    borderRadius: 11,
-  },
-  toggleBtnActive: {
-    backgroundColor: Colors.primary,
-  },
-  toggleText: {
-    fontFamily: 'Poppins_600SemiBold',
-    fontSize: 13,
-    color: Colors.textSecondary,
-  },
-  toggleTextActive: {
-    color: '#FFF',
-  },
   scrollContent: {
     paddingHorizontal: 24,
-    paddingTop: 8,
+    paddingTop: 4,
   },
   cardOuter: {
-    ...Colors.shadow.large,
+    ...Colors.shadow.heavy,
     borderRadius: 24,
   },
   card: {
@@ -395,93 +312,158 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     overflow: 'hidden',
   },
-  cardHeader: {
-    paddingHorizontal: 24,
-    paddingTop: 24,
+  cardTop: {
+    paddingHorizontal: 22,
+    paddingTop: 22,
     paddingBottom: 20,
+    overflow: 'hidden',
+    position: 'relative',
   },
-  cardHeaderTop: {
+  cardPattern: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+  },
+  patternCircle1: {
+    position: 'absolute',
+    top: -40,
+    right: -30,
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: 'rgba(255,255,255,0.03)',
+  },
+  patternCircle2: {
+    position: 'absolute',
+    bottom: -20,
+    left: -20,
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: 'rgba(255,255,255,0.02)',
+  },
+  cardHeaderRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 16,
+    marginBottom: 18,
   },
-  logoRow: {
+  brandRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 10,
   },
-  logoIcon: {
-    width: 28,
-    height: 28,
+  logoMark: {
+    width: 30,
+    height: 30,
     borderRadius: 8,
-    backgroundColor: '#FFF',
+    backgroundColor: 'rgba(255,255,255,0.15)',
     alignItems: 'center',
     justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
   },
-  logoText: {
+  brandName: {
     fontFamily: 'Poppins_700Bold',
-    fontSize: 16,
+    fontSize: 13,
     color: '#FFF',
-    letterSpacing: 0.5,
+    letterSpacing: 2,
   },
-  tierPill: {
+  brandSub: {
+    fontFamily: 'Poppins_400Regular',
+    fontSize: 9,
+    color: 'rgba(255,255,255,0.5)',
+    letterSpacing: 3,
+    marginTop: -1,
+  },
+  tierBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 5,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    paddingHorizontal: 12,
+    paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: 20,
   },
-  tierPillText: {
+  tierText: {
     fontFamily: 'Poppins_600SemiBold',
-    fontSize: 12,
+    fontSize: 11,
+  },
+  userSection: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    marginBottom: 14,
+  },
+  avatarRing: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    borderWidth: 2,
+    borderColor: 'rgba(255,255,255,0.25)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  avatarInner: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  avatarInitials: {
+    fontFamily: 'Poppins_700Bold',
+    fontSize: 16,
     color: '#FFF',
   },
-  userInfo: {
-    marginBottom: 12,
+  userDetails: {
+    flex: 1,
   },
   userName: {
     fontFamily: 'Poppins_700Bold',
-    fontSize: 22,
+    fontSize: 20,
     color: '#FFF',
     letterSpacing: -0.3,
   },
   userHandle: {
     fontFamily: 'Poppins_400Regular',
-    fontSize: 14,
-    color: 'rgba(255,255,255,0.75)',
+    fontSize: 13,
+    color: 'rgba(255,255,255,0.6)',
     marginTop: 1,
   },
-  headerMeta: {
+  metaRow: {
     flexDirection: 'row',
-    gap: 10,
+    alignItems: 'center',
+    gap: 8,
   },
-  metaChip: {
+  metaItem: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 5,
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 10,
   },
-  metaChipText: {
+  metaDot: {
+    width: 3,
+    height: 3,
+    borderRadius: 1.5,
+    backgroundColor: 'rgba(255,255,255,0.3)',
+  },
+  metaText: {
     fontFamily: 'Poppins_500Medium',
     fontSize: 12,
-    color: 'rgba(255,255,255,0.9)',
+    color: 'rgba(255,255,255,0.6)',
   },
-
   qrSection: {
     alignItems: 'center',
-    paddingVertical: 28,
+    paddingVertical: 26,
     paddingHorizontal: 24,
+    backgroundColor: Colors.surface,
   },
-  qrFrame: {
+  qrContainer: {
     position: 'relative',
-    padding: 16,
-    marginBottom: 14,
+    padding: 14,
+    marginBottom: 12,
   },
   cornerTL: {
     position: 'absolute',
@@ -491,8 +473,8 @@ const styles = StyleSheet.create({
     height: CORNER_SIZE,
     borderTopWidth: CORNER_WIDTH,
     borderLeftWidth: CORNER_WIDTH,
-    borderColor: Colors.primary,
-    borderTopLeftRadius: 6,
+    borderColor: '#1A1A2E',
+    borderTopLeftRadius: 5,
   },
   cornerTR: {
     position: 'absolute',
@@ -502,8 +484,8 @@ const styles = StyleSheet.create({
     height: CORNER_SIZE,
     borderTopWidth: CORNER_WIDTH,
     borderRightWidth: CORNER_WIDTH,
-    borderColor: Colors.primary,
-    borderTopRightRadius: 6,
+    borderColor: '#1A1A2E',
+    borderTopRightRadius: 5,
   },
   cornerBL: {
     position: 'absolute',
@@ -513,8 +495,8 @@ const styles = StyleSheet.create({
     height: CORNER_SIZE,
     borderBottomWidth: CORNER_WIDTH,
     borderLeftWidth: CORNER_WIDTH,
-    borderColor: Colors.primary,
-    borderBottomLeftRadius: 6,
+    borderColor: '#1A1A2E',
+    borderBottomLeftRadius: 5,
   },
   cornerBR: {
     position: 'absolute',
@@ -524,65 +506,79 @@ const styles = StyleSheet.create({
     height: CORNER_SIZE,
     borderBottomWidth: CORNER_WIDTH,
     borderRightWidth: CORNER_WIDTH,
-    borderColor: Colors.primary,
-    borderBottomRightRadius: 6,
+    borderColor: '#1A1A2E',
+    borderBottomRightRadius: 5,
   },
   qrInner: {
     backgroundColor: '#FFFFFF',
-    padding: 12,
-    borderRadius: 8,
+    padding: 10,
+    borderRadius: 6,
   },
-  scanHint: {
+  scanLabel: {
     fontFamily: 'Poppins_500Medium',
-    fontSize: 13,
-    color: Colors.textSecondary,
-    letterSpacing: 0.3,
+    fontSize: 12,
+    color: Colors.textTertiary,
+    letterSpacing: 0.5,
   },
-
-  cardFooter: {
-    paddingHorizontal: 24,
-    paddingBottom: 20,
+  cardBottom: {
+    paddingHorizontal: 22,
+    paddingBottom: 18,
   },
-  footerDivider: {
+  bottomDivider: {
     height: 1,
     backgroundColor: Colors.borderLight,
-    marginBottom: 14,
+    marginBottom: 12,
   },
-  footerContent: {
+  bottomRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  footerLeft: {
+  verifiedRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
   },
-  footerVerified: {
+  verifiedText: {
     fontFamily: 'Poppins_500Medium',
-    fontSize: 13,
+    fontSize: 12,
     color: Colors.success,
   },
+  chipRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  nfcChip: {
+    width: 24,
+    height: 18,
+    borderRadius: 3,
+    backgroundColor: Colors.borderLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
   hologram: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     backgroundColor: Colors.primaryGlow,
     alignItems: 'center',
     justifyContent: 'center',
   },
 
-  cpidDisplay: {
+  cpidSection: {
     alignItems: 'center',
     marginTop: 24,
     marginBottom: 4,
   },
   cpidLabel: {
     fontFamily: 'Poppins_500Medium',
-    fontSize: 11,
+    fontSize: 10,
     color: Colors.textTertiary,
-    letterSpacing: 2,
-    marginBottom: 6,
+    letterSpacing: 2.5,
+    marginBottom: 8,
   },
   cpidRow: {
     flexDirection: 'row',
@@ -596,25 +592,28 @@ const styles = StyleSheet.create({
   },
   cpidValue: {
     fontFamily: 'Poppins_700Bold',
-    fontSize: 24,
+    fontSize: 22,
     color: Colors.text,
     letterSpacing: 3,
   },
-  cpidCopyIcon: {
-    width: 32,
-    height: 32,
+  cpidCopyBtn: {
+    width: 34,
+    height: 34,
     borderRadius: 10,
     backgroundColor: Colors.primaryGlow,
     alignItems: 'center',
     justifyContent: 'center',
   },
+  cpidCopyBtnActive: {
+    backgroundColor: Colors.success,
+  },
 
-  actionsRow: {
+  actionsGrid: {
     flexDirection: 'row',
     gap: 12,
     marginTop: 24,
   },
-  actionBtn: {
+  actionCard: {
     flex: 1,
     alignItems: 'center',
     backgroundColor: Colors.surface,
@@ -623,39 +622,38 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     ...Colors.shadow.small,
   },
-  actionIconWrap: {
-    width: 44,
-    height: 44,
+  actionIcon: {
+    width: 46,
+    height: 46,
     borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 10,
   },
-  actionLabel: {
+  actionTitle: {
     fontFamily: 'Poppins_600SemiBold',
     fontSize: 14,
     color: Colors.text,
     marginBottom: 2,
   },
-  actionSub: {
+  actionDesc: {
     fontFamily: 'Poppins_400Regular',
     fontSize: 11,
     color: Colors.textTertiary,
   },
 
-  infoSection: {
-    marginTop: 24,
-  },
   infoCard: {
-    backgroundColor: Colors.surface,
-    borderRadius: 16,
-    padding: 18,
-    ...Colors.shadow.small,
-  },
-  infoRow: {
     flexDirection: 'row',
     gap: 12,
     alignItems: 'flex-start',
+    backgroundColor: Colors.surface,
+    borderRadius: 16,
+    padding: 16,
+    marginTop: 24,
+    ...Colors.shadow.small,
+  },
+  infoIconWrap: {
+    marginTop: 1,
   },
   infoText: {
     flex: 1,
