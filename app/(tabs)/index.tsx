@@ -262,13 +262,13 @@ export default function HomeScreen() {
       <View style={[styles.topBar, Platform.OS === 'web' && { maxWidth: 900, alignSelf: 'center', width: '100%' }]}>
         <LocationPicker />
         <View style={styles.topBarRight}>
-          <Pressable style={styles.iconButton} hitSlop={8} onPress={() => router.push('/search')}>
+          <Pressable style={styles.iconButton} hitSlop={8} onPress={() => router.push('/search')} testID="search-btn" accessibilityLabel="Search">
             <Ionicons name="search" size={22} color={Colors.text} />
           </Pressable>
-          <Pressable style={styles.iconButton} hitSlop={8} onPress={() => router.push('/map' as any)}>
+          <Pressable style={styles.iconButton} hitSlop={8} onPress={() => router.push('/map' as any)} testID="map-btn" accessibilityLabel="Events Map">
             <Ionicons name="map-outline" size={22} color={Colors.text} />
           </Pressable>
-          <Pressable style={styles.iconButton} hitSlop={8} onPress={() => router.push('/notifications')}>
+          <Pressable style={styles.iconButton} hitSlop={8} onPress={() => router.push('/notifications')} testID="notifications-btn" accessibilityLabel="Notifications">
             <Ionicons name="notifications-outline" size={22} color={Colors.text} />
             <View style={styles.notifDot} />
           </Pressable>

@@ -3,13 +3,13 @@ import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useQuery } from '@tanstack/react-query';
-import MapView, { Marker, Callout } from 'react-native-maps';
 import Colors from '@/constants/colors';
 import { getApiUrl } from '@/lib/query-client';
 import { fetch } from 'expo/fetch';
-import { useState, useMemo, useRef } from 'react';
+import { useState, useMemo } from 'react';
 import * as Haptics from 'expo-haptics';
-import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
+import Animated, { FadeInUp } from 'react-native-reanimated';
+import NativeMapView from '@/components/NativeMapView';
 
 const CITY_COORDS: Record<string, { latitude: number; longitude: number }> = {
   'Sydney': { latitude: -33.8688, longitude: 151.2093 },
@@ -29,19 +29,6 @@ const CITY_COORDS: Record<string, { latitude: number; longitude: number }> = {
   'Montreal': { latitude: 45.5017, longitude: -73.5673 },
 };
 
-const CATEGORY_COLORS: Record<string, string> = {
-  'Music': '#FF6B6B',
-  'Dance': '#4ECDC4',
-  'Food': '#FFD93D',
-  'Art': '#A855F7',
-  'Cultural': '#007AFF',
-  'Festival': '#FF9500',
-  'Workshop': '#FF9800',
-  'Sport': '#34C759',
-  'Theatre': '#E91E63',
-  'Film': '#2196F3',
-};
-
 function formatDate(dateStr: string): string {
   const parts = dateStr.split('-');
   if (parts.length !== 3) return dateStr;
@@ -51,11 +38,98 @@ function formatDate(dateStr: string): string {
   return `${months[monthIndex] || ''} ${day}`;
 }
 
+function WebCityList({ cityGroups, selectedCity, onSelectCity, onEventPress }: {
+  cityGroups: Record<string, any>;
+  selectedCity: string | null;
+  onSelectCity: (city: string | null) => void;
+  onEventPress: (id: string) => void;
+}) {
+  const selectedEvents = selectedCity ? (cityGroups[selectedCity]?.events || []) : [];
+  const totalEvents = Object.values(cityGroups).reduce((sum: number, g: any) => sum + g.count, 0);
+
+  return (
+    <View style={{ flex: 1 }}>
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16, gap: 10, paddingBottom: selectedCity ? 220 : 40 }}>
+        <View style={webStyles.mapInfo}>
+          <View style={webStyles.mapIconWrap}>
+            <Ionicons name="map" size={28} color={Colors.primary} />
+          </View>
+          <Text style={webStyles.mapInfoTitle}>Events by City</Text>
+          <Text style={webStyles.mapInfoSub}>
+            {Object.keys(cityGroups).length} cities · {totalEvents} cultural events
+          </Text>
+        </View>
+        {Object.entries(cityGroups).map(([city, group]: [string, any]) => (
+          <Pressable
+            key={city}
+            style={[webStyles.cityRow, selectedCity === city && webStyles.cityRowActive, Platform.OS === 'web' && { cursor: 'pointer' as any }]}
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              onSelectCity(selectedCity === city ? null : city);
+            }}
+          >
+            <View style={webStyles.cityLeft}>
+              <View style={[webStyles.cityDot, selectedCity === city && webStyles.cityDotActive]}>
+                <Ionicons name="location" size={18} color={selectedCity === city ? '#FFF' : Colors.primary} />
+              </View>
+              <View>
+                <Text style={webStyles.cityName}>{city}</Text>
+                <Text style={webStyles.cityCount}>{group.count} event{group.count !== 1 ? 's' : ''}</Text>
+              </View>
+            </View>
+            <Ionicons name={selectedCity === city ? 'chevron-up' : 'chevron-forward'} size={18} color="#636366" />
+          </Pressable>
+        ))}
+      </ScrollView>
+
+      {selectedCity && selectedEvents.length > 0 && (
+        <Animated.View entering={FadeInUp.duration(300)} style={webStyles.bottomPanel}>
+          <View style={webStyles.panelHeader}>
+            <View>
+              <Text style={webStyles.panelCity}>{selectedCity}</Text>
+              <Text style={webStyles.panelCount}>{selectedEvents.length} events</Text>
+            </View>
+            <Pressable onPress={() => onSelectCity(null)} hitSlop={10} style={Platform.OS === 'web' ? { cursor: 'pointer' as any } : undefined}>
+              <Ionicons name="close-circle" size={26} color="#636366" />
+            </Pressable>
+          </View>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16, gap: 12 }}>
+            {selectedEvents.map((event: any) => (
+              <Pressable
+                key={event.id}
+                style={[styles.eventCard, Platform.OS === 'web' && { cursor: 'pointer' as any }]}
+                onPress={() => onEventPress(event.id)}
+              >
+                {event.imageUrl ? (
+                  <Image source={{ uri: event.imageUrl }} style={styles.eventImage} resizeMode="cover" />
+                ) : (
+                  <View style={[styles.eventImage, { backgroundColor: Colors.primary + '20', alignItems: 'center', justifyContent: 'center' }]}>
+                    <Ionicons name="calendar" size={24} color={Colors.primary} />
+                  </View>
+                )}
+                <View style={styles.eventInfo}>
+                  <Text style={styles.eventDate}>{formatDate(event.date)}</Text>
+                  <Text style={styles.eventTitle} numberOfLines={2}>{event.title}</Text>
+                  {event.venue && (
+                    <View style={styles.eventMeta}>
+                      <Ionicons name="location-outline" size={11} color="#8E8E93" />
+                      <Text style={styles.eventVenue} numberOfLines={1}>{event.venue}</Text>
+                    </View>
+                  )}
+                </View>
+              </Pressable>
+            ))}
+          </ScrollView>
+        </Animated.View>
+      )}
+    </View>
+  );
+}
+
 export default function EventsMapScreen() {
   const insets = useSafeAreaInsets();
   const topInset = Platform.OS === 'web' ? 67 : insets.top;
   const bottomInset = Platform.OS === 'web' ? 34 : insets.bottom;
-  const mapRef = useRef<MapView>(null);
   const [selectedCity, setSelectedCity] = useState<string | null>(null);
 
   const { data: events = [], isLoading } = useQuery<any[]>({
@@ -74,8 +148,7 @@ export default function EventsMapScreen() {
       const city = event.city;
       if (!city || !CITY_COORDS[city]) return;
       if (!groups[city]) {
-        const base = CITY_COORDS[city];
-        groups[city] = { coords: { latitude: base.latitude, longitude: base.longitude }, events: [], count: 0 };
+        groups[city] = { coords: CITY_COORDS[city], events: [], count: 0 };
       }
       groups[city].events.push(event);
       groups[city].count++;
@@ -98,7 +171,7 @@ export default function EventsMapScreen() {
   return (
     <View style={[styles.container, { paddingTop: topInset }]}>
       <View style={styles.header}>
-        <Pressable onPress={() => router.back()} style={styles.backBtn} hitSlop={10}>
+        <Pressable onPress={() => { if (router.canGoBack()) router.back(); else router.replace('/'); }} style={styles.backBtn} hitSlop={10}>
           <Ionicons name="chevron-back" size={24} color={Colors.text} />
         </Pressable>
         <Text style={styles.headerTitle}>Events Map</Text>
@@ -110,117 +183,124 @@ export default function EventsMapScreen() {
           <ActivityIndicator size="large" color={Colors.primary} />
           <Text style={styles.loadingText}>Loading events...</Text>
         </View>
+      ) : Platform.OS === 'web' ? (
+        <WebCityList
+          cityGroups={cityGroups}
+          selectedCity={selectedCity}
+          onSelectCity={setSelectedCity}
+          onEventPress={handleEventPress}
+        />
       ) : (
-        <View style={{ flex: 1 }}>
-          <MapView
-            ref={mapRef}
-            style={styles.map}
-            initialRegion={{
-              latitude: -25.0,
-              longitude: 134.0,
-              latitudeDelta: 50,
-              longitudeDelta: 80,
-            }}
-            customMapStyle={darkMapStyle}
-          >
-            {Object.entries(cityGroups).map(([city, group]) => (
-              <Marker
-                key={city}
-                coordinate={group.coords}
-                onPress={() => handleMarkerPress(city)}
-              >
-                <View style={[styles.markerContainer, selectedCity === city && styles.markerSelected]}>
-                  <View style={[styles.markerBubble, selectedCity === city && styles.markerBubbleSelected]}>
-                    <Ionicons name="calendar" size={14} color={selectedCity === city ? '#FFF' : Colors.primary} />
-                    <Text style={[styles.markerCount, selectedCity === city && styles.markerCountSelected]}>{group.count}</Text>
-                  </View>
-                  <View style={[styles.markerArrow, selectedCity === city && styles.markerArrowSelected]} />
-                </View>
-                {Platform.OS === 'web' && (
-                  <Callout tooltip>
-                    <View style={styles.callout}>
-                      <Text style={styles.calloutTitle}>{city}</Text>
-                      <Text style={styles.calloutSub}>{group.count} events</Text>
-                    </View>
-                  </Callout>
-                )}
-              </Marker>
-            ))}
-          </MapView>
-
-          {selectedCity && selectedEvents.length > 0 && (
-            <Animated.View entering={FadeInUp.duration(300)} style={[styles.bottomSheet, { paddingBottom: bottomInset + 10 }]}>
-              <View style={styles.sheetHandle} />
-              <View style={styles.sheetHeader}>
-                <View>
-                  <Text style={styles.sheetCity}>{selectedCity}</Text>
-                  <Text style={styles.sheetCount}>{selectedEvents.length} events</Text>
-                </View>
-                <Pressable onPress={() => setSelectedCity(null)} hitSlop={10}>
-                  <Ionicons name="close-circle" size={28} color="#636366" />
-                </Pressable>
-              </View>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.sheetScroll}>
-                {selectedEvents.map((event: any) => (
-                  <Pressable
-                    key={event.id}
-                    style={[styles.eventCard, Platform.OS === 'web' && { cursor: 'pointer' as any }]}
-                    onPress={() => handleEventPress(event.id)}
-                  >
-                    {event.imageUrl ? (
-                      <Image source={{ uri: event.imageUrl }} style={styles.eventImage} resizeMode="cover" />
-                    ) : (
-                      <View style={[styles.eventImage, { backgroundColor: CATEGORY_COLORS[event.category] || Colors.primary + '30', alignItems: 'center', justifyContent: 'center' }]}>
-                        <Ionicons name="calendar" size={24} color={CATEGORY_COLORS[event.category] || Colors.primary} />
-                      </View>
-                    )}
-                    <View style={styles.eventInfo}>
-                      <Text style={styles.eventDate}>{formatDate(event.date)}</Text>
-                      <Text style={styles.eventTitle} numberOfLines={2}>{event.title}</Text>
-                      {event.venue && (
-                        <View style={styles.eventMeta}>
-                          <Ionicons name="location-outline" size={11} color="#8E8E93" />
-                          <Text style={styles.eventVenue} numberOfLines={1}>{event.venue}</Text>
-                        </View>
-                      )}
-                      {event.communityTag && (
-                        <View style={styles.eventTag}>
-                          <Text style={styles.eventTagText}>{event.communityTag}</Text>
-                        </View>
-                      )}
-                    </View>
-                  </Pressable>
-                ))}
-              </ScrollView>
-            </Animated.View>
-          )}
-
-          {!selectedCity && (
-            <Animated.View entering={FadeInUp.duration(300)} style={[styles.cityCount, { bottom: bottomInset + 16 }]}>
-              <Ionicons name="location" size={16} color={Colors.primary} />
-              <Text style={styles.cityCountText}>{Object.keys(cityGroups).length} cities · {events.length} events</Text>
-            </Animated.View>
-          )}
-        </View>
+        <NativeMapView
+          cityGroups={cityGroups}
+          selectedCity={selectedCity}
+          selectedEvents={selectedEvents}
+          onMarkerPress={handleMarkerPress}
+          onClearCity={() => setSelectedCity(null)}
+          onEventPress={handleEventPress}
+          bottomInset={bottomInset}
+        />
       )}
     </View>
   );
 }
 
-const darkMapStyle = [
-  { elementType: 'geometry', stylers: [{ color: '#1d2c4d' }] },
-  { elementType: 'labels.text.fill', stylers: [{ color: '#8ec3b9' }] },
-  { elementType: 'labels.text.stroke', stylers: [{ color: '#1a3646' }] },
-  { featureType: 'administrative.country', elementType: 'geometry.stroke', stylers: [{ color: '#4b6878' }] },
-  { featureType: 'land', elementType: 'geometry', stylers: [{ color: '#1d2c4d' }] },
-  { featureType: 'poi', elementType: 'geometry', stylers: [{ color: '#283d6a' }] },
-  { featureType: 'poi', elementType: 'labels.text.fill', stylers: [{ color: '#6f9ba5' }] },
-  { featureType: 'road', elementType: 'geometry', stylers: [{ color: '#304a7d' }] },
-  { featureType: 'road', elementType: 'labels.text.fill', stylers: [{ color: '#98a5be' }] },
-  { featureType: 'transit', elementType: 'labels.text.fill', stylers: [{ color: '#98a5be' }] },
-  { featureType: 'water', elementType: 'geometry', stylers: [{ color: '#0e1626' }] },
-  { featureType: 'water', elementType: 'labels.text.fill', stylers: [{ color: '#4e6d70' }] },
-];
+const webStyles = StyleSheet.create({
+  mapInfo: {
+    alignItems: 'center',
+    paddingVertical: 20,
+    gap: 8,
+  },
+  mapIconWrap: {
+    width: 56,
+    height: 56,
+    borderRadius: 18,
+    backgroundColor: Colors.primary + '15',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 4,
+  },
+  mapInfoTitle: {
+    fontSize: 22,
+    fontFamily: 'Poppins_700Bold',
+    color: Colors.text,
+  },
+  mapInfoSub: {
+    fontSize: 14,
+    fontFamily: 'Poppins_400Regular',
+    color: '#636366',
+  },
+  cityRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: Colors.surface,
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.06)',
+  },
+  cityRowActive: {
+    borderColor: Colors.primary,
+    backgroundColor: Colors.primary + '10',
+  },
+  cityLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  cityDot: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: Colors.primary + '15',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cityDotActive: {
+    backgroundColor: Colors.primary,
+  },
+  cityName: {
+    fontSize: 16,
+    fontFamily: 'Poppins_600SemiBold',
+    color: Colors.text,
+  },
+  cityCount: {
+    fontSize: 12,
+    fontFamily: 'Poppins_400Regular',
+    color: '#636366',
+  },
+  bottomPanel: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: Colors.background,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255,255,255,0.06)',
+    paddingTop: 16,
+    paddingBottom: 50,
+  },
+  panelHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    marginBottom: 12,
+  },
+  panelCity: {
+    fontSize: 18,
+    fontFamily: 'Poppins_700Bold',
+    color: Colors.text,
+  },
+  panelCount: {
+    fontSize: 12,
+    fontFamily: 'Poppins_400Regular',
+    color: '#636366',
+  },
+});
 
 const styles = StyleSheet.create({
   container: {
@@ -257,108 +337,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontFamily: 'Poppins_400Regular',
     color: '#636366',
-  },
-  map: {
-    flex: 1,
-  },
-  markerContainer: {
-    alignItems: 'center',
-  },
-  markerSelected: {},
-  markerBubble: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: Colors.surface,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 20,
-    borderWidth: 2,
-    borderColor: Colors.primary,
-  },
-  markerBubbleSelected: {
-    backgroundColor: Colors.primary,
-    borderColor: Colors.primary,
-  },
-  markerCount: {
-    fontSize: 13,
-    fontFamily: 'Poppins_700Bold',
-    color: Colors.primary,
-  },
-  markerCountSelected: {
-    color: '#FFF',
-  },
-  markerArrow: {
-    width: 0,
-    height: 0,
-    borderLeftWidth: 6,
-    borderRightWidth: 6,
-    borderTopWidth: 6,
-    borderLeftColor: 'transparent',
-    borderRightColor: 'transparent',
-    borderTopColor: Colors.primary,
-    marginTop: -1,
-  },
-  markerArrowSelected: {
-    borderTopColor: Colors.primary,
-  },
-  callout: {
-    backgroundColor: Colors.surface,
-    borderRadius: 10,
-    padding: 10,
-    minWidth: 100,
-    alignItems: 'center',
-  },
-  calloutTitle: {
-    fontSize: 14,
-    fontFamily: 'Poppins_600SemiBold',
-    color: Colors.text,
-  },
-  calloutSub: {
-    fontSize: 12,
-    fontFamily: 'Poppins_400Regular',
-    color: '#636366',
-  },
-  bottomSheet: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: Colors.background,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    paddingTop: 8,
-    paddingBottom: 16,
-    maxHeight: 300,
-  },
-  sheetHandle: {
-    width: 36,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: '#636366',
-    alignSelf: 'center',
-    marginBottom: 12,
-  },
-  sheetHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    marginBottom: 14,
-  },
-  sheetCity: {
-    fontSize: 20,
-    fontFamily: 'Poppins_700Bold',
-    color: Colors.text,
-  },
-  sheetCount: {
-    fontSize: 13,
-    fontFamily: 'Poppins_400Regular',
-    color: '#636366',
-  },
-  sheetScroll: {
-    paddingHorizontal: 20,
-    gap: 12,
   },
   eventCard: {
     width: 220,
@@ -399,35 +377,5 @@ const styles = StyleSheet.create({
     fontFamily: 'Poppins_400Regular',
     color: '#8E8E93',
     flex: 1,
-  },
-  eventTag: {
-    alignSelf: 'flex-start',
-    backgroundColor: 'rgba(0,122,255,0.12)',
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 8,
-  },
-  eventTagText: {
-    fontSize: 10,
-    fontFamily: 'Poppins_500Medium',
-    color: Colors.primary,
-  },
-  cityCount: {
-    position: 'absolute',
-    alignSelf: 'center',
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    backgroundColor: Colors.surface,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
-  },
-  cityCountText: {
-    fontSize: 13,
-    fontFamily: 'Poppins_500Medium',
-    color: Colors.text,
   },
 });
