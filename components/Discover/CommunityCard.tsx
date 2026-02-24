@@ -90,7 +90,7 @@ const styles = StyleSheet.create({
   description: {
     fontSize: 12,
     fontFamily: 'Poppins_400Regular',
-    color: Colors.textTertiary,
+    color: Colors.textSecondary,
     lineHeight: 18,
   },
 });

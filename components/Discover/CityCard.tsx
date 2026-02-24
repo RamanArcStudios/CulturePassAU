@@ -1,5 +1,5 @@
 import { View, Text, Pressable, StyleSheet, Image, Platform } from 'react-native';
-import { BlurView } from 'expo-blur';
+import { LinearGradient } from 'expo-linear-gradient';
 import Colors from '@/constants/colors';
 
 const CITY_IMAGES: Record<string, string> = {
@@ -38,23 +38,22 @@ export default function CityCard({ city, onPress, width }: CityCardProps) {
         Colors.shadows.medium,
       ]}
       onPress={onPress}
+      accessibilityLabel={`Explore ${city.name}, ${city.country}`}
     >
       <Image
         source={{ uri: imageUri }}
         style={StyleSheet.absoluteFillObject}
         resizeMode="cover"
       />
-      {Platform.OS === 'web' ? (
-        <View style={styles.webOverlay}>
-          <Text style={styles.cityName}>{city.name}</Text>
-          <Text style={styles.country}>{city.country}</Text>
-        </View>
-      ) : (
-        <BlurView intensity={60} tint="dark" style={styles.blurContent}>
-          <Text style={styles.cityName}>{city.name}</Text>
-          <Text style={styles.country}>{city.country}</Text>
-        </BlurView>
-      )}
+      <LinearGradient
+        colors={['transparent', 'rgba(0,0,0,0.65)']}
+        locations={[0.3, 1]}
+        style={StyleSheet.absoluteFillObject}
+      />
+      <View style={styles.content}>
+        <Text style={styles.cityName}>{city.name}</Text>
+        <Text style={styles.country}>{city.country}</Text>
+      </View>
     </Pressable>
   );
 }
@@ -63,37 +62,26 @@ const styles = StyleSheet.create({
   card: {
     width: 170,
     height: 130,
-    borderRadius: 22,
+    borderRadius: 20,
     overflow: 'hidden',
     backgroundColor: Colors.surfaceSecondary,
   },
-  blurContent: {
+  content: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
     padding: 14,
-    borderTopColor: 'rgba(255,255,255,0.1)',
-    borderTopWidth: StyleSheet.hairlineWidth,
   },
-  webOverlay: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    padding: 14,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    backdropFilter: 'blur(16px)',
-  } as any,
   cityName: {
-    fontSize: 17,
-    fontFamily: 'Poppins_600SemiBold',
+    fontSize: 16,
+    fontFamily: 'Poppins_700Bold',
     color: '#FFFFFF',
   },
   country: {
-    fontSize: 12,
-    fontFamily: 'Poppins_400Regular',
-    color: '#E5E5EA',
-    marginTop: 2,
+    fontSize: 11,
+    fontFamily: 'Poppins_500Medium',
+    color: 'rgba(255,255,255,0.75)',
+    marginTop: 1,
   },
 });
