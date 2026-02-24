@@ -101,6 +101,12 @@ This document describes the initial productionization backend scaffold added for
 - Trigram-style fuzzy matching approximation for typo tolerance.
 - Location relevance boost by city/country match.
 - In-memory TTL cache abstraction with Redis-compatible API surface.
+
+
+## Media upload and image pipeline
+- `POST /api/uploads/image` (multipart field: `image`)
+- `POST /api/media/attach`
+- `GET /api/media/:targetType/:targetId`
 - `GET /api/search`
 - `GET /api/search/suggest`
 

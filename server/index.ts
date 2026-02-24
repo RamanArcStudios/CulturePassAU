@@ -1,5 +1,9 @@
 import express, { type Request, type Response, type NextFunction } from 'express';
 import { randomUUID } from 'node:crypto';
+import fs from 'node:fs';
+import path from 'node:path';
+import multer from 'multer';
+import sharp from 'sharp';
 import { InMemoryTtlCache } from './services/cache';
 import { moderationCheck, textHasProfanity } from './middleware/moderation';
 import {
@@ -77,6 +81,19 @@ type AppTicket = {
 
 const app = express();
 app.use(express.json({ limit: '2mb' }));
+const uploadsDir = path.resolve(process.cwd(), 'uploads');
+const imageDir = path.join(uploadsDir, 'images');
+const thumbDir = path.join(uploadsDir, 'thumbnails');
+fs.mkdirSync(imageDir, { recursive: true });
+fs.mkdirSync(thumbDir, { recursive: true });
+app.use('/uploads', express.static(uploadsDir));
+
+const rateBucket = new Map<string, { count: number; resetAt: number }>();
+const searchCache = new InMemoryTtlCache(45_000);
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 8 * 1024 * 1024 },
+});
 
 const rateBucket = new Map<string, { count: number; resetAt: number }>();
 const searchCache = new InMemoryTtlCache(45_000);
@@ -172,6 +189,19 @@ type ContentReport = {
   moderationNotes?: string;
 };
 
+type UploadedMedia = {
+  id: string;
+  targetType: 'user' | 'profile' | 'event' | 'business' | 'post';
+  targetId: string;
+  imageUrl: string;
+  thumbnailUrl: string;
+  width: number;
+  height: number;
+  createdAt: string;
+};
+
+const reports: ContentReport[] = [];
+const uploadedMedia: UploadedMedia[] = [];
 const reports: ContentReport[] = [];
 
 function parseSearchQuery(req: Request): SearchQuery {
@@ -623,6 +653,100 @@ app.post('/api/notifications/:userId/:id/read', (req, res) => {
 app.get('/api/reviews/:profileId', (req, res) => res.json([
   { id: randomUUID(), profileId: req.params.profileId, userId: users[0].id, rating: 5, comment: 'Great community!', createdAt: nowIso() },
 ]));
+
+app.post('/api/uploads/image', upload.single('image'), async (req, res) => {
+  try {
+    const file = req.file;
+    if (!file) return res.status(400).json({ error: 'image file is required' });
+    if (!file.mimetype.startsWith('image/')) {
+      return res.status(400).json({ error: 'Only image uploads are allowed' });
+    }
+
+    const metadata = await sharp(file.buffer).metadata();
+    if (!metadata.width || !metadata.height) {
+      return res.status(400).json({ error: 'Invalid image metadata' });
+    }
+
+    const id = randomUUID();
+    const imageFilename = `${id}.jpg`;
+    const thumbFilename = `${id}.webp`;
+    const imagePath = path.join(imageDir, imageFilename);
+    const thumbPath = path.join(thumbDir, thumbFilename);
+
+    await sharp(file.buffer)
+      .rotate()
+      .resize({ width: 1600, height: 1600, fit: 'inside', withoutEnlargement: true })
+      .jpeg({ quality: 86 })
+      .toFile(imagePath);
+
+    await sharp(file.buffer)
+      .rotate()
+      .resize({ width: 420, height: 420, fit: 'cover', withoutEnlargement: false })
+      .webp({ quality: 88 })
+      .toFile(thumbPath);
+
+    return res.status(201).json({
+      id,
+      imageUrl: `/uploads/images/${imageFilename}`,
+      thumbnailUrl: `/uploads/thumbnails/${thumbFilename}`,
+      width: metadata.width,
+      height: metadata.height,
+      mimeType: file.mimetype,
+      size: file.size,
+    });
+  } catch (error) {
+    return res.status(500).json({ error: 'Image upload failed', details: String(error) });
+  }
+});
+
+app.post('/api/media/attach', (req, res) => {
+  const targetType = String(req.body?.targetType ?? '') as UploadedMedia['targetType'];
+  const targetId = String(req.body?.targetId ?? '').trim();
+  const imageUrl = String(req.body?.imageUrl ?? '').trim();
+  const thumbnailUrl = String(req.body?.thumbnailUrl ?? '').trim();
+  const width = Number(req.body?.width ?? 0);
+  const height = Number(req.body?.height ?? 0);
+
+  if (!targetType || !targetId || !imageUrl || !thumbnailUrl) {
+    return res.status(400).json({ error: 'targetType, targetId, imageUrl and thumbnailUrl are required' });
+  }
+
+  const media: UploadedMedia = {
+    id: randomUUID(),
+    targetType,
+    targetId,
+    imageUrl,
+    thumbnailUrl,
+    width,
+    height,
+    createdAt: nowIso(),
+  };
+  uploadedMedia.unshift(media);
+
+  if (targetType === 'user') {
+    const user = users.find((item) => item.id === targetId);
+    if (user) user.avatarUrl = imageUrl;
+  }
+
+  if (targetType === 'profile' || targetType === 'business') {
+    const profile = profiles.find((item) => item.id === targetId);
+    if (profile) profile.imageUrl = imageUrl;
+  }
+
+  if (targetType === 'event') {
+    const event = events.find((item) => item.id === targetId);
+    if (event) event.imageUrl = imageUrl;
+  }
+
+  return res.status(201).json(media);
+});
+
+app.get('/api/media/:targetType/:targetId', (req, res) => {
+  const targetType = req.params.targetType;
+  const targetId = req.params.targetId;
+  const items = uploadedMedia.filter((item) => item.targetType === targetType && item.targetId === targetId);
+  return res.json(items);
+});
 
 app.post('/api/reports', moderationCheck, (req, res) => {
   const targetType = String(req.body?.targetType ?? '') as ContentReport['targetType'];
