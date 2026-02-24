@@ -6,6 +6,7 @@ import Colors from '@/constants/colors';
 import { useState, useMemo } from 'react';
 import * as Haptics from 'expo-haptics';
 import Animated, { FadeInDown } from 'react-native-reanimated';
+import { FilterChipRow, FilterItem } from '@/components/FilterChip';
 
 export interface CategoryFilter {
   label: string;
@@ -143,47 +144,31 @@ export default function BrowsePage({
           </Animated.View>
         )}
 
-        {categories.length > 0 && (
-          <View style={styles.catSection}>
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.catRow}
-            >
-              {categories.map((c) => {
-                const isActive = selectedCat === c.label;
-                const count = c.label === 'All'
-                  ? items.length
-                  : items.filter((item) => {
-                      const val = item[categoryKey];
-                      if (Array.isArray(val)) return val.includes(c.label);
-                      return val === c.label;
-                    }).length;
-                return (
-                  <Pressable
-                    key={c.label}
-                    style={[
-                      styles.catChip,
-                      isActive
-                        ? { backgroundColor: c.color, borderColor: c.color }
-                        : { backgroundColor: Colors.surface, borderColor: Colors.borderLight },
-                    ]}
-                    onPress={() => {
-                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                      setSelectedCat(c.label);
-                    }}
-                  >
-                    <Ionicons name={c.icon as any} size={14} color={isActive ? '#FFF' : c.color} />
-                    <Text style={[styles.catText, isActive && { color: '#FFF' }]}>{c.label}</Text>
-                    <View style={[styles.catCount, isActive ? { backgroundColor: 'rgba(255,255,255,0.25)' } : { backgroundColor: c.color + '18' }]}>
-                      <Text style={[styles.catCountText, { color: isActive ? '#FFF' : c.color }]}>{count}</Text>
-                    </View>
-                  </Pressable>
-                );
-              })}
-            </ScrollView>
-          </View>
-        )}
+        {categories.length > 0 && (() => {
+          const chipItems: FilterItem[] = categories.map((c) => {
+            const count = c.label === 'All'
+              ? items.length
+              : items.filter((item) => {
+                  const val = item[categoryKey];
+                  if (Array.isArray(val)) return val.includes(c.label);
+                  return val === c.label;
+                }).length;
+            return {
+              id: c.label,
+              label: c.label,
+              icon: c.icon,
+              color: c.color,
+              count,
+            };
+          });
+          return (
+            <FilterChipRow
+              items={chipItems}
+              selectedId={selectedCat}
+              onSelect={setSelectedCat}
+            />
+          );
+        })()}
 
         <View style={styles.listSection}>
           <Text style={styles.resultCount}>
@@ -397,41 +382,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontFamily: 'Poppins_600SemiBold',
     color: Colors.textSecondary,
-  },
-  catSection: {
-    marginBottom: 20,
-  },
-  catRow: {
-    paddingHorizontal: 20,
-    gap: 10,
-    paddingVertical: 4,
-  },
-  catChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 7,
-    paddingLeft: 12,
-    paddingRight: 6,
-    paddingVertical: 8,
-    borderRadius: 50,
-    borderWidth: 1,
-  },
-  catText: {
-    fontSize: 13,
-    fontFamily: 'Poppins_600SemiBold',
-    color: Colors.text,
-  },
-  catCount: {
-    minWidth: 22,
-    height: 22,
-    borderRadius: 11,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 5,
-  },
-  catCountText: {
-    fontSize: 11,
-    fontFamily: 'Poppins_700Bold',
   },
   listSection: {
     paddingHorizontal: 20,

@@ -201,7 +201,7 @@ const styles = StyleSheet.create({
   triggerText: {
     fontSize: 14,
     fontFamily: 'Poppins_600SemiBold',
-    color: '#FFFFFF',
+    color: Colors.text,
     maxWidth: 170,
   },
   modal: {

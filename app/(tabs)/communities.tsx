@@ -23,6 +23,7 @@ import { queryClient } from '@/lib/query-client';
 import { useState, useMemo, useCallback, useRef } from 'react';
 import type { Profile } from '@shared/schema';
 import { LinearGradient } from 'expo-linear-gradient';
+import { FilterChipRow, FilterItem } from '@/components/FilterChip';
 
 const isWeb = Platform.OS === 'web';
 
@@ -325,47 +326,17 @@ export default function CommunitiesScreen() {
         )}
       </View>
 
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.categoryScroll}
-        style={styles.categoryScrollContainer}
-      >
-        {CATEGORIES.map(cat => {
-          const isActive = selectedType === cat.id;
-          const color = cat.id === 'all' ? Colors.primary : (TYPE_COLORS[cat.id] ?? Colors.primary);
-          const count = typeCounts[cat.id] ?? 0;
-          return (
-            <Pressable
-              key={cat.id}
-              style={[
-                styles.categoryChip,
-                isActive && { backgroundColor: color, borderColor: color },
-              ]}
-              onPress={() => {
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                setSelectedType(cat.id);
-              }}
-            >
-              <Ionicons
-                name={(isActive ? cat.icon.replace('-outline', '') : cat.icon) as any}
-                size={14}
-                color={isActive ? '#FFF' : color}
-              />
-              <Text style={[styles.categoryText, isActive && { color: '#FFF' }]}>
-                {cat.label}
-              </Text>
-              {count > 0 && (
-                <View style={[styles.categoryCount, isActive && { backgroundColor: 'rgba(255,255,255,0.25)' }]}>
-                  <Text style={[styles.categoryCountText, isActive && { color: '#FFF' }]}>
-                    {count}
-                  </Text>
-                </View>
-              )}
-            </Pressable>
-          );
-        })}
-      </ScrollView>
+      <FilterChipRow
+        items={CATEGORIES.map(cat => ({
+          id: cat.id,
+          label: cat.label,
+          icon: cat.icon.replace('-outline', ''),
+          color: cat.id === 'all' ? Colors.primary : (TYPE_COLORS[cat.id] ?? Colors.primary),
+          count: typeCounts[cat.id] ?? 0,
+        }))}
+        selectedId={selectedType}
+        onSelect={setSelectedType}
+      />
 
       <FlatList
         data={filteredProfiles}
@@ -466,45 +437,6 @@ const styles = StyleSheet.create({
     color: Colors.text,
     padding: 0,
     minWidth: 0,
-  },
-
-  categoryScrollContainer: {
-    maxHeight: 44,
-    marginBottom: 8,
-  },
-  categoryScroll: {
-    paddingHorizontal: 20,
-    gap: 8,
-    alignItems: 'center',
-  },
-  categoryChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: Colors.borderLight,
-    backgroundColor: Colors.surface,
-  },
-  categoryText: {
-    fontSize: 13,
-    fontFamily: 'Poppins_500Medium',
-    color: Colors.text,
-  },
-  categoryCount: {
-    backgroundColor: Colors.surfaceSecondary,
-    borderRadius: 10,
-    paddingHorizontal: 6,
-    paddingVertical: 1,
-    minWidth: 20,
-    alignItems: 'center',
-  },
-  categoryCountText: {
-    fontSize: 11,
-    fontFamily: 'Poppins_600SemiBold',
-    color: Colors.textSecondary,
   },
 
   featuredSection: {

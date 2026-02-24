@@ -1,3 +1,4 @@
+// constants/colors.ts
 import { Platform } from 'react-native';
 
 export interface ShadowStyle {
@@ -57,13 +58,8 @@ export type ColorTheme = {
   tint: string;
 };
 
-const base = {
-  primary: '#007AFF',
-  primaryLight: '#409CFF',
-  primaryDark: '#0056CC',
-  primaryGlow: 'rgba(0, 122, 255, 0.10)',
-  primarySoft: 'rgba(0, 122, 255, 0.05)',
-
+// Colors that stay exactly the same regardless of light/dark mode
+const sharedBase = {
   secondary: '#5856D6',
   secondaryLight: '#7A79E0',
   secondaryDark: '#3634A3',
@@ -78,14 +74,22 @@ const base = {
   error: '#FF3B30',
   info: '#5AC8FA',
 
-  overlay: 'rgba(0,0,0,0.35)',
+  overlay: 'rgba(0,0,0,0.4)', // Slightly darkened for better modal pop
 } as const;
 
 export const light: ColorTheme = {
-  ...base,
+  ...sharedBase,
 
-  background: '#F2F2F7',
-  backgroundSecondary: '#FFFFFF',
+  // Primary - Deep blue for crisp visibility on light backgrounds
+  primary: '#007AFF',
+  primaryLight: '#409CFF',
+  primaryDark: '#0056CC',
+  primaryGlow: 'rgba(0, 122, 255, 0.10)',
+  primarySoft: 'rgba(0, 122, 255, 0.05)',
+
+  // Backgrounds - Pure white base, off-white secondary
+  background: '#FFFFFF',
+  backgroundSecondary: '#F2F2F7',
 
   surface: '#FFFFFF',
   surfaceElevated: '#FFFFFF',
@@ -95,16 +99,16 @@ export const light: ColorTheme = {
   borderLight: '#E5E5EA',
   divider: '#E5E5EA',
 
-  text: '#1C1C1E',
+  text: '#000000', // Pure black headers read better than #1C1C1E
   textSecondary: '#6E6E73',
   textTertiary: '#AEAEB2',
   textInverse: '#FFFFFF',
 
   card: '#FFFFFF',
-  cardBorder: '#F2F2F7',
+  cardBorder: '#E5E5EA', // Fixed to match borderLight
 
-  tabBar: 'rgba(249,249,249,0.94)',
-  tabBarBorder: 'rgba(0,0,0,0.08)',
+  tabBar: 'rgba(255,255,255,0.92)',
+  tabBarBorder: 'rgba(0,0,0,0.1)',
   tabIconDefault: '#8E8E93',
   tabIconSelected: '#007AFF',
 
@@ -112,8 +116,16 @@ export const light: ColorTheme = {
 };
 
 export const dark: ColorTheme = {
-  ...base,
+  ...sharedBase,
 
+  // Primary - Lighter, more vibrant blue to pop against pure black
+  primary: '#0A84FF',
+  primaryLight: '#5EACFF',
+  primaryDark: '#0061D6',
+  primaryGlow: 'rgba(10, 132, 255, 0.15)',
+  primarySoft: 'rgba(10, 132, 255, 0.10)',
+
+  // Backgrounds - Pure black base, elevated grays
   background: '#000000',
   backgroundSecondary: '#1C1C1E',
 
@@ -128,13 +140,13 @@ export const dark: ColorTheme = {
   text: '#FFFFFF',
   textSecondary: '#8E8E93',
   textTertiary: '#636366',
-  textInverse: '#000000',
+  textInverse: '#000000', // Fixed to pure black for contrast on inverse elements
 
   card: '#1C1C1E',
   cardBorder: '#38383A',
 
-  tabBar: 'rgba(28,28,30,0.94)',
-  tabBarBorder: 'rgba(255,255,255,0.08)',
+  tabBar: 'rgba(28,28,30,0.92)',
+  tabBarBorder: 'rgba(255,255,255,0.1)',
   tabIconDefault: '#636366',
   tabIconSelected: '#0A84FF',
 
@@ -153,7 +165,7 @@ export const shadows = {
   medium: {
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
+    shadowOpacity: 0.08, // Slightly increased for a cleaner lift
     shadowRadius: 8,
     elevation: 3,
   } satisfies ShadowStyle,
@@ -161,7 +173,7 @@ export const shadows = {
   large: {
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
+    shadowOpacity: 0.12, // More pronounced for modals/popovers
     shadowRadius: 16,
     elevation: 6,
   } satisfies ShadowStyle,
@@ -169,14 +181,14 @@ export const shadows = {
   heavy: {
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.12,
+    shadowOpacity: 0.16,
     shadowRadius: 24,
     elevation: 10,
   } satisfies ShadowStyle,
 };
 
 const Colors = {
-  ...light,
+  ...light, // Default export maps to light mode variables
   light,
   dark,
   shadow: shadows,
