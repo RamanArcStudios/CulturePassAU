@@ -14,7 +14,8 @@
     "start": "npx expo start",
     "lint": "npx expo lint",
     "lint:fix": "npx expo lint --fix",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test:native-intent": "tsx scripts/test-native-intent.ts"
   },
   "dependencies": {
     "@expo-google-fonts/poppins": "^0.4.1",

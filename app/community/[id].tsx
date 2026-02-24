@@ -4,6 +4,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
+import { goBackOrReplace } from '@/lib/navigation';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import Animated, { FadeInDown } from 'react-native-reanimated';
@@ -14,6 +15,7 @@ import { useQuery } from '@tanstack/react-query';
 import { getQueryFn, getApiUrl } from '@/lib/query-client';
 import { fetch } from 'expo/fetch';
 import { Community } from '@shared/schema';
+import { confirmAndReport } from '@/lib/reporting';
 
 function formatNumber(num: number): string {
   if (num >= 1000) return (num / 1000).toFixed(1) + 'k';
@@ -69,7 +71,7 @@ export default function CommunityDetailScreen() {
   return (
     <View style={[styles.container, { paddingTop: topInset + 20, alignItems: 'center', justifyContent: 'center' }]}>
       <Text style={styles.errorText}>Community not found</Text>
-      <Pressable onPress={() => router.back()}>
+      <Pressable onPress={() => goBackOrReplace('/(tabs)')}>
         <Text style={styles.backLink}>Go Back</Text>
       </Pressable>
     </View>
@@ -109,9 +111,17 @@ function DbCommunityView({ community, topInset, bottomInset }: { community: Comm
           style={{ position: 'absolute', width: '100%', height: '100%' }}
         />
         <View style={[styles.heroOverlay, { paddingTop: topInset + 8, backgroundColor: 'rgba(0,0,0,0.15)' }]}>
-          <Pressable style={styles.backButton} onPress={() => router.back()}>
-            <Ionicons name="arrow-back" size={22} color="#FFF" />
-          </Pressable>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+            <Pressable style={styles.backButton} onPress={() => goBackOrReplace('/(tabs)')}>
+              <Ionicons name="arrow-back" size={22} color="#FFF" />
+            </Pressable>
+            <Pressable
+              style={styles.backButton}
+              onPress={() => confirmAndReport({ targetType: 'community', targetId: String(community.id), label: 'this community' })}
+            >
+              <Ionicons name="flag-outline" size={20} color="#FFF" />
+            </Pressable>
+          </View>
           <View style={styles.heroBottom}>
             <View style={[styles.heroIconWrap, { backgroundColor: 'rgba(255,255,255,0.2)' }]}>
               {community.iconEmoji ? (
@@ -280,9 +290,17 @@ function MockCommunityView({ community, topInset, bottomInset }: { community: an
           locations={[0, 0.4, 1]}
           style={[styles.heroOverlay, { paddingTop: topInset + 8 }]}
         >
-          <Pressable style={styles.backButton} onPress={() => router.back()}>
-            <Ionicons name="arrow-back" size={22} color="#FFF" />
-          </Pressable>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+            <Pressable style={styles.backButton} onPress={() => goBackOrReplace('/(tabs)')}>
+              <Ionicons name="arrow-back" size={22} color="#FFF" />
+            </Pressable>
+            <Pressable
+              style={styles.backButton}
+              onPress={() => confirmAndReport({ targetType: 'community', targetId: String(community.id), label: 'this community' })}
+            >
+              <Ionicons name="flag-outline" size={20} color="#FFF" />
+            </Pressable>
+          </View>
           <View style={styles.heroBottom}>
             <View style={[styles.heroIconWrap, { backgroundColor: community.color + '50' }]}>
               <Ionicons name={community.icon as any} size={28} color="#FFF" />

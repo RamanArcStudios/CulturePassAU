@@ -5,23 +5,33 @@ export function redirectSystemPath({
   path: string;
   initial: boolean;
 }) {
-  try {
-    if (!path) return "/";
-
-    const cleanPath = path.split("?")[0];
-
-    // Map legacy routes
-    if (cleanPath.startsWith("/events/")) {
-      return cleanPath.replace("/events/", "/event/");
-    }
-
-    if (cleanPath.startsWith("/artists/")) {
-      return cleanPath.replace("/artists/", "/artist/");
-    }
-
-    // Allow valid routes
-    return cleanPath;
-  } catch {
+  if (!path) {
     return "/";
   }
+
+  const [rawPath, rawQuery] = path.split("?");
+  const cleanPath = rawPath || "/";
+  const querySuffix = rawQuery ? `?${rawQuery}` : "";
+
+  const remap = [
+    ["/events/", "/event/"],
+    ["/artists/", "/artist/"],
+    ["/communities/", "/community/"],
+    ["/profiles/", "/profile/"],
+    ["/tickets/", "/tickets/"],
+    ["/users/", "/user/"],
+    ["/businesses/", "/business/"],
+  ] as const;
+
+  for (const [from, to] of remap) {
+    if (cleanPath.startsWith(from)) {
+      return `${cleanPath.replace(from, to)}${querySuffix}`;
+    }
+  }
+
+  if (initial && cleanPath === "/home") {
+    return "/(tabs)";
+  }
+
+  return `${cleanPath}${querySuffix}`;
 }
