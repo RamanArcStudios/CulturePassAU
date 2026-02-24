@@ -22,6 +22,7 @@ Detailed architecture notes: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)
 
 Full product documentation: [`docs/APP_DOCUMENTATION.md`](docs/APP_DOCUMENTATION.md)
 Enhancement roadmap: [`docs/PROJECT_ENHANCEMENT_PLAN.md`](docs/PROJECT_ENHANCEMENT_PLAN.md)
+API reference (phase scaffold): [`docs/API_ENDPOINTS.md`](docs/API_ENDPOINTS.md)
 
 ## Quick start
 
