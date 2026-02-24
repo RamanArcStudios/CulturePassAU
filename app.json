@@ -16,10 +16,17 @@
     },
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "com.culturepass"
+      "bundleIdentifier": "com.culturepass",
+      "buildNumber": "1",
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "CulturePass uses your location to show events and communities near you.",
+        "NSCameraUsageDescription": "CulturePass uses the camera to update your profile photo.",
+        "NSPhotoLibraryUsageDescription": "CulturePass accesses your photo library to update your profile photo."
+      }
     },
     "android": {
       "package": "com.culturepass",
+      "versionCode": 1,
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
