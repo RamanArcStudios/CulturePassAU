@@ -40,7 +40,7 @@ export default function SignUpScreen() {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
         return;
       }
-      login(data.user, data.token);
+      await login({ user: data.user, accessToken: data.token });
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       router.push('/(onboarding)/location');
     } catch (e: any) {
