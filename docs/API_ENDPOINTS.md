@@ -1,6 +1,9 @@
 # CulturePass API Endpoints (Phase 2/3 Increment)
 
 This document describes the current backend scaffold powering Phase 2 Search and Phase 3 Governance work.
+# CulturePass API Endpoints (Phase 0/1)
+
+This document describes the initial productionization backend scaffold added for CulturePass.
 
 ## Base URL
 - Local: `http://localhost:5000`
@@ -41,6 +44,9 @@ This document describes the current backend scaffold powering Phase 2 Search and
 - `POST /api/payment-methods`
 - `DELETE /api/payment-methods/:id`
 - `PUT /api/payment-methods/:userId/default/:methodId`
+- `GET /api/transactions/:userId`
+- `GET /api/payment-methods/:userId`
+- `POST /api/payment-methods`
 - `GET /api/membership/:userId`
 - `GET /api/membership/member-count`
 - `POST /api/membership/subscribe`
@@ -76,6 +82,10 @@ This document describes the current backend scaffold powering Phase 2 Search and
 - `GET /api/admin/reports`
 - `PUT /api/admin/reports/:id/review`
 
+- `POST /api/notifications/:userId/:id/read`
+- `GET /api/privacy/settings/:userId`
+- `PUT /api/privacy/settings/:userId`
+
 ## CPID and Discover
 - `GET /api/cpid/lookup/:cpid`
 - `GET /api/indigenous/traditional-lands`
@@ -91,6 +101,8 @@ This document describes the current backend scaffold powering Phase 2 Search and
 - Trigram-style fuzzy matching approximation for typo tolerance.
 - Location relevance boost by city/country match.
 - In-memory TTL cache abstraction with Redis-compatible API surface.
+- `GET /api/search`
+- `GET /api/search/suggest`
 
 ## Stripe placeholders
 - `POST /api/stripe/create-checkout-session`
@@ -100,3 +112,4 @@ This document describes the current backend scaffold powering Phase 2 Search and
 - IP-based rate limiting middleware on API requests.
 - Profanity moderation on write-heavy endpoints.
 - Suspicious-link heuristic moderation for user-submitted content.
+- Basic profanity moderation on write-heavy endpoints.
