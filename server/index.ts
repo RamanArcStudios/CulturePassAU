@@ -99,7 +99,7 @@ const profiles: AppProfile[] = [
 const privacySettings = new Map<string, Record<string, boolean>>();
 const wallets = new Map<string, { id: string; userId: string; balance: number; currency: string; points: number }>();
 const memberships = new Map<string, { id: string; userId: string; tier: 'free' | 'plus' | 'premium'; isActive: boolean; validUntil?: string }>();
-const notifications = new Map<string, Array<{ id: string; userId: string; title: string; message: string; type: string; isRead: boolean; metadata: Record<string, unknown> | null; createdAt: string }>>();
+const notifications = new Map<string, Array<{ id: string; title: string; message: string; read: boolean; createdAt: string }>>();
 const tickets: AppTicket[] = [];
 const paymentMethods = new Map<string, Array<{ id: string; brand: string; last4: string; isDefault: boolean }>>();
 const transactions = new Map<string, Array<{ id: string; type: 'charge' | 'refund'; amountCents: number; createdAt: string; description: string }>>();
@@ -109,16 +109,7 @@ for (const user of users) {
   memberships.set(user.id, { id: `m-${user.id}`, userId: user.id, tier: 'free', isActive: true });
   privacySettings.set(user.id, { profileVisible: true, showEmail: false, showPhone: false, searchable: true });
   notifications.set(user.id, [
-    {
-      id: randomUUID(),
-      userId: user.id,
-      title: 'Welcome to CulturePass',
-      message: 'Your account is ready.',
-      type: 'system',
-      isRead: false,
-      metadata: null,
-      createdAt: new Date().toISOString(),
-    },
+    { id: randomUUID(), title: 'Welcome to CulturePass', message: 'Your account is ready.', read: false, createdAt: new Date().toISOString() },
   ]);
   paymentMethods.set(user.id, [{ id: randomUUID(), brand: 'visa', last4: '4242', isDefault: true }]);
   transactions.set(user.id, []);
@@ -483,6 +474,13 @@ app.get('/api/redemptions', (req, res) => {
   const userId = String(req.query.userId ?? users[0].id);
   res.json(redemptions.get(userId) ?? []);
 });
+app.get('/api/perks', (_req, res) => res.json([
+  { id: 'p1', title: '20% Off Partner Cafes', requiredTier: 'free', pointsCost: 100 },
+  { id: 'p2', title: 'VIP Event Priority Entry', requiredTier: 'plus', pointsCost: 350 },
+]));
+app.get('/api/perks/:id', (req, res) => res.json({ id: req.params.id, title: 'Perk Detail', requiredTier: 'free', pointsCost: 100 }));
+app.post('/api/perks', moderationCheck, (req, res) => res.status(201).json({ id: randomUUID(), ...req.body }));
+app.get('/api/redemptions', (_req, res) => res.json([]));
 
 app.get('/api/notifications/:userId', (req, res) => res.json(notifications.get(req.params.userId) ?? []));
 app.get('/api/notifications/:userId/unread-count', (req, res) => {
@@ -517,6 +515,14 @@ app.delete('/api/notifications/:id', (req, res) => {
     }
   }
   return res.status(404).json({ error: 'Notification not found' });
+  res.json({ count: list.filter((n) => !n.read).length });
+});
+app.post('/api/notifications/:userId/:id/read', (req, res) => {
+  const list = notifications.get(req.params.userId) ?? [];
+  list.forEach((n) => {
+    if (n.id === req.params.id) n.read = true;
+  });
+  res.json({ ok: true });
 });
 
 app.get('/api/reviews/:profileId', (req, res) => res.json([
@@ -578,6 +584,7 @@ app.post('/api/stripe/create-checkout-session', (req, res) => {
   const draftId = randomUUID();
   res.json({ checkoutUrl: 'https://checkout.stripe.com/mock-session', ticketId: draftId, ticket });
 });
+app.post('/api/stripe/create-checkout-session', (_req, res) => res.json({ url: 'https://checkout.stripe.com/mock-session' }));
 app.post('/api/stripe/refund', (req, res) => res.json({ ok: true, ticketId: req.body?.ticketId }));
 
 const port = Number(process.env.PORT ?? 5000);
