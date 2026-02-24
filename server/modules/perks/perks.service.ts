@@ -36,7 +36,7 @@ export async function updatePerk(id: string, data: Partial<Perk>): Promise<Perk 
 
 /** Soft-deletes a perk by archiving it */
 export async function deletePerk(id: string): Promise<boolean> {
-  const result = await db.update(perks).set({ status: "archived" }).where(eq(perks.id, id)).returning();
+  const result = await db.update(perks).set({ status: "inactive" }).where(eq(perks.id, id)).returning();
   return result.length > 0;
 }
 

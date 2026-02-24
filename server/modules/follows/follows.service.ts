@@ -7,8 +7,10 @@ import {
   type User,
 } from "@shared/schema";
 
+type TargetType = Follow["targetType"];
+
 /** Creates a follow relationship between a follower and a target entity */
-export async function follow(followerId: string, targetId: string, targetType: string): Promise<Follow> {
+export async function follow(followerId: string, targetId: string, targetType: TargetType): Promise<Follow> {
   const existing = await db.select().from(follows).where(
     and(eq(follows.followerId, followerId), eq(follows.targetId, targetId))
   );
@@ -61,7 +63,7 @@ export async function isFollowing(followerId: string, targetId: string): Promise
 }
 
 /** Adds a like from a user to a target entity */
-export async function likeEntity(userId: string, targetId: string, targetType: string): Promise<Like> {
+export async function likeEntity(userId: string, targetId: string, targetType: TargetType): Promise<Like> {
   const existing = await db.select().from(likes).where(
     and(eq(likes.userId, userId), eq(likes.targetId, targetId))
   );
