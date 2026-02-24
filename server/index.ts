@@ -1,5 +1,15 @@
 import express, { type Request, type Response, type NextFunction } from 'express';
 import { randomUUID } from 'node:crypto';
+import { InMemoryTtlCache } from './services/cache';
+import { moderationCheck, textHasProfanity } from './middleware/moderation';
+import {
+  buildSearchCacheKey,
+  runSearch,
+  runSuggest,
+  type SearchQuery,
+  type SearchableItem,
+  type SearchType,
+} from './services/search';
 
 type EntityType = 'community' | 'business' | 'venue' | 'artist' | 'organisation';
 type TicketStatus = 'confirmed' | 'used' | 'cancelled' | 'expired';
@@ -69,6 +79,7 @@ const app = express();
 app.use(express.json({ limit: '2mb' }));
 
 const rateBucket = new Map<string, { count: number; resetAt: number }>();
+const searchCache = new InMemoryTtlCache(45_000);
 const BAD_WORDS = ['hate', 'abuse', 'stupid', 'idiot'];
 
 const users: AppUser[] = [
@@ -99,6 +110,7 @@ const profiles: AppProfile[] = [
 const privacySettings = new Map<string, Record<string, boolean>>();
 const wallets = new Map<string, { id: string; userId: string; balance: number; currency: string; points: number }>();
 const memberships = new Map<string, { id: string; userId: string; tier: 'free' | 'plus' | 'premium'; isActive: boolean; validUntil?: string }>();
+const notifications = new Map<string, Array<{ id: string; userId: string; title: string; message: string; type: string; isRead: boolean; metadata: Record<string, unknown> | null; createdAt: string }>>();
 const notifications = new Map<string, Array<{ id: string; title: string; message: string; read: boolean; createdAt: string }>>();
 const tickets: AppTicket[] = [];
 const paymentMethods = new Map<string, Array<{ id: string; brand: string; last4: string; isDefault: boolean }>>();
@@ -109,6 +121,16 @@ for (const user of users) {
   memberships.set(user.id, { id: `m-${user.id}`, userId: user.id, tier: 'free', isActive: true });
   privacySettings.set(user.id, { profileVisible: true, showEmail: false, showPhone: false, searchable: true });
   notifications.set(user.id, [
+    {
+      id: randomUUID(),
+      userId: user.id,
+      title: 'Welcome to CulturePass',
+      message: 'Your account is ready.',
+      type: 'system',
+      isRead: false,
+      metadata: null,
+      createdAt: new Date().toISOString(),
+    },
     { id: randomUUID(), title: 'Welcome to CulturePass', message: 'Your account is ready.', read: false, createdAt: new Date().toISOString() },
   ]);
   paymentMethods.set(user.id, [{ id: randomUUID(), brand: 'visa', last4: '4242', isDefault: true }]);
@@ -134,6 +156,79 @@ function requireRateLimit(req: Request, res: Response, next: NextFunction) {
   next();
 }
 
+type ReportStatus = 'pending' | 'reviewing' | 'resolved' | 'dismissed';
+
+type ContentReport = {
+  id: string;
+  targetType: 'event' | 'community' | 'profile' | 'post' | 'user';
+  targetId: string;
+  reason: string;
+  details?: string;
+  reporterUserId?: string;
+  status: ReportStatus;
+  createdAt: string;
+  reviewedAt?: string;
+  reviewedBy?: string;
+  moderationNotes?: string;
+};
+
+const reports: ContentReport[] = [];
+
+function parseSearchQuery(req: Request): SearchQuery {
+  const tagsInput = String(req.query.tags ?? '').trim();
+  const tags = tagsInput ? tagsInput.split(',').map((tag) => tag.trim()).filter(Boolean) : [];
+
+  return {
+    q: String(req.query.q ?? '').trim(),
+    type: (String(req.query.type ?? 'all').toLowerCase() as SearchType) || 'all',
+    city: String(req.query.city ?? '').trim() || undefined,
+    country: String(req.query.country ?? '').trim() || undefined,
+    tags,
+    startDate: String(req.query.startDate ?? '').trim() || undefined,
+    endDate: String(req.query.endDate ?? '').trim() || undefined,
+    page: Math.max(1, Number(req.query.page ?? 1)),
+    pageSize: Math.min(50, Math.max(1, Number(req.query.pageSize ?? 20))),
+  };
+}
+
+function getSearchCorpus(): SearchableItem[] {
+  const eventItems: SearchableItem[] = events.map((event) => ({
+    id: event.id,
+    type: 'event',
+    title: event.title,
+    subtitle: `${event.communityTag} · ${event.venue}`,
+    description: event.description,
+    city: event.city,
+    country: event.country,
+    tags: [event.communityTag],
+    date: event.date,
+  }));
+
+  const profileItems: SearchableItem[] = profiles.map((profile) => ({
+    id: profile.id,
+    type: profile.entityType === 'business' ? 'business' : 'profile',
+    title: profile.name,
+    subtitle: `${profile.category} · ${profile.city}`,
+    description: profile.description,
+    city: profile.city,
+    country: profile.country,
+    tags: [profile.category, profile.entityType],
+  }));
+
+  const communityItems: SearchableItem[] = profiles
+    .filter((profile) => profile.entityType === 'community')
+    .map((profile) => ({
+      id: profile.id,
+      type: 'community',
+      title: profile.name,
+      subtitle: `${profile.category} · ${profile.members ?? 0} members`,
+      description: profile.description,
+      city: profile.city,
+      country: profile.country,
+      tags: [profile.category, 'community'],
+    }));
+
+  return [...eventItems, ...profileItems, ...communityItems];
 function textHasProfanity(value: unknown): boolean {
   if (typeof value !== 'string') return false;
   const v = value.toLowerCase();
@@ -529,6 +624,59 @@ app.get('/api/reviews/:profileId', (req, res) => res.json([
   { id: randomUUID(), profileId: req.params.profileId, userId: users[0].id, rating: 5, comment: 'Great community!', createdAt: nowIso() },
 ]));
 
+app.post('/api/reports', moderationCheck, (req, res) => {
+  const targetType = String(req.body?.targetType ?? '') as ContentReport['targetType'];
+  const targetId = String(req.body?.targetId ?? '').trim();
+  const reason = String(req.body?.reason ?? '').trim();
+  const details = String(req.body?.details ?? '').trim() || undefined;
+
+  if (!targetType || !targetId || !reason) {
+    return res.status(400).json({ error: 'targetType, targetId, and reason are required' });
+  }
+
+  const report: ContentReport = {
+    id: randomUUID(),
+    targetType,
+    targetId,
+    reason,
+    details,
+    reporterUserId: String(req.body?.reporterUserId ?? '') || undefined,
+    status: 'pending',
+    createdAt: nowIso(),
+  };
+
+  reports.unshift(report);
+  return res.status(201).json(report);
+});
+
+app.get('/api/admin/reports', (_req, res) => {
+  const grouped = {
+    pending: reports.filter((item) => item.status === 'pending').length,
+    reviewing: reports.filter((item) => item.status === 'reviewing').length,
+    resolved: reports.filter((item) => item.status === 'resolved').length,
+    dismissed: reports.filter((item) => item.status === 'dismissed').length,
+  };
+
+  res.json({ summary: grouped, reports });
+});
+
+app.put('/api/admin/reports/:id/review', (req, res) => {
+  const report = reports.find((item) => item.id === req.params.id);
+  if (!report) return res.status(404).json({ error: 'Report not found' });
+
+  const status = String(req.body?.status ?? 'reviewing') as ReportStatus;
+  if (!['pending', 'reviewing', 'resolved', 'dismissed'].includes(status)) {
+    return res.status(400).json({ error: 'Invalid report status' });
+  }
+
+  report.status = status;
+  report.reviewedAt = nowIso();
+  report.reviewedBy = String(req.body?.reviewedBy ?? 'admin');
+  report.moderationNotes = String(req.body?.moderationNotes ?? '').trim() || undefined;
+
+  return res.json(report);
+});
+
 app.get('/api/privacy/settings/:userId', (req, res) => res.json(privacySettings.get(req.params.userId) ?? { profileVisible: true, searchable: true }));
 app.put('/api/privacy/settings/:userId', (req, res) => {
   const merged = { ...(privacySettings.get(req.params.userId) ?? {}), ...(req.body ?? {}) };
@@ -548,6 +696,33 @@ app.get('/api/indigenous/spotlights', (_req, res) => res.json([{ id: 's1', title
 app.get('/api/discover/:userId', (_req, res) => res.json({ trendingEvents: events.slice(0, 2), suggestedCommunities: profiles.filter((p) => p.entityType === 'community') }));
 
 app.get('/api/search', (req, res) => {
+  const query = parseSearchQuery(req);
+  if (!query.q) return res.json({ total: 0, page: query.page, pageSize: query.pageSize, results: [] });
+
+  const key = `search:${buildSearchCacheKey(query)}`;
+  const cached = searchCache.get<ReturnType<typeof runSearch>>(key);
+  if (cached) {
+    return res.json({ ...cached, cached: true });
+  }
+
+  const payload = runSearch(getSearchCorpus(), query);
+  searchCache.set(key, payload, 45_000);
+  return res.json({ ...payload, cached: false });
+});
+
+app.get('/api/search/suggest', (req, res) => {
+  const q = String(req.query.q ?? '').trim();
+  if (!q) return res.json({ suggestions: [] });
+
+  const key = `search:suggest:${q.toLowerCase()}`;
+  const cached = searchCache.get<string[]>(key);
+  if (cached) {
+    return res.json({ suggestions: cached, cached: true });
+  }
+
+  const suggestions = runSuggest(getSearchCorpus(), q, 8);
+  searchCache.set(key, suggestions, 30_000);
+  return res.json({ suggestions, cached: false });
   const q = String(req.query.q ?? '').trim();
   const type = String(req.query.type ?? 'all');
   const city = String(req.query.city ?? '');

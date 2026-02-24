@@ -26,6 +26,7 @@ import { useQuery, useMutation } from '@tanstack/react-query';
 import { apiRequest, queryClient, getApiUrl } from '@/lib/query-client';
 import { fetch } from 'expo/fetch';
 import * as WebBrowser from 'expo-web-browser';
+import { confirmAndReport } from '@/lib/reporting';
 
 type SampleEvent = any;
 
@@ -359,6 +360,12 @@ function EventDetail({ event, topInset, bottomInset }: EventDetailProps) {
             <View style={styles.heroActions}>
               <Pressable style={styles.navButton} onPress={handleShare}>
                 <Ionicons name="share-outline" size={22} color="#FFF" />
+              </Pressable>
+              <Pressable
+                style={styles.navButton}
+                onPress={() => confirmAndReport({ targetType: 'event', targetId: String(event.id), label: 'this event' })}
+              >
+                <Ionicons name="flag-outline" size={20} color="#FFF" />
               </Pressable>
               <Pressable style={styles.navButton} onPress={handleSave}>
                 <Ionicons

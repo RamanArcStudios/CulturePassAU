@@ -1,3 +1,6 @@
+# CulturePass API Endpoints (Phase 2/3 Increment)
+
+This document describes the current backend scaffold powering Phase 2 Search and Phase 3 Governance work.
 # CulturePass API Endpoints (Phase 0/1)
 
 This document describes the initial productionization backend scaffold added for CulturePass.
@@ -35,6 +38,12 @@ This document describes the initial productionization backend scaffold added for
 
 ## Wallet, Membership, and Payments
 - `GET /api/wallet/:userId`
+- `POST /api/wallet/:userId/topup`
+- `GET /api/transactions/:userId`
+- `GET /api/payment-methods/:userId`
+- `POST /api/payment-methods`
+- `DELETE /api/payment-methods/:id`
+- `PUT /api/payment-methods/:userId/default/:methodId`
 - `GET /api/transactions/:userId`
 - `GET /api/payment-methods/:userId`
 - `POST /api/payment-methods`
@@ -55,12 +64,24 @@ This document describes the initial productionization backend scaffold added for
 - `GET /api/perks`
 - `GET /api/perks/:id`
 - `POST /api/perks`
+- `POST /api/perks/:id/redeem`
 - `GET /api/redemptions`
 - `GET /api/reviews/:profileId`
 
 ## Notifications and Privacy
 - `GET /api/notifications/:userId`
 - `GET /api/notifications/:userId/unread-count`
+- `PUT /api/notifications/:id/read`
+- `PUT /api/notifications/:userId/read-all`
+- `DELETE /api/notifications/:id`
+- `GET /api/privacy/settings/:userId`
+- `PUT /api/privacy/settings/:userId`
+
+## Governance and moderation reporting
+- `POST /api/reports`
+- `GET /api/admin/reports`
+- `PUT /api/admin/reports/:id/review`
+
 - `POST /api/notifications/:userId/:id/read`
 - `GET /api/privacy/settings/:userId`
 - `PUT /api/privacy/settings/:userId`
@@ -72,6 +93,14 @@ This document describes the initial productionization backend scaffold added for
 - `GET /api/discover/:userId`
 
 ## Search
+- `GET /api/search?q=...&type=all|event|community|business|profile&city=...&country=...&tags=a,b&startDate=YYYY-MM-DD&endDate=YYYY-MM-DD&page=1&pageSize=20`
+- `GET /api/search/suggest?q=...`
+
+### Search implementation notes
+- Weighted ranking in service layer (`title > subtitle > description`).
+- Trigram-style fuzzy matching approximation for typo tolerance.
+- Location relevance boost by city/country match.
+- In-memory TTL cache abstraction with Redis-compatible API surface.
 - `GET /api/search`
 - `GET /api/search/suggest`
 
@@ -81,4 +110,6 @@ This document describes the initial productionization backend scaffold added for
 
 ## Moderation and governance baseline
 - IP-based rate limiting middleware on API requests.
+- Profanity moderation on write-heavy endpoints.
+- Suspicious-link heuristic moderation for user-submitted content.
 - Basic profanity moderation on write-heavy endpoints.
