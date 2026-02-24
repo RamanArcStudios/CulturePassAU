@@ -1,6 +1,7 @@
 import {
  View,
  Text,
+ Image,
  Pressable,
  StyleSheet,
  ScrollView,
@@ -10,7 +11,6 @@ import {
  Share,
  RefreshControl,
 } from 'react-native';
-import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useOnboarding } from '@/contexts/OnboardingContext';
@@ -287,7 +287,7 @@ export default function ProfileScreen() {
 
           <View style={styles.avatarContainer}>
             {user?.avatarUrl ? (
-              <Image source={{ uri: user.avatarUrl }} style={styles.avatarImage} contentFit="cover" />
+              <Image source={{ uri: user.avatarUrl }} style={styles.avatarImage} resizeMode="cover" />
             ) : (
               <View style={styles.avatarFallback}>
                 <Text style={styles.avatarInitials}>
