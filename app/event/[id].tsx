@@ -13,6 +13,7 @@ import {
   Linking,
 } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
+import { goBackOrReplace } from '@/lib/navigation';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useSaved } from '@/contexts/SavedContext';
@@ -25,6 +26,7 @@ import { useQuery, useMutation } from '@tanstack/react-query';
 import { apiRequest, queryClient, getApiUrl } from '@/lib/query-client';
 import { fetch } from 'expo/fetch';
 import * as WebBrowser from 'expo-web-browser';
+import { confirmAndReport } from '@/lib/reporting';
 
 type SampleEvent = any;
 
@@ -88,7 +90,7 @@ export default function EventDetailScreen() {
         ]}
       >
         <Text style={styles.errorText}>Event not found</Text>
-        <Pressable onPress={() => router.back()}>
+        <Pressable onPress={() => goBackOrReplace('/(tabs)')}>
           <Text style={styles.backLink}>Go Back</Text>
         </Pressable>
       </View>
@@ -352,12 +354,18 @@ function EventDetail({ event, topInset, bottomInset }: EventDetailProps) {
           style={[styles.heroOverlay, { paddingTop: topInset }]}
         >
           <View style={styles.heroNav}>
-            <Pressable style={styles.navButton} onPress={() => router.back()}>
+            <Pressable style={styles.navButton} onPress={() => goBackOrReplace('/(tabs)')}>
               <Ionicons name="arrow-back" size={22} color="#FFF" />
             </Pressable>
             <View style={styles.heroActions}>
               <Pressable style={styles.navButton} onPress={handleShare}>
                 <Ionicons name="share-outline" size={22} color="#FFF" />
+              </Pressable>
+              <Pressable
+                style={styles.navButton}
+                onPress={() => confirmAndReport({ targetType: 'event', targetId: String(event.id), label: 'this event' })}
+              >
+                <Ionicons name="flag-outline" size={20} color="#FFF" />
               </Pressable>
               <Pressable style={styles.navButton} onPress={handleSave}>
                 <Ionicons

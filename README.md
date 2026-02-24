@@ -20,6 +20,11 @@ A cross-platform Expo + React Native app connecting cultural diaspora communitie
 
 Detailed architecture notes: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)
 
+Full product documentation: [`docs/APP_DOCUMENTATION.md`](docs/APP_DOCUMENTATION.md)
+Enhancement roadmap: [`docs/PROJECT_ENHANCEMENT_PLAN.md`](docs/PROJECT_ENHANCEMENT_PLAN.md)
+API reference (phase scaffold): [`docs/API_ENDPOINTS.md`](docs/API_ENDPOINTS.md)
+Route/API matrix (Phase 1): [`docs/ROUTE_API_MATRIX.md`](docs/ROUTE_API_MATRIX.md)
+
 ## Quick start
 
 ```bash
@@ -38,6 +43,8 @@ export EXPO_PUBLIC_API_URL=http://localhost:5000
 ## Build and deploy
 
 See [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) for:
+
+Publishing checklist: [`docs/PUBLISHING_READINESS.md`](docs/PUBLISHING_READINESS.md)
 
 - iOS App Store build + submission
 - Google Play build + submission
