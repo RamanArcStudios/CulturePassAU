@@ -99,6 +99,13 @@ export const users = pgTable(
     followingCount: integer("following_count").default(0),
     likesCount: integer("likes_count").default(0),
 
+    privacySettings: jsonb("privacy_settings").$type<{
+      profileVisibility: boolean;
+      dataSharing: boolean;
+      activityStatus: boolean;
+      showLocation: boolean;
+    }>().default(sql`'{"profileVisibility":true,"dataSharing":false,"activityStatus":true,"showLocation":true}'::jsonb`),
+
     createdAt: timestamp("created_at").defaultNow(),
     updatedAt: timestamp("updated_at")
       .defaultNow()

@@ -1,36 +1,52 @@
-import { View, Text, Pressable, StyleSheet, ScrollView, Platform, Switch, Alert } from 'react-native';
+import { View, Text, Pressable, StyleSheet, ScrollView, Platform, Switch, Alert, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Colors from '@/constants/colors';
 import { router } from 'expo-router';
 import * as Haptics from 'expo-haptics';
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Animated, { FadeInDown } from 'react-native-reanimated';
+import { useAuth } from '@/lib/auth';
+import { apiRequest } from '@/lib/query-client';
+
+type PrivacySettings = {
+  profileVisibility: boolean;
+  dataSharing: boolean;
+  activityStatus: boolean;
+  showLocation: boolean;
+};
+
+const DEFAULT_SETTINGS: PrivacySettings = {
+  profileVisibility: true,
+  dataSharing: false,
+  activityStatus: true,
+  showLocation: true,
+};
 
 const PRIVACY_SETTINGS = [
   {
-    key: 'profileVisibility',
+    key: 'profileVisibility' as keyof PrivacySettings,
     title: 'Profile Visibility',
     description: 'When enabled, your profile is public and visible to all users. Disable to make it private.',
     icon: 'eye' as const,
     color: '#16656E',
   },
   {
-    key: 'dataSharing',
+    key: 'dataSharing' as keyof PrivacySettings,
     title: 'Data Sharing',
     description: 'Allow CulturePass to share anonymized usage data to improve the platform experience',
     icon: 'analytics' as const,
     color: '#3498DB',
   },
   {
-    key: 'activityStatus',
+    key: 'activityStatus' as keyof PrivacySettings,
     title: 'Activity Status',
     description: 'Show other users when you are online or recently active on the platform',
     icon: 'pulse' as const,
     color: '#2EBD59',
   },
   {
-    key: 'showLocation',
+    key: 'showLocation' as keyof PrivacySettings,
     title: 'Show Location',
     description: 'Display your city and country on your public profile for others to see',
     icon: 'location' as const,
@@ -41,31 +57,78 @@ const PRIVACY_SETTINGS = [
 export default function PrivacySettingsScreen() {
   const insets = useSafeAreaInsets();
   const webTop = Platform.OS === 'web' ? 67 : 0;
-  const [settings, setSettings] = useState<Record<string, boolean>>({
-    profileVisibility: true,
-    dataSharing: false,
-    activityStatus: true,
-    showLocation: true,
-  });
+  const { userId, logout } = useAuth();
+  const [settings, setSettings] = useState<PrivacySettings>(DEFAULT_SETTINGS);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
 
-  const toggleSetting = (key: string) => {
+  useEffect(() => {
+    if (!userId) { setIsLoading(false); return; }
+    apiRequest('GET', `/api/users/${userId}/privacy`)
+      .then(res => res.json())
+      .then((data: PrivacySettings) => setSettings({ ...DEFAULT_SETTINGS, ...data }))
+      .catch(() => {
+        Alert.alert('Error', 'Could not load privacy settings. Using defaults.');
+      })
+      .finally(() => setIsLoading(false));
+  }, [userId]);
+
+  const toggleSetting = useCallback((key: keyof PrivacySettings) => {
+    if (!userId) return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    setSettings(prev => ({ ...prev, [key]: !prev[key] }));
-  };
+    setSettings(prev => {
+      const next = { ...prev, [key]: !prev[key] };
+      setIsSaving(true);
+      apiRequest('PUT', `/api/users/${userId}/privacy`, next)
+        .catch(() => {
+          Alert.alert('Error', 'Could not save privacy setting. Please try again.');
+          setSettings(prev);
+        })
+        .finally(() => setIsSaving(false));
+      return next;
+    });
+  }, [userId]);
 
-  const handleDeleteAccount = () => {
+  const handleDeleteAccount = useCallback(() => {
+    if (!userId) return;
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
     Alert.alert(
       'Delete Account',
       'Are you sure you want to delete your account? This action is permanent and cannot be undone. All your data, tickets, and wallet balance will be lost.',
       [
         { text: 'Cancel', style: 'cancel' },
-        { text: 'Delete', style: 'destructive', onPress: () => {
-          Alert.alert('Account Deletion', 'Your account deletion request has been submitted. You will receive a confirmation email within 24 hours.');
-        }},
-      ]
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: () => {
+            Alert.prompt(
+              'Confirm Password',
+              'Enter your password to confirm account deletion.',
+              [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                  text: 'Confirm Delete',
+                  style: 'destructive',
+                  onPress: (password?: string) => {
+                    if (!password) return;
+                    apiRequest('DELETE', '/api/auth/account', { userId, password })
+                      .then(() => {
+                        logout();
+                        router.replace('/(onboarding)/login');
+                      })
+                      .catch((err: Error) => {
+                        Alert.alert('Deletion Failed', err.message || 'Could not delete account. Please try again.');
+                      });
+                  },
+                },
+              ],
+              'secure-text',
+            );
+          },
+        },
+      ],
     );
-  };
+  }, [userId, logout]);
 
   return (
     <View style={[styles.container, { paddingTop: insets.top + webTop }]}>
@@ -74,57 +137,65 @@ export default function PrivacySettingsScreen() {
           <Ionicons name="arrow-back" size={24} color={Colors.text} />
         </Pressable>
         <Text style={styles.headerTitle}>Privacy</Text>
-        <View style={{ width: 40 }} />
+        <View style={{ width: 40, alignItems: 'center', justifyContent: 'center' }}>
+          {isSaving && <ActivityIndicator size="small" color={Colors.primary} />}
+        </View>
       </View>
 
-      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 40 + (Platform.OS === 'web' ? 34 : insets.bottom) }} showsVerticalScrollIndicator={false}>
-        <Animated.View entering={FadeInDown.delay(100).duration(400)} style={styles.heroCard}>
-          <View style={styles.heroIcon}>
-            <Ionicons name="shield-checkmark" size={32} color="#FFF" />
-          </View>
-          <Text style={styles.heroTitle}>Privacy Settings</Text>
-          <Text style={styles.heroSub}>Control how your data and profile are shared</Text>
-        </Animated.View>
-
-        <Animated.View entering={FadeInDown.delay(200).duration(400)} style={styles.section}>
-          {PRIVACY_SETTINGS.map((item) => (
-            <View key={item.key} style={styles.settingCard}>
-              <View style={styles.settingRow}>
-                <View style={[styles.settingIcon, { backgroundColor: item.color + '15' }]}>
-                  <Ionicons name={item.icon} size={20} color={item.color} />
-                </View>
-                <View style={styles.settingInfo}>
-                  <Text style={styles.settingTitle}>{item.title}</Text>
-                  <Text style={styles.settingDesc}>{item.description}</Text>
-                </View>
-                <Switch
-                  value={settings[item.key]}
-                  onValueChange={() => toggleSetting(item.key)}
-                  trackColor={{ false: Colors.border, true: Colors.primary + '50' }}
-                  thumbColor={settings[item.key] ? Colors.primary : '#F4F3F4'}
-                />
-              </View>
-              {item.key === 'profileVisibility' && (
-                <View style={styles.statusBadge}>
-                  <View style={[styles.statusDot, { backgroundColor: settings.profileVisibility ? '#2EBD59' : Colors.textTertiary }]} />
-                  <Text style={styles.statusText}>{settings.profileVisibility ? 'Public' : 'Private'}</Text>
-                </View>
-              )}
+      {isLoading ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={Colors.primary} />
+        </View>
+      ) : (
+        <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 40 + (Platform.OS === 'web' ? 34 : insets.bottom) }} showsVerticalScrollIndicator={false}>
+          <Animated.View entering={FadeInDown.delay(100).duration(400)} style={styles.heroCard}>
+            <View style={styles.heroIcon}>
+              <Ionicons name="shield-checkmark" size={32} color="#FFF" />
             </View>
-          ))}
-        </Animated.View>
+            <Text style={styles.heroTitle}>Privacy Settings</Text>
+            <Text style={styles.heroSub}>Control how your data and profile are shared</Text>
+          </Animated.View>
 
-        <Animated.View entering={FadeInDown.delay(300).duration(400)} style={styles.dangerSection}>
-          <Text style={styles.dangerLabel}>Danger Zone</Text>
-          <Pressable style={styles.deleteBtn} onPress={handleDeleteAccount}>
-            <Ionicons name="trash-outline" size={20} color="#FFF" />
-            <Text style={styles.deleteBtnText}>Delete Account</Text>
-          </Pressable>
-          <Text style={styles.dangerNote}>
-            This will permanently delete your account and all associated data including tickets, wallet balance, and community memberships.
-          </Text>
-        </Animated.View>
-      </ScrollView>
+          <Animated.View entering={FadeInDown.delay(200).duration(400)} style={styles.section}>
+            {PRIVACY_SETTINGS.map((item) => (
+              <View key={item.key} style={styles.settingCard}>
+                <View style={styles.settingRow}>
+                  <View style={[styles.settingIcon, { backgroundColor: item.color + '15' }]}>
+                    <Ionicons name={item.icon} size={20} color={item.color} />
+                  </View>
+                  <View style={styles.settingInfo}>
+                    <Text style={styles.settingTitle}>{item.title}</Text>
+                    <Text style={styles.settingDesc}>{item.description}</Text>
+                  </View>
+                  <Switch
+                    value={settings[item.key]}
+                    onValueChange={() => toggleSetting(item.key)}
+                    trackColor={{ false: Colors.border, true: Colors.primary + '50' }}
+                    thumbColor={settings[item.key] ? Colors.primary : '#F4F3F4'}
+                  />
+                </View>
+                {item.key === 'profileVisibility' && (
+                  <View style={styles.statusBadge}>
+                    <View style={[styles.statusDot, { backgroundColor: settings.profileVisibility ? '#2EBD59' : Colors.textTertiary }]} />
+                    <Text style={styles.statusText}>{settings.profileVisibility ? 'Public' : 'Private'}</Text>
+                  </View>
+                )}
+              </View>
+            ))}
+          </Animated.View>
+
+          <Animated.View entering={FadeInDown.delay(300).duration(400)} style={styles.dangerSection}>
+            <Text style={styles.dangerLabel}>Danger Zone</Text>
+            <Pressable style={styles.deleteBtn} onPress={handleDeleteAccount}>
+              <Ionicons name="trash-outline" size={20} color="#FFF" />
+              <Text style={styles.deleteBtnText}>Delete Account</Text>
+            </Pressable>
+            <Text style={styles.dangerNote}>
+              This will permanently delete your account and all associated data including tickets, wallet balance, and community memberships.
+            </Text>
+          </Animated.View>
+        </ScrollView>
+      )}
     </View>
   );
 }
@@ -134,6 +205,7 @@ const styles = StyleSheet.create({
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingVertical: 12 },
   backBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: Colors.card, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: Colors.cardBorder },
   headerTitle: { fontSize: 18, fontFamily: 'Poppins_700Bold', color: Colors.text },
+  loadingContainer: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   heroCard: { marginHorizontal: 20, marginBottom: 24, backgroundColor: Colors.secondary, borderRadius: 20, padding: 24, alignItems: 'center' },
   heroIcon: { width: 60, height: 60, borderRadius: 30, backgroundColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center', marginBottom: 12 },
   heroTitle: { fontSize: 20, fontFamily: 'Poppins_700Bold', color: '#FFF', marginBottom: 6 },
