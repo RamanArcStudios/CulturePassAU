@@ -385,10 +385,10 @@ const styles = StyleSheet.create({
   },
   eventsSectionTitle: {
     fontFamily: 'Poppins_700Bold',
-    fontSize: 22,
+    fontSize: 20,
     color: Colors.text,
-    letterSpacing: 0.35,
-    marginBottom: 20,
+    letterSpacing: -0.3,
+    marginBottom: 16,
   },
   noEvents: {
     alignItems: 'center',
