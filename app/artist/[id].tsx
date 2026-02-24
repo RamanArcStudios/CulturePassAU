@@ -58,7 +58,8 @@ export default function ArtistDetailScreen() {
       } else {
         await Share.share({
           title: `${profile?.name ?? 'Artist'} on CulturePass`,
-          message: `Check out ${profile?.name} on CulturePass!${profile?.category ? ` ${profile.category}.` : ''} ${url}`,
+          message: `Check out ${profile?.name} on CulturePass!${profile?.category ? ` ${profile.category}.` : ''}\n\n${url}`,
+          url: url,
         });
       }
     } catch {}

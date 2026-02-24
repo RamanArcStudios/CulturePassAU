@@ -10,6 +10,7 @@ import {
   Modal,
   Alert,
   ActivityIndicator,
+  Linking,
 } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -319,12 +320,15 @@ function EventDetail({ event, topInset, bottomInset }: EventDetailProps) {
 
   const handleShare = useCallback(async () => {
     try {
+      const shareUrl = `https://culturepass.app/event/${event.id}`;
       await Share.share({
-        message: `Check out ${event.title} on CulturePass! ${event.venue} - ${formatDate(event.date)}`,
+        title: `${event.title} on CulturePass`,
+        message: `Check out ${event.title} on CulturePass! ${event.venue} - ${formatDate(event.date)}\n\n${shareUrl}`,
+        url: shareUrl,
       });
     } catch {
     }
-  }, [event.title, event.venue, event.date]);
+  }, [event.id, event.title, event.venue, event.date]);
 
   const handleSave = useCallback(() => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -434,7 +438,14 @@ function EventDetail({ event, topInset, bottomInset }: EventDetailProps) {
               <Text style={styles.infoSub}>{event.time}</Text>
             </View>
           </View>
-          <View style={styles.infoCard}>
+          <Pressable
+            style={styles.infoCard}
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              const query = [event.venue, event.city, event.country].filter(Boolean).join(', ');
+              Linking.openURL(`https://maps.google.com/?q=${encodeURIComponent(query)}`);
+            }}
+          >
             <View style={[styles.infoIconBg, { backgroundColor: Colors.secondary + '12' }]}>
               <Ionicons name="location" size={20} color={Colors.secondary} />
             </View>
@@ -445,7 +456,8 @@ function EventDetail({ event, topInset, bottomInset }: EventDetailProps) {
                 {event.address}
               </Text>
             </View>
-          </View>
+            <Ionicons name="open-outline" size={14} color={Colors.textTertiary} />
+          </Pressable>
         </Animated.View>
 
         {isPlus && (

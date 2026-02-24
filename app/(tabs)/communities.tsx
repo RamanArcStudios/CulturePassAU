@@ -9,6 +9,7 @@ import {
   TextInput,
   Share,
   RefreshControl,
+  Linking,
 } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -124,9 +125,11 @@ function CommunityCard({ profile, index }: { profile: Profile; index: number }) 
   const handleShare = useCallback(async () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     try {
+      const shareUrl = `https://culturepass.app/community/${profile.id}`;
       await Share.share({
         title: `${profile.name} on CulturePass`,
-        message: `Check out ${profile.name} on CulturePass! ${profile.description ?? ''} Join this ${profile.entityType} community today!`,
+        message: `Check out ${profile.name} on CulturePass! ${profile.description ?? ''} Join this ${profile.entityType} community today!\n\n${shareUrl}`,
+        url: shareUrl,
       });
     } catch {}
   }, [profile.name, profile.description, profile.entityType]);
@@ -227,12 +230,20 @@ function CommunityCard({ profile, index }: { profile: Profile; index: number }) 
         {(profile.city || tags.length > 0) && (
           <View style={styles.locationTagRow}>
             {profile.city ? (
-              <View style={styles.locationPill}>
+              <Pressable
+                style={styles.locationPill}
+                onPress={(e) => {
+                  e?.stopPropagation?.();
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  const query = [profile.city, profile.country].filter(Boolean).join(', ');
+                  Linking.openURL(`https://maps.google.com/?q=${encodeURIComponent(query)}`);
+                }}
+              >
                 <Ionicons name="location" size={11} color={Colors.textSecondary} />
                 <Text style={styles.locationPillText}>
                   {profile.city}{profile.country ? `, ${profile.country}` : ''}
                 </Text>
-              </View>
+              </Pressable>
             ) : null}
             {tags.slice(0, 2).map(tag => (
               <View key={tag} style={[styles.tagPill, { backgroundColor: color + '0D' }]}>

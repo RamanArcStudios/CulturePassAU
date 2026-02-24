@@ -32,9 +32,11 @@ export default function MovieDetailScreen() {
   const handleShare = async () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     try {
+      const shareUrl = `https://culturepass.app/movies/${id}`;
       await Share.share({
         title: movie.title,
-        message: `Check out ${movie.title} on CulturePass! ${movie.genre.join(', ')} - ${movie.duration}. Rating: ${movie.imdbScore}/10. Book tickets now!`,
+        message: `Check out ${movie.title} on CulturePass! ${movie.genre.join(', ')} - ${movie.duration}. Rating: ${movie.imdbScore}/10. Book tickets now!\n\n${shareUrl}`,
+        url: shareUrl,
       });
     } catch {}
   };

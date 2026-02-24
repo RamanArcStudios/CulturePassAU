@@ -210,9 +210,11 @@ export default function PublicProfileScreen() {
   const handleShare = useCallback(async () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     try {
+      const shareUrl = `https://culturepass.app/u/${user?.username}`;
       await Share.share({
         title: `${displayName} on CulturePass`,
-        message: `Check out ${displayName}'s profile on CulturePass!\n\nCPID: ${user?.culturePassId}\n@${user?.username}`,
+        message: `Check out ${displayName}'s profile on CulturePass!\n\nCPID: ${user?.culturePassId}\n@${user?.username}\n\n${shareUrl}`,
+        url: shareUrl,
       });
     } catch { /* noop */ }
   }, [displayName, user?.culturePassId, user?.username]);

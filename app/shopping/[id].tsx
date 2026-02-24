@@ -29,9 +29,11 @@ export default function ShoppingDetailScreen() {
   const handleShare = async () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     try {
+      const shareUrl = `https://culturepass.app/shopping/${id}`;
       await Share.share({
         title: `${store.name} on CulturePass`,
-        message: `Check out ${store.name} on CulturePass! ${store.category} - ${store.location}. Rating: ${store.rating}/5 (${store.reviews} reviews).${store.deals.length > 0 ? ` ${store.deals.length} deals available!` : ''}`,
+        message: `Check out ${store.name} on CulturePass! ${store.category} - ${store.location}. Rating: ${store.rating}/5 (${store.reviews} reviews).${store.deals.length > 0 ? ` ${store.deals.length} deals available!` : ''}\n\n${shareUrl}`,
+        url: shareUrl,
       });
     } catch {}
   };

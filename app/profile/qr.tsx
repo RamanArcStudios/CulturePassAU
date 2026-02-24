@@ -18,7 +18,7 @@ import type { User, Membership } from '@shared/schema';
 import Animated, { FadeInDown, FadeIn } from 'react-native-reanimated';
 import QRCode from 'react-native-qrcode-svg';
 import * as Haptics from 'expo-haptics';
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { LinearGradient } from 'expo-linear-gradient';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -37,10 +37,13 @@ const TIER_CONFIG: Record<string, { colors: string[]; label: string; icon: strin
   vip: { colors: ['#F39C12', '#E67E22'], label: 'VIP', icon: 'diamond' },
 };
 
+type QRMode = 'id' | 'card';
+
 export default function QRScreen() {
   const insets = useSafeAreaInsets();
   const topInset = Platform.OS === 'web' ? 67 : insets.top;
   const bottomInset = Platform.OS === 'web' ? 34 : insets.bottom;
+  const [mode, setMode] = useState<QRMode>('id');
 
   const { data: usersData } = useQuery<User[]>({ queryKey: ['/api/users'] });
   const user = usersData?.[0];
@@ -57,7 +60,11 @@ export default function QRScreen() {
   const displayName = user?.displayName ?? 'CulturePass User';
   const username = user?.username ?? 'user';
 
-  const qrValue = useMemo(() => {
+  const nameParts = displayName.split(' ');
+  const firstName = nameParts[0] ?? '';
+  const lastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : '';
+
+  const qrValueId = useMemo(() => {
     return JSON.stringify({
       type: 'culturepass_id',
       cpid,
@@ -68,18 +75,38 @@ export default function QRScreen() {
     });
   }, [cpid, displayName, username, tier]);
 
+  const vCardString = useMemo(() => {
+    return [
+      'BEGIN:VCARD',
+      'VERSION:3.0',
+      `FN:${displayName}`,
+      `N:${lastName};${firstName};;;`,
+      'ORG:CulturePass',
+      `TITLE:${tierConf.label} Member`,
+      'TEL;TYPE=CELL:',
+      'EMAIL:',
+      `URL:https://culturepass.app/u/${username}`,
+      `NOTE:CulturePass ID: ${cpid}`,
+      'END:VCARD',
+    ].join('\n');
+  }, [displayName, lastName, firstName, tierConf.label, username, cpid]);
+
+  const qrValue = mode === 'card' ? vCardString : qrValueId;
+
   const memberSince = useMemo(() => {
     if (!user?.createdAt) return 'Member';
     const d = new Date(user.createdAt);
     return `Since ${d.toLocaleDateString('en-AU', { month: 'short', year: 'numeric' })}`;
   }, [user?.createdAt]);
 
+  const profileUrl = `https://culturepass.app/u/${username}`;
+
   const handleShare = async () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     try {
       await Share.share({
         title: `${displayName} - CulturePass Digital ID`,
-        message: `My CulturePass Digital ID\n\nName: ${displayName}\nCPID: ${cpid}\nUsername: @${username}\nTier: ${capitalize(tier)}\n\nScan my QR code on CulturePass to connect!`,
+        message: `My CulturePass Digital ID\n\nName: ${displayName}\nCPID: ${cpid}\nUsername: @${username}\nTier: ${capitalize(tier)}\n\n${profileUrl}\n\nScan my QR code on CulturePass to connect!`,
       });
     } catch {}
   };
@@ -89,15 +116,67 @@ export default function QRScreen() {
     Alert.alert('Copied!', `CulturePass ID ${cpid} copied to clipboard.`);
   };
 
+  const handleSaveToContact = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    if (Platform.OS === 'web') {
+      try {
+        const blob = new Blob([vCardString], { type: 'text/vcard' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${username}_culturepass.vcf`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      } catch {
+        Alert.alert('Save to Contact', 'Could not generate contact file.');
+      }
+    } else {
+      Alert.alert(
+        'Save to Contact',
+        'Switch to "Business Card" mode, then screenshot the QR code and scan it with your phone\'s camera app to add this contact.',
+        [{ text: 'OK' }]
+      );
+    }
+  };
+
+  const toggleMode = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setMode(m => (m === 'id' ? 'card' : 'id'));
+  };
+
   return (
     <View style={[styles.container, { paddingTop: topInset }]}>
       <View style={styles.header}>
         <Pressable style={styles.backBtn} onPress={() => router.back()}>
           <Ionicons name="chevron-back" size={22} color={Colors.text} />
         </Pressable>
-        <Text style={styles.headerTitle}>Digital ID</Text>
-        <Pressable style={styles.headerAction} onPress={handleShare}>
-          <Ionicons name="share-outline" size={20} color={Colors.primary} />
+        <Text style={styles.headerTitle}>{mode === 'id' ? 'Digital ID' : 'Business Card'}</Text>
+        <View style={styles.headerRight}>
+          <Pressable style={styles.headerAction} onPress={() => router.push('/scanner')}>
+            <Ionicons name="scan-outline" size={20} color={Colors.primary} />
+          </Pressable>
+          <Pressable style={styles.headerAction} onPress={handleShare}>
+            <Ionicons name="share-outline" size={20} color={Colors.primary} />
+          </Pressable>
+        </View>
+      </View>
+
+      <View style={styles.toggleRow}>
+        <Pressable
+          style={[styles.toggleBtn, mode === 'id' && styles.toggleBtnActive]}
+          onPress={() => { if (mode !== 'id') toggleMode(); }}
+        >
+          <Ionicons name="id-card-outline" size={16} color={mode === 'id' ? '#FFF' : Colors.textSecondary} />
+          <Text style={[styles.toggleText, mode === 'id' && styles.toggleTextActive]}>Digital ID</Text>
+        </Pressable>
+        <Pressable
+          style={[styles.toggleBtn, mode === 'card' && styles.toggleBtnActive]}
+          onPress={() => { if (mode !== 'card') toggleMode(); }}
+        >
+          <Ionicons name="person-outline" size={16} color={mode === 'card' ? '#FFF' : Colors.textSecondary} />
+          <Text style={[styles.toggleText, mode === 'card' && styles.toggleTextActive]}>Business Card</Text>
         </Pressable>
       </View>
 
@@ -161,15 +240,19 @@ export default function QRScreen() {
                 </View>
               </View>
 
-              <Text style={styles.scanHint}>Scan to verify identity</Text>
+              <Text style={styles.scanHint}>
+                {mode === 'id' ? 'Scan to verify identity' : 'Scan to add contact'}
+              </Text>
             </View>
 
             <View style={styles.cardFooter}>
               <View style={styles.footerDivider} />
               <View style={styles.footerContent}>
                 <View style={styles.footerLeft}>
-                  <Ionicons name="shield-checkmark" size={16} color={Colors.success} />
-                  <Text style={styles.footerVerified}>Verified Digital ID</Text>
+                  <Ionicons name={mode === 'id' ? 'shield-checkmark' : 'card-outline'} size={16} color={Colors.success} />
+                  <Text style={styles.footerVerified}>
+                    {mode === 'id' ? 'Verified Digital ID' : 'CulturePass Card'}
+                  </Text>
                 </View>
                 <View style={styles.hologram}>
                   <Ionicons name="finger-print" size={18} color={Colors.primary + '40'} />
@@ -206,12 +289,12 @@ export default function QRScreen() {
             <Text style={styles.actionSub}>Copy CPID</Text>
           </Pressable>
 
-          <Pressable style={styles.actionBtn} onPress={handleShare}>
+          <Pressable style={styles.actionBtn} onPress={handleSaveToContact}>
             <View style={[styles.actionIconWrap, { backgroundColor: Colors.accent }]}>
-              <Ionicons name="download-outline" size={20} color="#FFF" />
+              <Ionicons name="person-add-outline" size={20} color="#FFF" />
             </View>
-            <Text style={styles.actionLabel}>Save</Text>
-            <Text style={styles.actionSub}>Save image</Text>
+            <Text style={styles.actionLabel}>Contact</Text>
+            <Text style={styles.actionSub}>Save to contact</Text>
           </Pressable>
         </Animated.View>
 
@@ -220,7 +303,9 @@ export default function QRScreen() {
             <View style={styles.infoRow}>
               <Ionicons name="information-circle-outline" size={18} color={Colors.primary} />
               <Text style={styles.infoText}>
-                Your CulturePass Digital ID is a unique identifier that can be scanned at events, venues, and partner locations for quick check-in and verification.
+                {mode === 'id'
+                  ? 'Your CulturePass Digital ID is a unique identifier that can be scanned at events, venues, and partner locations for quick check-in and verification.'
+                  : 'Your CulturePass Business Card encodes your contact info as a vCard QR code. Others can scan it to instantly add you to their contacts.'}
               </Text>
             </View>
           </View>
@@ -256,6 +341,10 @@ const styles = StyleSheet.create({
     fontSize: 18,
     color: Colors.text,
   },
+  headerRight: {
+    flexDirection: 'row',
+    gap: 8,
+  },
   headerAction: {
     width: 40,
     height: 40,
@@ -263,6 +352,35 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.primaryGlow,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  toggleRow: {
+    flexDirection: 'row',
+    marginHorizontal: 24,
+    marginBottom: 8,
+    backgroundColor: Colors.surface,
+    borderRadius: 14,
+    padding: 4,
+    ...Colors.shadow.small,
+  },
+  toggleBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 10,
+    borderRadius: 11,
+  },
+  toggleBtnActive: {
+    backgroundColor: Colors.primary,
+  },
+  toggleText: {
+    fontFamily: 'Poppins_600SemiBold',
+    fontSize: 13,
+    color: Colors.textSecondary,
+  },
+  toggleTextActive: {
+    color: '#FFF',
   },
   scrollContent: {
     paddingHorizontal: 24,

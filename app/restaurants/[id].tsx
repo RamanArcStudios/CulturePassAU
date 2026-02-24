@@ -29,9 +29,11 @@ export default function RestaurantDetailScreen() {
   const handleShare = async () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     try {
+      const shareUrl = `https://culturepass.app/restaurants/${id}`;
       await Share.share({
         title: `${rest.name} on CulturePass`,
-        message: `Check out ${rest.name} on CulturePass! ${rest.cuisine} - ${rest.priceRange}. ${rest.address}. Rating: ${rest.rating}/5 (${rest.reviews} reviews).`,
+        message: `Check out ${rest.name} on CulturePass! ${rest.cuisine} - ${rest.priceRange}. ${rest.address}. Rating: ${rest.rating}/5 (${rest.reviews} reviews).\n\n${shareUrl}`,
+        url: shareUrl,
       });
     } catch {}
   };

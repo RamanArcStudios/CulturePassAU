@@ -111,7 +111,7 @@ export default function LocationScreen() {
           <Animated.View entering={FadeInDown.duration(500)} style={styles.acknowledgementContainer}>
             <View style={styles.acknowledgementBanner}>
               <View style={styles.acknowledgementHeader}>
-                <Ionicons name="earth" size={24} color="#FFF" />
+                <Ionicons name="earth" size={24} color="#8B4513" />
                 <Text style={styles.acknowledgementTitle}>Acknowledgement of Country</Text>
               </View>
               <Text style={styles.acknowledgementText}>{acknowledgementOfCountry}</Text>
@@ -255,7 +255,7 @@ const styles = StyleSheet.create({
     marginHorizontal: 20,
   },
   acknowledgementBanner: {
-    backgroundColor: '#1A5276',
+    backgroundColor: 'rgba(139, 69, 19, 0.08)',
     borderRadius: 16,
     padding: 16,
     borderLeftWidth: 4,
@@ -270,14 +270,13 @@ const styles = StyleSheet.create({
   acknowledgementTitle: {
     fontSize: 15,
     fontFamily: 'Poppins_700Bold',
-    color: '#FFF',
+    color: '#3E2723',
     flex: 1,
   },
   acknowledgementText: {
     fontSize: 13,
     fontFamily: 'Poppins_400Regular',
-    color: '#FFF',
-    opacity: 0.9,
+    color: '#5D4037',
     lineHeight: 20,
   },
 });

@@ -50,7 +50,7 @@ export default function VenueDetailScreen() {
   const handleShare = useCallback(async () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     try {
-      const url = `https://culturepass.replit.app/venue/${id}`;
+      const url = `https://culturepass.app/venue/${id}`;
       const location = [profile?.city, profile?.country].filter(Boolean).join(", ");
       if (Platform.OS === "web") {
         if (typeof navigator !== "undefined" && navigator.share) {
@@ -62,7 +62,8 @@ export default function VenueDetailScreen() {
       } else {
         await Share.share({
           title: `${profile?.name ?? 'Venue'} on CulturePass`,
-          message: `Check out ${profile?.name} on CulturePass!${location ? ` Located in ${location}.` : ''} ${url}`,
+          message: `Check out ${profile?.name} on CulturePass!${location ? ` Located in ${location}.` : ''}\n\n${url}`,
+          url: url,
         });
       }
     } catch {}

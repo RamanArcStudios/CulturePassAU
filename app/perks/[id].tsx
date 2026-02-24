@@ -126,9 +126,11 @@ export default function PerkDetailScreen() {
   const handleShare = async () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     try {
+      const shareUrl = `https://culturepass.app/perks/${id}`;
       await Share.share({
         title: `${perk.title} - CulturePass Perk`,
-        message: `Check out this perk on CulturePass: ${perk.title}! ${perk.description || ''} ${perk.providerName ? `From ${perk.providerName}.` : ''}`,
+        message: `Check out this perk on CulturePass: ${perk.title}! ${perk.description || ''} ${perk.providerName ? `From ${perk.providerName}.` : ''}\n\n${shareUrl}`,
+        url: shareUrl,
       });
     } catch {}
   };

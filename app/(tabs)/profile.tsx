@@ -575,6 +575,12 @@ export default function ProfileScreen() {
               onPress={() => router.push('/saved')}
             />
             <MenuItem
+              icon="scan-outline"
+              label="Scanner"
+              color={Colors.secondary}
+              onPress={() => router.push('/scanner')}
+            />
+            <MenuItem
               icon="gift-outline"
               label="Perks & Benefits"
               color={Colors.accent}

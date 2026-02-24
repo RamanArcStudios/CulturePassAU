@@ -29,9 +29,11 @@ export default function ActivityDetailScreen() {
   const handleShare = async () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     try {
+      const shareUrl = `https://culturepass.app/activities/${id}`;
       await Share.share({
         title: `${act.name} on CulturePass`,
-        message: `Check out ${act.name} on CulturePass! ${act.category} - ${act.duration}. ${act.location}. ${act.priceLabel}. Rating: ${act.rating}/5.`,
+        message: `Check out ${act.name} on CulturePass! ${act.category} - ${act.duration}. ${act.location}. ${act.priceLabel}. Rating: ${act.rating}/5.\n\n${shareUrl}`,
+        url: shareUrl,
       });
     } catch {}
   };

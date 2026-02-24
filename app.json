@@ -29,12 +29,12 @@
     },
     "web": {
       "favicon": "./assets/images/favicon.png",
-      "name": "CulturePass - Cultural Events & Communities",
+      "name": "CulturePass - Cultural Events & Communities Platform",
       "shortName": "CulturePass",
-      "description": "Discover cultural events, connect with diaspora communities, and celebrate diversity. Available in Australia, NZ, UAE, UK & Canada.",
+      "description": "Discover cultural events, join diaspora communities, find local businesses, and celebrate diversity. CulturePass connects you with cultural experiences across Australia, New Zealand, UAE, UK & Canada.",
       "lang": "en",
-      "themeColor": "#6B4C3B",
-      "backgroundColor": "#FBF8F4"
+      "themeColor": "#007AFF",
+      "backgroundColor": "#F2F2F7"
     },
     "plugins": [
       [

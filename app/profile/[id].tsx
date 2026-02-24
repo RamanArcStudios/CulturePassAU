@@ -153,9 +153,11 @@ export default function ProfileDetailScreen() {
               onPress={async () => {
                 Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                 try {
+                  const shareUrl = `https://culturepass.app/profile/${id}`;
                   await Share.share({
                     title: `${profile.name} on CulturePass`,
-                    message: `Check out ${profile.name} on CulturePass!${profile.category ? ` ${profile.category}.` : ''}${profile.location ? ` ${profile.location}.` : ''} Join and connect with this ${profile.entityType}!`,
+                    message: `Check out ${profile.name} on CulturePass!${profile.category ? ` ${profile.category}.` : ''}${profile.location ? ` ${profile.location}.` : ''} Join and connect with this ${profile.entityType}!\n\n${shareUrl}`,
+                    url: shareUrl,
                   });
                 } catch {}
               }}
@@ -191,10 +193,17 @@ export default function ProfileDetailScreen() {
                   </View>
                 )}
                 {profile.location && (
-                  <View style={styles.heroPill}>
+                  <Pressable
+                    style={styles.heroPill}
+                    onPress={() => {
+                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                      const query = [profile.city, profile.country].filter(Boolean).join(', ') || profile.location;
+                      Linking.openURL(`https://maps.google.com/?q=${encodeURIComponent(query || '')}`);
+                    }}
+                  >
                     <Ionicons name="location" size={12} color="rgba(255,255,255,0.9)" />
                     <Text style={styles.heroPillText}>{profile.location}</Text>
-                  </View>
+                  </Pressable>
                 )}
               </View>
             )}

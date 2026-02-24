@@ -101,9 +101,11 @@ export default function TicketDetailScreen() {
   const handleShare = useCallback(async () => {
     if (!ticket) return;
     try {
+      const shareUrl = `https://culturepass.app/tickets/${ticket.id}`;
       await Share.share({
         title: ticket.eventTitle,
-        message: `I'm going to ${ticket.eventTitle}! 🎫\n${ticket.eventVenue ? `📍 ${ticket.eventVenue}` : ''}\n${ticket.eventDate ? `📅 ${formatDate(ticket.eventDate)}` : ''}\n\nTicket Code: ${ticket.ticketCode || 'N/A'}\n\nGet yours on CulturePass!`,
+        message: `I'm going to ${ticket.eventTitle}! 🎫\n${ticket.eventVenue ? `📍 ${ticket.eventVenue}` : ''}\n${ticket.eventDate ? `📅 ${formatDate(ticket.eventDate)}` : ''}\n\nTicket Code: ${ticket.ticketCode || 'N/A'}\n\nGet yours on CulturePass!\n\n${shareUrl}`,
+        url: shareUrl,
       });
     } catch {}
   }, [ticket]);
