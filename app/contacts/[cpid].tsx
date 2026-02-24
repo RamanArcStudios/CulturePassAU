@@ -12,6 +12,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, router } from 'expo-router';
+import { goBackOrReplace } from '@/lib/navigation';
 import Colors from '@/constants/colors';
 import * as Haptics from 'expo-haptics';
 import { useContacts } from '@/contexts/ContactsContext';
@@ -59,7 +60,7 @@ export default function ContactDetailScreen() {
           onPress: () => {
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
             removeContact(contact.cpid);
-            router.back();
+            goBackOrReplace('/(tabs)');
           },
         },
       ]
@@ -87,7 +88,7 @@ export default function ContactDetailScreen() {
       <View style={[styles.container, { paddingTop: topInset, justifyContent: 'center', alignItems: 'center' }]}>
         <Ionicons name="person-outline" size={48} color={Colors.textTertiary} />
         <Text style={styles.notFoundText}>Contact not found</Text>
-        <Pressable style={styles.backLink} onPress={() => router.back()}>
+        <Pressable style={styles.backLink} onPress={() => goBackOrReplace('/(tabs)')}>
           <Text style={styles.backLinkText}>Go Back</Text>
         </Pressable>
       </View>
@@ -111,7 +112,7 @@ export default function ContactDetailScreen() {
   return (
     <View style={[styles.container, { paddingTop: topInset }]}>
       <View style={styles.header}>
-        <Pressable onPress={() => router.back()} style={styles.backBtn}>
+        <Pressable onPress={() => goBackOrReplace('/(tabs)')} style={styles.backBtn}>
           <Ionicons name="chevron-back" size={22} color={Colors.text} />
         </Pressable>
         <Text style={styles.headerTitle}>Contact</Text>

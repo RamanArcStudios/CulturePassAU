@@ -4,6 +4,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
+import { goBackOrReplace } from '@/lib/navigation';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import Animated, { FadeInDown } from 'react-native-reanimated';
@@ -69,7 +70,7 @@ export default function CommunityDetailScreen() {
   return (
     <View style={[styles.container, { paddingTop: topInset + 20, alignItems: 'center', justifyContent: 'center' }]}>
       <Text style={styles.errorText}>Community not found</Text>
-      <Pressable onPress={() => router.back()}>
+      <Pressable onPress={() => goBackOrReplace('/(tabs)')}>
         <Text style={styles.backLink}>Go Back</Text>
       </Pressable>
     </View>
@@ -109,7 +110,7 @@ function DbCommunityView({ community, topInset, bottomInset }: { community: Comm
           style={{ position: 'absolute', width: '100%', height: '100%' }}
         />
         <View style={[styles.heroOverlay, { paddingTop: topInset + 8, backgroundColor: 'rgba(0,0,0,0.15)' }]}>
-          <Pressable style={styles.backButton} onPress={() => router.back()}>
+          <Pressable style={styles.backButton} onPress={() => goBackOrReplace('/(tabs)')}>
             <Ionicons name="arrow-back" size={22} color="#FFF" />
           </Pressable>
           <View style={styles.heroBottom}>
@@ -280,7 +281,7 @@ function MockCommunityView({ community, topInset, bottomInset }: { community: an
           locations={[0, 0.4, 1]}
           style={[styles.heroOverlay, { paddingTop: topInset + 8 }]}
         >
-          <Pressable style={styles.backButton} onPress={() => router.back()}>
+          <Pressable style={styles.backButton} onPress={() => goBackOrReplace('/(tabs)')}>
             <Ionicons name="arrow-back" size={22} color="#FFF" />
           </Pressable>
           <View style={styles.heroBottom}>

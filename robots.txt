@@ -1,0 +1,51 @@
+# robots.txt for RamanArc Studios - Optimized for search engines + AI visibility
+# Goal: Showcase events, community, startups, and digital services everywhere
+
+User-agent: *
+Allow: /
+Disallow: /admin/
+Disallow: /login/
+Disallow: /dashboard/
+Disallow: /private/
+Disallow: /api/private/
+Disallow: /wp-admin/
+Disallow: /cgi-bin/
+
+# Major search engines (always allow for indexing)
+User-agent: Googlebot
+Allow: /
+
+User-agent: Bingbot
+Allow: /
+
+User-agent: Slurp
+Allow: /
+
+# AI platforms & search engines - explicitly allowed for maximum visibility
+# These power AI search results, citations, and real-time answers about your events/community
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: OAI-SearchBot
+Allow: /
+
+User-agent: GPTBot
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: Claude-Web
+Allow: /
+
+User-agent: Claude-SearchBot
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
+# Sitemap (helps ALL engines discover your events/community pages dynamically)
+Sitemap: https://culturepass.au/sitemap.xml

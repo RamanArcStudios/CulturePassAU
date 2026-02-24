@@ -13,6 +13,7 @@ import {
   Linking,
 } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
+import { goBackOrReplace } from '@/lib/navigation';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useSaved } from '@/contexts/SavedContext';
@@ -88,7 +89,7 @@ export default function EventDetailScreen() {
         ]}
       >
         <Text style={styles.errorText}>Event not found</Text>
-        <Pressable onPress={() => router.back()}>
+        <Pressable onPress={() => goBackOrReplace('/(tabs)')}>
           <Text style={styles.backLink}>Go Back</Text>
         </Pressable>
       </View>
@@ -352,7 +353,7 @@ function EventDetail({ event, topInset, bottomInset }: EventDetailProps) {
           style={[styles.heroOverlay, { paddingTop: topInset }]}
         >
           <View style={styles.heroNav}>
-            <Pressable style={styles.navButton} onPress={() => router.back()}>
+            <Pressable style={styles.navButton} onPress={() => goBackOrReplace('/(tabs)')}>
               <Ionicons name="arrow-back" size={22} color="#FFF" />
             </Pressable>
             <View style={styles.heroActions}>
