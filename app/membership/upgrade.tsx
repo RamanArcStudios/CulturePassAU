@@ -361,8 +361,8 @@ const styles = StyleSheet.create({
   toggleActive: { backgroundColor: '#fff', shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 4, shadowOffset: { width: 0, height: 1 }, elevation: 2 },
   toggleText: { fontSize: 14, fontFamily: 'Poppins_500Medium', color: Colors.textTertiary },
   toggleTextActive: { color: PLUS_COLOR, fontFamily: 'Poppins_600SemiBold' },
-  saveBadge: { backgroundColor: '#34C759', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6, marginLeft: 6 },
-  saveBadgeText: { fontSize: 10, fontWeight: '700', color: '#fff' },
+  saveBadge: { backgroundColor: Colors.success, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6, marginLeft: 6 },
+  saveBadgeText: { fontSize: 10, fontFamily: 'Poppins_700Bold', color: '#fff' },
 
   priceCard: { alignItems: 'center', paddingVertical: 16 },
   priceAmount: { fontSize: 44, fontFamily: 'Poppins_700Bold', color: PLUS_COLOR },

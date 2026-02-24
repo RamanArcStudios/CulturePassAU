@@ -1,7 +1,6 @@
 import { View, Text, Pressable, StyleSheet, Image, Platform } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { BlurView } from 'expo-blur';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
 import Colors from '@/constants/colors';
@@ -93,15 +92,9 @@ export default function EventCard({ event, highlight, index = 0 }: EventCardProp
           style={StyleSheet.absoluteFillObject}
         />
 
-        {Platform.OS !== 'web' ? (
-          <BlurView intensity={0} tint="dark" style={styles.contentContainer}>
-            <CardContent event={event} highlight={highlight} />
-          </BlurView>
-        ) : (
-          <View style={styles.contentContainer}>
-            <CardContent event={event} highlight={highlight} />
-          </View>
-        )}
+        <View style={styles.contentContainer}>
+          <CardContent event={event} highlight={highlight} />
+        </View>
       </Pressable>
     </Animated.View>
   );
@@ -130,13 +123,12 @@ const styles = StyleSheet.create({
     paddingTop: 32,
   },
   priceBadge: {
-    position: 'absolute',
-    top: -80,
-    right: 0,
+    alignSelf: 'flex-start',
     backgroundColor: 'rgba(255,215,0,0.9)',
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 8,
+    marginBottom: 6,
   },
   priceBadgeText: {
     fontSize: 11,
