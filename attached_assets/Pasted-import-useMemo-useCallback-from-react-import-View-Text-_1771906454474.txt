@@ -10,6 +10,7 @@ import { fetch } from 'expo/fetch';
 import BrowsePage, { BrowseItem, CategoryFilter } from '@/components/BrowsePage';
 import Colors from '@/constants/colors';
 
+// Improved Category Config with better naming/icons
 const COMMUNITY_CATEGORIES: CategoryFilter[] = [
   { label: 'All', icon: 'apps', color: Colors.primary },
   { label: 'Diaspora', icon: 'globe-outline', color: '#3498DB' },
@@ -31,15 +32,16 @@ export default function CommunitiesScreen() {
     },
   });
 
+  // Memoized data transformation to prevent unnecessary re-renders
   const items: BrowseItem[] = useMemo(() =>
     communities.map((c: any) => ({
       id: c.id,
       title: c.name,
-      subtitle: c.communityType?.toUpperCase(),
+      subtitle: c.communityType?.toUpperCase(), // UI: uppercase subtitles feel more like "tags"
       description: c.description,
       imageUrl: c.coverImage,
       isPromoted: c.isPromoted,
-      meta: `${(c.memberCount || 0).toLocaleString()} members`,
+      meta: `${(c.memberCount || 0).toLocaleString()} members`, // Format numbers (e.g., 1,200)
       communityType: c.communityType,
     })),
   [communities]);
@@ -63,6 +65,7 @@ export default function CommunitiesScreen() {
       promotedItems={promoted}
       promotedTitle="Featured"
       onItemPress={handleItemPress}
+      // UX: Pull to refresh support
       refreshControl={
         <RefreshControl refreshing={isRefetching} onRefresh={refetch} tintColor="#9B59B6" />
       }
@@ -94,7 +97,7 @@ const styles = StyleSheet.create({
   memberRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.03)',
+    backgroundColor: 'rgba(0,0,0,0.03)', // Subtle background for the stat
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 6,
