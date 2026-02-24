@@ -397,7 +397,7 @@ export default function ProfileDetailScreen() {
                     <Ionicons name="person" size={16} color={Colors.textSecondary} />
                   </View>
                   <View style={{ flex: 1 }}>
-                    <Text style={styles.reviewerName}>{review.userName || 'Anonymous'}</Text>
+                    <Text style={styles.reviewerName}>{'Anonymous'}</Text>
                     <View style={styles.miniStars}>
                       {Array.from({ length: 5 }, (_, i) => (
                         <Ionicons

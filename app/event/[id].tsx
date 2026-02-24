@@ -382,7 +382,7 @@ function EventDetail({ event, topInset, bottomInset }: EventDetailProps) {
                   <Text style={styles.heroBadgeText}>{event.councilTag}</Text>
                 </View>
               ) : null}
-              {event.indigenousTags?.map(tag => (
+              {event.indigenousTags?.map((tag: string) => (
                 <View key={tag} style={[styles.heroBadge, { backgroundColor: 'rgba(139,69,19,0.7)' }]}>
                   <Ionicons name="earth" size={11} color="#FFF" />
                   <Text style={styles.heroBadgeText}>{tag}</Text>
@@ -559,7 +559,7 @@ function EventDetail({ event, topInset, bottomInset }: EventDetailProps) {
 
         <Animated.View entering={FadeInDown.delay(400).duration(500)} style={styles.section}>
           <Text style={styles.sectionTitle}>Tickets</Text>
-          {event.tiers.map((tier, idx) => (
+          {event.tiers.map((tier: any, idx: number) => (
             <Pressable key={`${tier.name}-${idx}`} style={styles.tierCard} onPress={() => openTicketModal(idx)}>
               <View style={styles.tierInfo}>
                 <Text style={styles.tierName}>{tier.name}</Text>
@@ -610,7 +610,7 @@ function EventDetail({ event, topInset, bottomInset }: EventDetailProps) {
         </View>
 
         <Animated.View entering={FadeInDown.delay(550).duration(500)} style={styles.section}>
-          <Text style={styles.sectionTitle}>Who's Going</Text>
+          <Text style={styles.sectionTitle}>Who&apos;s Going</Text>
           <View style={styles.whosGoingRow}>
             <View style={styles.avatarStack}>
               {Array.from({ length: avatarCount }).map((_, i) => (
@@ -642,7 +642,7 @@ function EventDetail({ event, topInset, bottomInset }: EventDetailProps) {
             </View>
             <Animated.View entering={FadeInDown.delay(600).duration(500)} style={styles.section}>
               <Text style={styles.sectionTitle}>You Might Also Like</Text>
-              {relatedEvents.map(re => (
+              {relatedEvents.map((re: any) => (
                 <Pressable
                   key={re.id}
                   style={styles.relatedCard}
@@ -737,7 +737,7 @@ function EventDetail({ event, topInset, bottomInset }: EventDetailProps) {
               )}
 
               <Text style={[modalStyles.sectionLabel, { marginTop: 20 }]}>Ticket Tier</Text>
-              {event.tiers.map((tier, idx) => {
+              {event.tiers.map((tier: any, idx: number) => {
                 const isSelected = idx === selectedTierIndex;
                 return (
                   <Pressable
@@ -829,7 +829,7 @@ function EventDetail({ event, topInset, bottomInset }: EventDetailProps) {
                 <View style={modalStyles.cashbackNote}>
                   <Ionicons name="star" size={14} color="#2E86C1" />
                   <Text style={modalStyles.cashbackNoteText}>
-                    You'll earn ${cashbackAmount.toFixed(2)} cashback with CulturePass+
+                    You&apos;ll earn ${cashbackAmount.toFixed(2)} cashback with CulturePass+
                   </Text>
                 </View>
               )}

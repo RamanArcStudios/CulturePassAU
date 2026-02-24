@@ -13,12 +13,23 @@ import { getApiUrl } from '@/lib/query-client';
 import { fetch } from 'expo/fetch';
 import { useOnboarding } from '@/contexts/OnboardingContext';
 
+
+interface EventItem {
+  id: string;
+  title: string;
+  date: string;
+  venue: string;
+  category: string;
+  imageUrl: string;
+  priceLabel: string;
+}
+
 export default function AllEventsScreen() {
   const insets = useSafeAreaInsets();
   const [selectedCategory, setSelectedCategory] = useState('All');
   const { state } = useOnboarding();
 
-  const { data: allEvents = [], isLoading } = useQuery({
+  const { data: allEvents = [], isLoading } = useQuery<EventItem[]>({
     queryKey: ['/api/events', state.country, state.city],
     queryFn: async () => {
       const base = getApiUrl();
@@ -33,14 +44,14 @@ export default function AllEventsScreen() {
   });
 
   const CATEGORIES = useMemo(
-    () => ['All', ...new Set(allEvents.map((e: any) => e.category))],
+    () => ['All', ...new Set(allEvents.map((e) => e.category))],
     [allEvents],
   );
 
   const filtered = useMemo(() =>
     selectedCategory === 'All'
       ? allEvents
-      : allEvents.filter((e: any) => e.category === selectedCategory),
+      : allEvents.filter((e) => e.category === selectedCategory),
     [selectedCategory, allEvents]
   );
 
@@ -81,7 +92,7 @@ export default function AllEventsScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.list}
       >
-        {filtered.map((event: any) => (
+        {filtered.map((event) => (
           <Pressable
             key={event.id}
             style={styles.eventCard}

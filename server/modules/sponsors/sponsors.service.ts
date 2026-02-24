@@ -31,7 +31,7 @@ export async function updateSponsor(id: string, data: Partial<Sponsor>): Promise
 
 /** Soft-deletes a sponsor by archiving it */
 export async function deleteSponsor(id: string): Promise<boolean> {
-  const result = await db.update(sponsors).set({ status: "archived" }).where(eq(sponsors.id, id)).returning();
+  const result = await db.update(sponsors).set({ status: "inactive" }).where(eq(sponsors.id, id)).returning();
   return result.length > 0;
 }
 

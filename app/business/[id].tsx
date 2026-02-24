@@ -184,7 +184,7 @@ export default function BusinessDetailScreen() {
         <Animated.View entering={FadeInDown.delay(300).duration(500)} style={styles.section}>
           <Text style={styles.sectionTitle}>Services</Text>
           <View style={styles.servicesGrid}>
-            {business.services.map((service, idx) => (
+            {business.services.map((service: string, idx: number) => (
               <View key={idx} style={styles.serviceCard}>
                 <View style={styles.serviceIconBg}>
                   <Ionicons name="checkmark-circle" size={18} color={Colors.secondary} />

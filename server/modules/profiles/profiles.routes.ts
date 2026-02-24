@@ -3,10 +3,28 @@ import * as profilesService from "./profiles.service";
 
 function p(val: string | string[]): string { return Array.isArray(val) ? val[0] : val; }
 
+type EntityType = Parameters<typeof profilesService.getProfilesByType>[0];
+
+const ENTITY_TYPES = new Set<EntityType>([
+  "user",
+  "business",
+  "artist",
+  "community",
+  "organisation",
+  "venue",
+  "council",
+  "government",
+  "sponsor",
+]);
+
+function isEntityType(value: string): value is EntityType {
+  return ENTITY_TYPES.has(value as EntityType);
+}
+
 export function registerProfilesRoutes(app: Express) {
   app.get("/api/profiles", async (req: Request, res: Response) => {
-    const entityType = req.query.type as string;
-    const profiles = entityType
+    const entityType = req.query.type as string | undefined;
+    const profiles = entityType && isEntityType(entityType)
       ? await profilesService.getProfilesByType(entityType)
       : await profilesService.getAllProfiles();
     res.json(profiles);

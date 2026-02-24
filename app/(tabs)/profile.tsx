@@ -28,6 +28,21 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 
 const isWeb = Platform.OS === 'web';
 
+interface EventListItem {
+  id: string;
+  title: string;
+  date: string;
+  imageColor: string;
+}
+
+interface CommunityListItem {
+  id: string;
+  name: string;
+  color: string;
+  icon: string;
+  members: number;
+}
+
 function formatDate(dateStr: string): string {
   const [year, month, day] = dateStr.split('-').map(Number);
   if (!year || !month || !day) return dateStr;
@@ -163,7 +178,7 @@ export default function ProfileScreen() {
     enabled: !!userId,
   });
 
-  const { data: allEventsData = [] } = useQuery({
+  const { data: allEventsData = [] } = useQuery<EventListItem[]>({
     queryKey: ['/api/events'],
     queryFn: async () => {
       const base = getApiUrl();
@@ -173,7 +188,7 @@ export default function ProfileScreen() {
     },
   });
 
-  const { data: allCommunitiesData = [] } = useQuery({
+  const { data: allCommunitiesData = [] } = useQuery<CommunityListItem[]>({
     queryKey: ['/api/communities'],
     queryFn: async () => {
       const base = getApiUrl();
@@ -184,12 +199,12 @@ export default function ProfileScreen() {
   });
 
   const savedEventsList = useMemo(
-    () => allEventsData.filter((e: any) => savedEvents.includes(e.id)),
+    () => allEventsData.filter((e) => savedEvents.includes(e.id)),
     [savedEvents, allEventsData],
   );
 
   const joinedCommunitiesList = useMemo(
-    () => allCommunitiesData.filter((c: any) => joinedCommunities.includes(c.id)),
+    () => allCommunitiesData.filter((c) => joinedCommunities.includes(c.id)),
     [joinedCommunities, allCommunitiesData],
   );
 
@@ -262,7 +277,7 @@ export default function ProfileScreen() {
     ]);
   }, []);
 
-  const walletBalance = wallet?.balance ?? 0;
+  const walletBalance = Number(wallet?.balance ?? 0);
   const tickets = ticketCount?.count ?? 0;
   const unreadCount = unreadNotifs?.count ?? 0;
 

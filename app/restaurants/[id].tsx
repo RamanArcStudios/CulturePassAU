@@ -80,7 +80,7 @@ export default function RestaurantDetailScreen() {
 
           <Text style={styles.subTitle}>Features</Text>
           <View style={styles.featureGrid}>
-            {rest.features.map(f => (
+            {rest.features.map((f: string) => (
               <View key={f} style={styles.featureItem}>
                 <Ionicons name="checkmark-circle" size={16} color={Colors.success} />
                 <Text style={styles.featureLabel}>{f}</Text>
@@ -90,7 +90,7 @@ export default function RestaurantDetailScreen() {
 
           <Text style={styles.subTitle}>Menu Highlights</Text>
           <View style={styles.menuGrid}>
-            {rest.menuHighlights.map(item => (
+            {rest.menuHighlights.map((item: string) => (
               <View key={item} style={styles.menuItem}>
                 <Ionicons name="restaurant-outline" size={16} color={rest.color} />
                 <Text style={styles.menuItemText}>{item}</Text>

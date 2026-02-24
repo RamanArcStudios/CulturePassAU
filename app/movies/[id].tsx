@@ -63,7 +63,7 @@ export default function MovieDetailScreen() {
             <View style={styles.metaPill}><Text style={styles.metaPillText}>{movie.rating}</Text></View>
           </View>
           <View style={styles.genreRow}>
-            {movie.genre.map(g => (
+            {movie.genre.map((g: string) => (
               <View key={g} style={[styles.genrePill, { backgroundColor: movie.posterColor + '15' }]}>
                 <Text style={[styles.genrePillText, { color: movie.posterColor }]}>{g}</Text>
               </View>
