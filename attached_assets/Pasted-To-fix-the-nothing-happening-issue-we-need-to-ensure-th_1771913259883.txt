@@ -1,0 +1,105 @@
+To fix the "nothing happening" issue, we need to ensure the `BrowsePage` component is actually passing the touch event down to the native layer. Often in React Native, a `View` wrapping an item can intercept touches if not configured correctly.
+
+### 1. Fixing the "Click" (The `BrowsePage` Internal)
+
+Check your `components/BrowsePage.tsx`. The `renderItem` function must use a `Pressable` or `TouchableOpacity`. If you are using a custom component inside `BrowsePage`, ensure it looks like this:
+
+```tsx
+// Inside BrowsePage.tsx
+const renderItem = ({ item }: { item: BrowseItem }) => (
+  <Pressable 
+    onPress={() => onItemPress(item)}
+    style={({ pressed }) => [
+      { opacity: pressed ? 0.7 : 1 },
+      styles.itemContainer
+    ]}
+  >
+    {/* Your item UI here */}
+  </Pressable>
+);
+
+```
+
+**Common Pitfall:** If your `item` has an absolute-positioned element (like a favorite heart icon) that doesn't have `pointerEvents="box-none"`, it might be "swallowing" the touch before it reaches the `onItemPress` handler.
+
+---
+
+### 2. The Personalized Algorithm Logic
+
+To make the app feel "alive," we shift from a static list to a **Weighted Discovery Engine**. We will use the user's profile to re-rank the data.
+
+#### The "Before Login" Strategy (Guest)
+
+* **Goal:** Social Proof.
+* **Sort:** `(MemberCount * 0.7) + (Recency * 0.3)`.
+* **UI:** Show "Trending" badges and high member counts to build trust.
+
+#### The "After Login" Strategy (User)
+
+* **Goal:** Relevance.
+* **Sort:** `(InterestMatch * 0.5) + (LocationProximity * 0.3) + (Activity * 0.2)`.
+* **UI:** Show "Based on your interests" or "Near [User Location]."
+
+---
+
+### 3. Implementation: Data Filtering & Ranking
+
+Here is the updated logic for your screen that handles the "Algorithm" dynamically:
+
+```tsx
+export default function CommunitiesScreen() {
+  const { user, isAuthenticated } = useUser(); // Hook to get user state
+  
+  const { data: communities = [], isLoading } = useQuery({
+    queryKey: ['communities', user?.id],
+    queryFn: () => fetchCommunities(user?.id),
+  });
+
+  const processedItems = useMemo(() => {
+    let list = [...communities];
+
+    // 1. Filter out blocked or private content if necessary
+    if (isAuthenticated) {
+      list = list.filter(c => !user.blockedIds?.includes(c.id));
+    }
+
+    // 2. APPLY THE ALGORITHM
+    return list.sort((a, b) => {
+      if (isAuthenticated) {
+        // Boost communities that match user interests
+        const aMatch = user.interests?.includes(a.communityType) ? 2 : 0;
+        const bMatch = user.interests?.includes(b.communityType) ? 2 : 0;
+        
+        // Boost if user's friends are in it (Social Graph)
+        const aSocial = a.friendCount ? 1.5 : 0;
+        const bSocial = b.friendCount ? 1.5 : 0;
+
+        return (bMatch + bSocial) - (aMatch + aSocial);
+      }
+      
+      // Default: Popularity for Guests
+      return (b.memberCount || 0) - (a.memberCount || 0);
+    }).map(transformToBrowseItem); // Convert to UI format
+  }, [communities, user, isAuthenticated]);
+
+  return (
+    <BrowsePage
+      items={processedItems}
+      // UI feedback: tell the user WHY they see this
+      promotedTitle={isAuthenticated ? "Suggested for You" : "Trending Communities"}
+      {...otherProps}
+    />
+  );
+}
+
+```
+
+### 4. Interactive State Table
+
+| User State | Sorting Priority | Metadata Shown |
+| --- | --- | --- |
+| **Logged Out** | Global Popularity | "Join 5,000 others" |
+| **New User** | Category Onboarding | "Recommended for [Interest]" |
+| **Active User** | Engagement / Friends | "3 friends are active now" |
+
+**Would you like me to provide the specific backend SQL or NoSQL query logic to handle this ranking on the server side?**

@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { getApiUrl } from '@/lib/query-client';
 import { useOnboarding } from '@/contexts/OnboardingContext';
 import BrowsePage, { BrowseItem, CategoryFilter } from '@/components/BrowsePage';
@@ -26,14 +26,17 @@ function formatDate(dateStr: string): string {
 
 export default function ExploreScreen() {
   const { state } = useOnboarding();
+  const params = useLocalSearchParams<{ city?: string }>();
+
+  const activeCity = params.city || state.city;
 
   const queryParams = new URLSearchParams();
   if (state.country) queryParams.set('country', state.country);
-  if (state.city) queryParams.set('city', state.city);
+  if (activeCity) queryParams.set('city', activeCity);
   const qs = queryParams.toString();
 
   const { data: events = [], isLoading } = useQuery({
-    queryKey: ['/api/events', state.country, state.city],
+    queryKey: ['/api/events', state.country, activeCity],
     queryFn: async () => {
       const base = getApiUrl();
       const url = `${base}api/events${qs ? `?${qs}` : ''}`;
@@ -65,7 +68,7 @@ export default function ExploreScreen() {
 
   return (
     <BrowsePage
-      title="Events"
+      title={params.city ? `Events in ${params.city}` : "Events"}
       accentColor="#1A7A6D"
       accentIcon="calendar"
       categories={eventCategories}

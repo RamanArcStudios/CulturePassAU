@@ -13,6 +13,7 @@ import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useOnboarding } from '@/contexts/OnboardingContext';
+import { useAuth } from '@/lib/auth';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
@@ -90,10 +91,6 @@ interface DiscoverFeed {
   };
 }
 
-function useDemoUserId() {
-  const { data } = useQuery<{ id: string }[]>({ queryKey: ['/api/users'] });
-  return data?.[0]?.id;
-}
 
 function SectionHeader({ title, subtitle, onSeeAll }: { title: string; subtitle?: string; onSeeAll?: () => void }) {
   return (
@@ -156,7 +153,7 @@ export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const topInset = Platform.OS === 'web' ? 67 : insets.top;
   const { state } = useOnboarding();
-  const userId = useDemoUserId();
+  const { isAuthenticated, userId: authUserId } = useAuth();
 
   const { data: users } = useQuery<User[]>({
     queryKey: ['/api/users'],
@@ -207,15 +204,16 @@ export default function HomeScreen() {
   });
 
   const { data: discoverFeed, isLoading: discoverLoading, refetch } = useQuery<DiscoverFeed>({
-    queryKey: ['/api/discover', userId],
+    queryKey: ['/api/discover', authUserId ?? 'guest'],
     queryFn: async () => {
-      if (!userId) return { sections: [], meta: { userId: '', city: '', country: '', generatedAt: '', totalItems: 0 } };
       const baseUrl = getApiUrl();
-      const res = await fetch(`${baseUrl}api/discover/${userId}`, { credentials: 'include' });
-      if (!res.ok) throw new Error('Failed to fetch discover feed');
-      return res.json();
+      if (authUserId) {
+        const res = await fetch(`${baseUrl}api/discover/${authUserId}`, { credentials: 'include' });
+        if (!res.ok) throw new Error(`${res.status}`);
+        return res.json();
+      }
+      return { sections: [], meta: { userId: 'guest', city: '', country: '', generatedAt: new Date().toISOString(), totalItems: 0 } };
     },
-    enabled: !!userId,
   });
 
   const timeGreeting = useMemo(() => {
@@ -226,14 +224,21 @@ export default function HomeScreen() {
   }, []);
 
   const firstName = useMemo(() => {
-    const user = users?.[0];
+    if (!isAuthenticated) return 'Explorer';
+    const allProfilesData = users ?? [];
+    const user = allProfilesData.find((u: any) => u.id === authUserId);
     if (!user?.displayName) return 'Explorer';
     return user.displayName.split(' ')[0];
-  }, [users]);
+  }, [users, isAuthenticated, authUserId]);
 
   const sections = discoverFeed?.sections ?? [];
   const nearYou = sections.find(s => s.title === 'Near You');
-  const popularEvents = nearYou?.items.filter((e: any) => !!e.venue).slice(0, 12) ?? [];
+  const popularEvents = useMemo(() => {
+    if (nearYou?.items?.length) {
+      return nearYou.items.filter((e: any) => !!e.venue).slice(0, 12);
+    }
+    return [...allEvents].sort((a: any, b: any) => (b.attending || 0) - (a.attending || 0)).filter((e: any) => !!e.venue).slice(0, 12);
+  }, [nearYou, allEvents]);
   const featuredEvent = allEvents.find((e: any) => e.isFeatured) || allEvents[0];
   const otherSections = sections.filter(s => s.title !== 'Near You');
 
@@ -380,7 +385,7 @@ export default function HomeScreen() {
             <View style={{ paddingHorizontal: 20 }}>
               <SectionHeader
                 title="Cultural Communities"
-                subtitle="Connect with your people"
+                subtitle={isAuthenticated ? "Your communities" : "Join a community"}
                 onSeeAll={() => router.push('/(tabs)/communities')}
               />
             </View>
@@ -392,7 +397,7 @@ export default function HomeScreen() {
               snapToInterval={210}
               snapToAlignment="start"
             >
-              {allCommunities.slice(0, 10).map((c: any, i: number) => (
+              {[...allCommunities].sort((a: any, b: any) => (b.memberCount || 0) - (a.memberCount || 0)).slice(0, 10).map((c: any, i: number) => (
                 <CommunityCard key={c.id} community={c} index={i} />
               ))}
             </ScrollView>
@@ -503,6 +508,7 @@ export default function HomeScreen() {
                 city={city}
                 onPress={() => {
                   Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  router.push({ pathname: '/(tabs)/explore', params: { city: city.name } });
                 }}
               />
             ))}

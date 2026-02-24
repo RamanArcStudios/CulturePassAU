@@ -1,0 +1,111 @@
+It sounds like the "nothing happening" issue is likely due to the `onItemPress` handler not being correctly wired to the touchable surface inside your `BrowsePage` component, or a missing `href` configuration in Expo Router.
+
+Regarding the algorithm: a professional app should feel **curated**. Before login, you show "Broad Appeal" (high member counts, general categories). After login, you show "Relevance" (shared interests, proximity, or "You might like").
+
+### 1. The "Click Fix" & User-Specific Logic
+
+To fix the click issue, ensure your `BrowsePage` component wraps the item in a `Pressable` or `TouchableOpacity`. On the screen level, we will now inject **User Context** to filter the data.
+
+```tsx
+import { useMemo, useCallback } from 'react';
+import { router } from 'expo-router';
+import * as Haptics from 'expo-haptics';
+import { useUser } from '@/hooks/useUser'; // Assume you have an auth hook
+import { useQuery } from '@tanstack/react-query';
+
+// ... other imports
+
+export default function CommunitiesScreen() {
+  const { user, isAuthenticated } = useUser();
+  
+  const { data: communities = [], isLoading } = useQuery({
+    queryKey: ['/api/communities', user?.id], // Cache unique to user
+    queryFn: async () => {
+      const base = getApiUrl();
+      // Pass user ID to the backend to get a personalized feed
+      const url = isAuthenticated 
+        ? `${base}api/communities?userId=${user.id}` 
+        : `${base}api/communities?sort=popular`;
+      const res = await fetch(url);
+      return res.json();
+    },
+  });
+
+  // THE ALGORITHM: Client-side sorting/filtering
+  const processedItems = useMemo(() => {
+    let list = [...communities];
+
+    if (isAuthenticated && user?.interests) {
+      // 1. Sort by User Interests (Algorithm)
+      list.sort((a, b) => {
+        const aMatch = user.interests.includes(a.category) ? 1 : 0;
+        const bMatch = user.interests.includes(b.category) ? 1 : 0;
+        return bMatch - aMatch;
+      });
+    } else {
+      // 2. Sort by Popularity for Guests
+      list.sort((a, b) => (b.memberCount || 0) - (a.memberCount || 0));
+    }
+
+    return list.map(c => ({
+      id: c.id,
+      title: c.name,
+      // ... rest of mapping
+    }));
+  }, [communities, user, isAuthenticated]);
+
+  const handleItemPress = useCallback((item: any) => {
+    Haptics.selectionAsync(); // Physical feedback
+    // Ensure the ID exists. Using push ensures the back button works.
+    if (item.id) {
+      router.push(`/community/${item.id}`);
+    }
+  }, []);
+
+  // ... return BrowsePage
+}
+
+```
+
+---
+
+### 2. The Information Hierarchy (Before vs. After)
+
+The "Algorithm" isn't just sorting; it's about **what metadata is exposed**.
+
+| Feature | Unauthenticated (Guest) | Authenticated (Member) |
+| --- | --- | --- |
+| **Primary Goal** | Conversion / Social Proof | Engagement / Personalization |
+| **Top Sections** | "Trending Globally" | "Communities for You" |
+| **Metadata shown** | "5.2k Members" (Validation) | "3 Friends are members" (Social) |
+| **CTA** | "Preview Community" | "Enter Lounge" / "Post Update" |
+| **Filtering** | Limited to high-level categories | Deep filtering (Location, Language, Activity) |
+
+---
+
+### 3. Smart Filtering Implementation
+
+Instead of just "filtering," use a "Weighted Score." If a user frequently visits "Language" communities, the "Language" category should move to the first position in their horizontal scroll bar.
+
+**Add this logic to your `useMemo` for categories:**
+
+```tsx
+const personalizedCategories = useMemo(() => {
+  if (!user?.topCategory) return COMMUNITY_CATEGORIES;
+  
+  // Move the user's most visited category to the front
+  return [...COMMUNITY_CATEGORIES].sort((a, b) => {
+    if (a.label.toLowerCase() === user.topCategory.toLowerCase()) return -1;
+    return 0;
+  });
+}, [user]);
+
+```
+
+### 4. Why it might not be clicking:
+
+1. **Z-Index:** Check if an invisible View or a `Loading` overlay is sitting on top of the list.
+2. **Pointer Events:** Ensure the parent container doesn't have `pointerEvents="none"`.
+3. **Route Mapping:** In Expo Router, check that your file is named `(tabs)/community/[id].tsx` exactly as it appears in the `router.push`.
+
+**Would you like me to review the `BrowsePage` component code to see why the `onItemPress` might be failing to trigger?**
