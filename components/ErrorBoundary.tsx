@@ -4,51 +4,73 @@ import { ErrorFallback, ErrorFallbackProps } from "@/components/ErrorFallback";
 export type ErrorBoundaryProps = PropsWithChildren<{
   FallbackComponent?: ComponentType<ErrorFallbackProps>;
   onError?: (error: Error, stackTrace: string) => void;
+  maxAutoRetries?: number;
 }>;
 
-type ErrorBoundaryState = { error: Error | null };
-
-/**
- * This is a special case for for using the class components. Error boundaries must be class components because React only provides error boundary functionality through lifecycle methods (componentDidCatch and getDerivedStateFromError) which are not available in functional components.
- * https://react.dev/reference/react/Component#catching-rendering-errors-with-an-error-boundary
- */
+type ErrorBoundaryState = {
+  error: Error | null;
+  retryCount: number;
+};
 
 export class ErrorBoundary extends Component<
   ErrorBoundaryProps,
   ErrorBoundaryState
 > {
-  state: ErrorBoundaryState = { error: null };
+  state: ErrorBoundaryState = { error: null, retryCount: 0 };
+  private retryTimer: ReturnType<typeof setTimeout> | null = null;
 
   static defaultProps: {
     FallbackComponent: ComponentType<ErrorFallbackProps>;
+    maxAutoRetries: number;
   } = {
     FallbackComponent: ErrorFallback,
+    maxAutoRetries: 2,
   };
 
-  static getDerivedStateFromError(error: Error): ErrorBoundaryState {
+  static getDerivedStateFromError(error: Error): Partial<ErrorBoundaryState> {
     return { error };
   }
 
   componentDidCatch(error: Error, info: { componentStack: string }): void {
+    const maxRetries = this.props.maxAutoRetries ?? 2;
+    if (this.state.retryCount < maxRetries) {
+      this.retryTimer = setTimeout(() => {
+        this.setState(prev => ({
+          error: null,
+          retryCount: prev.retryCount + 1,
+        }));
+      }, 100);
+      return;
+    }
+
     if (typeof this.props.onError === "function") {
       this.props.onError(error, info.componentStack);
     }
   }
 
+  componentWillUnmount(): void {
+    if (this.retryTimer) {
+      clearTimeout(this.retryTimer);
+    }
+  }
+
   resetError = (): void => {
-    this.setState({ error: null });
+    this.setState({ error: null, retryCount: 0 });
   };
 
   render() {
     const { FallbackComponent } = this.props;
+    const maxRetries = this.props.maxAutoRetries ?? 2;
 
-    return this.state.error && FallbackComponent ? (
-      <FallbackComponent
-        error={this.state.error}
-        resetError={this.resetError}
-      />
-    ) : (
-      this.props.children
-    );
+    if (this.state.error && this.state.retryCount >= maxRetries && FallbackComponent) {
+      return (
+        <FallbackComponent
+          error={this.state.error}
+          resetError={this.resetError}
+        />
+      );
+    }
+
+    return this.props.children;
   }
 }
