@@ -356,8 +356,10 @@ export default function HomeScreen() {
         )}
 
         {featuredEvent && (
-          <Animated.View entering={isWeb ? undefined : FadeInDown.delay(180).duration(500)} style={{ paddingHorizontal: 20, marginBottom: 28 }}>
-            <SectionHeader title="Cultural Highlight" subtitle="Don't miss this week" />
+          <Animated.View entering={isWeb ? undefined : FadeInDown.delay(180).duration(500)} style={{ marginBottom: 28 }}>
+            <View style={{ paddingHorizontal: 20 }}>
+              <SectionHeader title="Cultural Highlight" subtitle="Don't miss this week" />
+            </View>
             <EventCard event={featuredEvent} highlight index={0} />
           </Animated.View>
         )}
