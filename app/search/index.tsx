@@ -318,8 +318,9 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Colors.cardBorder,
     height: 44,
+    overflow: 'hidden',
   },
-  searchInput: { flex: 1, fontSize: 15, fontFamily: 'Poppins_400Regular', color: Colors.text, paddingVertical: 0 },
+  searchInput: { flex: 1, fontSize: 15, fontFamily: 'Poppins_400Regular', color: Colors.text, paddingVertical: 0, minWidth: 0 },
   typeRow: { paddingHorizontal: 20, gap: 8, paddingBottom: 12, paddingTop: 4 },
   typeChip: {
     flexDirection: 'row',

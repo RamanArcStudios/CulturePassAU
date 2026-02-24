@@ -1,611 +1,82 @@
-import {
-  View,
-  Text,
-  Pressable,
-  StyleSheet,
-  ScrollView,
-  TextInput,
-  Platform,
-  Share,
-  RefreshControl,
-  Image,
-  ActivityIndicator,
-} from 'react-native';
-import { router } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useSaved } from '@/contexts/SavedContext';
-import Colors from '@/constants/colors';
-import { useState, useMemo, useCallback } from 'react';
-import * as Haptics from 'expo-haptics';
-import Animated, { FadeInDown } from 'react-native-reanimated';
-import { FilterChipRow, FilterItem } from '@/components/FilterChip';
 import { useQuery } from '@tanstack/react-query';
+import { router } from 'expo-router';
 import { getApiUrl } from '@/lib/query-client';
-import { fetch } from 'expo/fetch';
 import { useOnboarding } from '@/contexts/OnboardingContext';
+import BrowsePage, { BrowseItem, CategoryFilter } from '@/components/BrowsePage';
+import { fetch } from 'expo/fetch';
 
-// ─── Types ────────────────────────────────────────────────────────────────────
-
-type SampleEvent = any;
-
-const exploreCategories = [
-  { label: 'All', icon: 'apps' },
-  { label: 'Events', icon: 'calendar' },
-  { label: 'Indigenous', icon: 'earth' },
-  { label: 'Free', icon: 'gift' },
-  { label: 'Council', icon: 'business' },
-  { label: 'Food', icon: 'restaurant' },
-  { label: 'Music', icon: 'musical-notes' },
-  { label: 'Dance', icon: 'body' },
-  { label: 'Wellness', icon: 'heart' },
+const eventCategories: CategoryFilter[] = [
+  { label: 'All', icon: 'calendar', color: '#1C1C1E' },
+  { label: 'Music', icon: 'musical-notes', color: '#FF6B6B' },
+  { label: 'Dance', icon: 'body', color: '#4ECDC4' },
+  { label: 'Food', icon: 'restaurant', color: '#FFD93D' },
+  { label: 'Art', icon: 'color-palette', color: '#A855F7' },
+  { label: 'Wellness', icon: 'heart', color: '#FF6B8A' },
+  { label: 'Film', icon: 'film', color: '#2196F3' },
+  { label: 'Workshop', icon: 'construct', color: '#FF9800' },
+  { label: 'Heritage', icon: 'library', color: '#8B4513' },
 ];
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
 function formatDate(dateStr: string): string {
-  // Parse manually to avoid UTC/local timezone shifting the date
   const [year, month, day] = dateStr.split('-').map(Number);
   if (!year || !month || !day) return dateStr;
   const d = new Date(year, month - 1, day);
   return d.toLocaleDateString('en-AU', { day: 'numeric', month: 'short' });
 }
 
-function fuzzyMatch(text: string, query: string): number {
-  if (!text) return 0;
-  const t = text.toLowerCase();
-  const q = query.toLowerCase();
-  if (t === q) return 100;
-  if (t.startsWith(q)) return 90;
-  if (t.includes(q)) return 70;
-  const words = t.split(/\s+/);
-  for (const w of words) {
-    if (w.startsWith(q)) return 80;
-  }
-  let qi = 0;
-  for (let i = 0; i < t.length && qi < q.length; i++) {
-    if (t[i] === q[qi]) qi++;
-  }
-  if (qi === q.length) return 40;
-  return 0;
-}
-
-function scoreEvent(event: SampleEvent, query: string): number {
-  if (!query) return event.isFeatured ? 100 : 50;
-  const titleScore = fuzzyMatch(event.title, query) * 3;
-  const venueScore = fuzzyMatch(event.venue, query) * 2;
-  const communityScore = fuzzyMatch(event.communityTag, query) * 2;
-  const categoryScore = fuzzyMatch(event.category, query);
-  const descScore = fuzzyMatch(event.description, query) * 0.5;
-  const base = Math.max(titleScore, venueScore, communityScore, categoryScore, descScore);
-  const featuredBonus = event.isFeatured ? 10 : 0;
-  const popularityBonus = Math.min(event.attending / 50, 10);
-  return base + featuredBonus + popularityBonus;
-}
-
-// ─── ExploreScreen ────────────────────────────────────────────────────────────
-
 export default function ExploreScreen() {
-  const insets = useSafeAreaInsets();
-  const topInset = Platform.OS === 'web' ? 67 : insets.top;
-  const [search, setSearch] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('All');
-  const [sortMode, setSortMode] = useState<'relevance' | 'date'>('relevance');
-  const { isEventSaved, toggleSaveEvent } = useSaved();
   const { state } = useOnboarding();
 
-  const { data: allEvents = [], isLoading } = useQuery({
+  const queryParams = new URLSearchParams();
+  if (state.country) queryParams.set('country', state.country);
+  if (state.city) queryParams.set('city', state.city);
+  const qs = queryParams.toString();
+
+  const { data: events = [], isLoading } = useQuery({
     queryKey: ['/api/events', state.country, state.city],
     queryFn: async () => {
       const base = getApiUrl();
-      const params = new URLSearchParams();
-      if (state.country) params.set('country', state.country);
-      if (state.city) params.set('city', state.city);
-      const qs = params.toString();
-      const res = await fetch(`${base}api/events${qs ? `?${qs}` : ''}`);
+      const url = `${base}api/events${qs ? `?${qs}` : ''}`;
+      const res = await fetch(url);
       if (!res.ok) throw new Error(`${res.status}`);
       return res.json();
     },
   });
 
-  const categoryCounts = useMemo(() => {
-    const all = allEvents as SampleEvent[];
-    const counts: Record<string, number> = {};
-    for (const cat of exploreCategories) {
-      if (cat.label === 'All') counts[cat.label] = all.length;
-      else if (cat.label === 'Free') counts[cat.label] = all.filter((e: any) => e.price === 0).length;
-      else if (cat.label === 'Council') counts[cat.label] = all.filter((e: any) => e.isCouncil).length;
-      else if (cat.label === 'Events') counts[cat.label] = all.length;
-      else counts[cat.label] = all.filter((e: any) => e.category === cat.label).length;
-    }
-    return counts;
-  }, [allEvents]);
+  const browseItems: BrowseItem[] = events.map((event: any) => ({
+    id: event.id,
+    title: event.title,
+    subtitle: `${formatDate(event.date)} | ${event.venue}`,
+    description: event.description,
+    imageUrl: event.imageUrl,
+    rating: event.attending ? undefined : undefined,
+    priceLabel: event.price === 0 ? 'Free' : event.priceLabel,
+    isPromoted: event.isFeatured,
+    badge: event.communityTag,
+    category: event.category,
+    meta: `${event.attending} attending`,
+  }));
 
-  const filterItems = useMemo(
-    () =>
-      exploreCategories.map(
-        (cat): FilterItem => ({
-          id: cat.label,
-          label: cat.label,
-          icon: cat.icon,
-          color: Colors.primary,
-          count: categoryCounts[cat.label],
-        })
-      ),
-    [categoryCounts]
-  );
+  const promotedItems = browseItems.filter((item) => item.isPromoted);
 
-  const filteredEvents = useMemo(() => {
-    let events = allEvents as SampleEvent[];
-
-    if (selectedCategory !== 'All') {
-      if (selectedCategory === 'Free') {
-        events = events.filter((e: any) => e.price === 0);
-      } else if (selectedCategory === 'Council') {
-        events = events.filter((e: any) => e.isCouncil);
-      } else if (selectedCategory !== 'Events') {
-        events = events.filter((e: any) => e.category === selectedCategory);
-      }
-    }
-
-    if (search.trim()) {
-      const scored = events
-        .map((e: any) => ({ event: e, score: scoreEvent(e, search) }))
-        .filter((s: any) => s.score > 0);
-      scored.sort((a: any, b: any) => b.score - a.score);
-      const result = scored.map((s: any) => s.event);
-      if (sortMode === 'date') {
-        result.sort((a: any, b: any) => a.date.localeCompare(b.date));
-      }
-      return result;
-    }
-
-    if (sortMode === 'date') {
-      return [...events].sort((a: any, b: any) => a.date.localeCompare(b.date));
-    }
-
-    return [...events].sort((a: any, b: any) => {
-      if (a.isFeatured && !b.isFeatured) return -1;
-      if (!a.isFeatured && b.isFeatured) return 1;
-      return b.attending - a.attending;
-    });
-  }, [search, selectedCategory, sortMode, allEvents]);
-
-  const handleShareEvent = useCallback(async (event: SampleEvent) => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    try {
-      await Share.share({
-        title: event.title,
-        message: `Check out ${event.title} on CulturePass! ${event.venue} - ${formatDate(event.date)}. ${event.priceLabel}`,
-      });
-    } catch {
-    }
-  }, []);
-
-  const [refreshing, setRefreshing] = useState(false);
-  const handleRefresh = useCallback(() => {
-    setRefreshing(true);
-    setTimeout(() => setRefreshing(false), 800);
-  }, []);
-
-  const handleCategorySelect = useCallback((label: string) => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    setSelectedCategory(label);
-  }, []);
+  const handleItemPress = (item: BrowseItem) => {
+    router.push({ pathname: '/event/[id]', params: { id: item.id } });
+  };
 
   return (
-    <View style={[styles.container, { paddingTop: topInset }]}>
-      {/* Header */}
-      <View style={styles.header}>
-        <Text style={styles.title}>Explore</Text>
-        <Text style={styles.subtitle}>Discover cultural events near you</Text>
-      </View>
-
-      {/* Search bar */}
-      <View style={styles.searchContainer}>
-        <Ionicons name="search" size={22} color={Colors.textTertiary} />
-        <TextInput
-          style={styles.searchInput}
-          placeholder="Search events, venues, communities..."
-          placeholderTextColor={Colors.textTertiary}
-          value={search}
-          onChangeText={setSearch}
-          returnKeyType="search"
-        />
-        {search.length > 0 && (
-          <Pressable onPress={() => setSearch('')} hitSlop={8}>
-            <Ionicons name="close-circle" size={22} color={Colors.textTertiary} />
-          </Pressable>
-        )}
-      </View>
-
-      {/* Category filter chips */}
-      <FilterChipRow items={filterItems} selectedId={selectedCategory} onSelect={handleCategorySelect} />
-
-      <View style={styles.sortRow}>
-        <Pressable
-          style={[styles.sortPill, sortMode === 'relevance' && styles.sortPillActive]}
-          onPress={() => {
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-            setSortMode('relevance');
-          }}
-        >
-          <Ionicons
-            name="sparkles"
-            size={14}
-            color={sortMode === 'relevance' ? '#FFF' : Colors.textSecondary}
-          />
-          <Text style={[styles.sortPillText, sortMode === 'relevance' && styles.sortPillTextActive]}>
-            Relevance
-          </Text>
-        </Pressable>
-        <Pressable
-          style={[styles.sortPill, sortMode === 'date' && styles.sortPillActive]}
-          onPress={() => {
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-            setSortMode('date');
-          }}
-        >
-          <Ionicons
-            name="calendar-outline"
-            size={14}
-            color={sortMode === 'date' ? '#FFF' : Colors.textSecondary}
-          />
-          <Text style={[styles.sortPillText, sortMode === 'date' && styles.sortPillTextActive]}>
-            Date
-          </Text>
-        </Pressable>
-      </View>
-
-      {isLoading ? (
-        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', paddingTop: 60 }}>
-          <ActivityIndicator size="large" color={Colors.primary} />
-        </View>
-      ) : (
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.results}
-        keyboardShouldPersistTaps="handled"
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={Colors.primary} colors={[Colors.primary]} />}
-      >
-        <Text style={styles.resultCount}>
-          {filteredEvents.length}
-          {selectedCategory !== 'All' ? ` ${selectedCategory}` : ''} event{filteredEvents.length !== 1 ? 's' : ''} found
-          {search.trim() ? ` for "${search.trim()}"` : ''}
-        </Text>
-
-        {filteredEvents.map((event, index) => (
-          <EventCard
-            key={event.id}
-            event={event}
-            index={index}
-            isSaved={isEventSaved(event.id)}
-            onToggleSave={() => {
-              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-              toggleSaveEvent(event.id);
-            }}
-            onShare={() => handleShareEvent(event)}
-          />
-        ))}
-
-        {filteredEvents.length === 0 && (
-          <View style={styles.empty}>
-            <View style={styles.emptyIconWrap}>
-              <Ionicons name="search" size={42} color={Colors.textTertiary} />
-            </View>
-            <Text style={styles.emptyTitle}>No events found</Text>
-            <Text style={styles.emptySubtext}>Try adjusting your search or filters</Text>
-            <Text style={styles.emptyHint}>Quick search:</Text>
-            <View style={styles.quickSearchRow}>
-              {['music', 'food', 'festival'].map(term => (
-                <Pressable
-                  key={term}
-                  style={styles.quickSearchPill}
-                  onPress={() => {
-                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                    setSearch(term);
-                    setSelectedCategory('All');
-                  }}
-                >
-                  <Text style={styles.quickSearchText}>{term}</Text>
-                </Pressable>
-              ))}
-            </View>
-          </View>
-        )}
-
-        <View style={{ height: 100 }} />
-      </ScrollView>
-      )}
-    </View>
+    <BrowsePage
+      title="Events"
+      accentColor="#1A7A6D"
+      accentIcon="calendar"
+      categories={eventCategories}
+      categoryKey="category"
+      items={browseItems}
+      isLoading={isLoading}
+      promotedItems={promotedItems}
+      promotedTitle="Featured Events"
+      onItemPress={handleItemPress}
+      emptyMessage="No events found"
+      emptyIcon="calendar-outline"
+    />
   );
 }
-
-// ─── EventCard ────────────────────────────────────────────────────────────────
-// Extracted to its own component so the save/share callbacks don't capture a
-// stale closure over the full events array on every render.
-
-interface EventCardProps {
-  event: SampleEvent;
-  index: number;
-  isSaved: boolean;
-  onToggleSave: () => void;
-  onShare: () => void;
-}
-
-function EventCard({ event, index, isSaved, onToggleSave, onShare }: EventCardProps) {
-  return (
-    <Animated.View entering={FadeInDown.delay(index * 40).duration(300)}>
-      <Pressable
-        style={styles.resultCard}
-        onPress={() =>
-          router.push({ pathname: '/event/[id]', params: { id: event.id } })
-        }
-      >
-        {/* Colour swatch / image */}
-        <Image source={{ uri: event.imageUrl }} style={styles.resultImage} />
-        {event.isCouncil && (
-          <View style={styles.councilBadge}>
-            <Ionicons name="shield-checkmark" size={14} color="#FFF" />
-          </View>
-        )}
-
-        {/* Content */}
-        <View style={styles.resultContent}>
-          <View style={styles.resultTags}>
-            <View style={[styles.tag, { backgroundColor: event.imageColor + '15' }]}>
-              <Text style={[styles.tagText, { color: event.imageColor }]}>
-                {event.communityTag}
-              </Text>
-            </View>
-            <Text style={styles.resultCategory}>{event.category}</Text>
-          </View>
-
-          <Text style={styles.resultTitle} numberOfLines={2}>
-            {event.title}
-          </Text>
-
-          <View style={styles.resultMeta}>
-            <Ionicons name="calendar-outline" size={13} color={Colors.textSecondary} />
-            <Text style={styles.resultMetaText}>{formatDate(event.date)}</Text>
-            <Ionicons name="location-outline" size={13} color={Colors.textSecondary} />
-            <Text style={styles.resultMetaText} numberOfLines={1}>
-              {event.venue}
-            </Text>
-          </View>
-
-          <View style={styles.resultBottom}>
-            <Text
-              style={[styles.resultPrice, event.price === 0 && { color: Colors.success }]}
-            >
-              {event.priceLabel}
-            </Text>
-            <Text style={styles.resultAttending}>{event.attending} going</Text>
-          </View>
-        </View>
-
-        {/* Action buttons */}
-        <View style={styles.cardActions}>
-          <Pressable
-            style={styles.actionBtn}
-            onPress={(e) => {
-              e.stopPropagation?.();
-              onShare();
-            }}
-            hitSlop={8}
-          >
-            <Ionicons name="share-outline" size={18} color={Colors.textTertiary} />
-          </Pressable>
-          <Pressable
-            style={styles.actionBtn}
-            onPress={(e) => {
-              e.stopPropagation?.();
-              onToggleSave();
-            }}
-            hitSlop={8}
-          >
-            <Ionicons
-              name={isSaved ? 'bookmark' : 'bookmark-outline'}
-              size={18}
-              color={isSaved ? Colors.primary : Colors.textTertiary}
-            />
-          </Pressable>
-        </View>
-      </Pressable>
-    </Animated.View>
-  );
-}
-
-// ─── Styles ───────────────────────────────────────────────────────────────────
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
-  header: { paddingHorizontal: 20, paddingTop: 10, paddingBottom: 6 },
-  title: { fontSize: 28, fontFamily: 'Poppins_700Bold', color: Colors.text },
-  subtitle: {
-    fontSize: 14,
-    fontFamily: 'Poppins_400Regular',
-    color: Colors.textSecondary,
-    marginTop: 2,
-  },
-  searchContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: Colors.surface,
-    borderRadius: 16,
-    marginHorizontal: 20,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    gap: 12,
-    borderWidth: 0.5,
-    borderColor: Colors.cardBorder,
-    marginBottom: 14,
-    marginTop: 10,
-    ...Colors.shadow.medium,
-  },
-  searchInput: {
-    flex: 1,
-    fontSize: 15,
-    fontFamily: 'Poppins_400Regular',
-    color: Colors.text,
-    padding: 0,
-  },
-  results: { paddingHorizontal: 20, paddingTop: 6 },
-  resultCount: {
-    fontSize: 14,
-    fontFamily: 'Poppins_600SemiBold',
-    color: Colors.textSecondary,
-    marginBottom: 14,
-  },
-  resultCard: {
-    flexDirection: 'row',
-    backgroundColor: Colors.card,
-    borderRadius: 20,
-    overflow: 'hidden',
-    marginBottom: 14,
-    borderWidth: 0.5,
-    borderColor: Colors.cardBorder,
-    ...Colors.shadow.medium,
-  },
-  resultImage: {
-    width: 110,
-    position: 'relative',
-  },
-  councilBadge: {
-    position: 'absolute',
-    top: 8,
-    left: 8,
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: Colors.secondary,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  resultContent: { flex: 1, padding: 14, gap: 6 },
-  resultTags: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  tag: { paddingHorizontal: 10, paddingVertical: 3, borderRadius: 10 },
-  tagText: { fontSize: 11, fontFamily: 'Poppins_600SemiBold' },
-  resultCategory: {
-    fontSize: 11,
-    fontFamily: 'Poppins_400Regular',
-    color: Colors.textTertiary,
-  },
-  resultTitle: {
-    fontSize: 15,
-    fontFamily: 'Poppins_600SemiBold',
-    color: Colors.text,
-    lineHeight: 20,
-  },
-  resultMeta: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    flexWrap: 'wrap',
-  },
-  resultMetaText: {
-    fontSize: 12,
-    fontFamily: 'Poppins_400Regular',
-    color: Colors.textSecondary,
-    marginRight: 6,
-  },
-  resultBottom: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginTop: 2,
-  },
-  resultPrice: { fontSize: 14, fontFamily: 'Poppins_700Bold', color: Colors.text },
-  resultAttending: {
-    fontSize: 12,
-    fontFamily: 'Poppins_400Regular',
-    color: Colors.textSecondary,
-  },
-  cardActions: {
-    paddingHorizontal: 8,
-    paddingVertical: 8,
-    justifyContent: 'space-between',
-  },
-  actionBtn: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: Colors.backgroundSecondary,
-  },
-  empty: { alignItems: 'center', paddingVertical: 90, gap: 14 },
-  emptyIconWrap: {
-    width: 96,
-    height: 96,
-    borderRadius: 48,
-    backgroundColor: Colors.backgroundSecondary,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 8,
-  },
-  emptyTitle: { fontSize: 22, fontFamily: 'Poppins_600SemiBold', color: Colors.text, textAlign: 'center' as const },
-  emptySubtext: {
-    fontSize: 15,
-    fontFamily: 'Poppins_400Regular',
-    color: Colors.textSecondary,
-    textAlign: 'center' as const,
-    paddingHorizontal: 32,
-  },
-  emptyHint: {
-    fontSize: 14,
-    fontFamily: 'Poppins_600SemiBold',
-    color: Colors.textTertiary,
-    marginTop: 20,
-  },
-  quickSearchRow: {
-    flexDirection: 'row',
-    gap: 12,
-    marginTop: 10,
-  },
-  quickSearchPill: {
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 24,
-    backgroundColor: Colors.primaryGlow,
-    borderWidth: 1.5,
-    borderColor: Colors.primary + '30',
-    ...Colors.shadow.small,
-  },
-  quickSearchText: {
-    fontSize: 14,
-    fontFamily: 'Poppins_600SemiBold',
-    color: Colors.primary,
-  },
-  sortRow: {
-    flexDirection: 'row' as const,
-    paddingHorizontal: 20,
-    gap: 10,
-    paddingBottom: 12,
-  },
-  sortPill: {
-    flexDirection: 'row' as const,
-    alignItems: 'center' as const,
-    gap: 6,
-    paddingHorizontal: 18,
-    paddingVertical: 9,
-    borderRadius: 24,
-    backgroundColor: Colors.surface,
-    borderWidth: 1.5,
-    borderColor: Colors.cardBorder,
-    ...Colors.shadow.small,
-  },
-  sortPillActive: {
-    backgroundColor: Colors.secondary,
-    borderColor: Colors.secondary,
-    ...Colors.shadow.medium,
-  },
-  sortPillText: {
-    fontSize: 13,
-    fontFamily: 'Poppins_600SemiBold',
-    color: Colors.textSecondary,
-  },
-  sortPillTextActive: {
-    color: '#FFF',
-  },
-});

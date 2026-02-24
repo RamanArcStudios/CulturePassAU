@@ -32,7 +32,7 @@ interface BrowsePageProps {
   title: string;
   accentColor?: string;
   accentIcon?: string;
-  apiEndpoint: string;
+  apiEndpoint?: string;
   categories: CategoryFilter[];
   categoryKey?: string;
   items: BrowseItem[];

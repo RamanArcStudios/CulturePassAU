@@ -343,6 +343,7 @@ const styles = StyleSheet.create({
     borderWidth: 0.5,
     borderColor: Colors.cardBorder,
     marginBottom: 8,
+    overflow: 'hidden',
     ...Colors.shadow.medium,
   },
   searchInput: {
@@ -351,6 +352,7 @@ const styles = StyleSheet.create({
     fontFamily: 'Poppins_400Regular',
     color: Colors.text,
     padding: 0,
+    minWidth: 0,
   },
   categorySection: { paddingTop: 8, paddingBottom: 4 },
   resultCount: {
