@@ -264,6 +264,48 @@ app.post('/api/payment-methods', (req, res) => {
   paymentMethods.set(userId, [...current, method]);
   res.status(201).json(method);
 });
+app.delete('/api/payment-methods/:id', (req, res) => {
+  for (const [userId, methods] of paymentMethods.entries()) {
+    const next = methods.filter((method) => method.id !== req.params.id);
+    if (next.length !== methods.length) {
+      if (next.length > 0 && !next.some((method) => method.isDefault)) {
+        next[0].isDefault = true;
+      }
+      paymentMethods.set(userId, next);
+      return res.json({ ok: true });
+    }
+  }
+  return res.status(404).json({ error: 'Payment method not found' });
+});
+app.put('/api/payment-methods/:userId/default/:methodId', (req, res) => {
+  const methods = paymentMethods.get(req.params.userId) ?? [];
+  if (methods.length === 0) return res.status(404).json({ error: 'No payment methods found' });
+  let found = false;
+  methods.forEach((method) => {
+    method.isDefault = method.id === req.params.methodId;
+    if (method.isDefault) found = true;
+  });
+  if (!found) return res.status(404).json({ error: 'Payment method not found' });
+  paymentMethods.set(req.params.userId, methods);
+  res.json(methods);
+});
+app.post('/api/wallet/:userId/topup', (req, res) => {
+  const wallet = wallets.get(req.params.userId);
+  if (!wallet) return res.status(404).json({ error: 'Wallet not found' });
+  const amount = Number(req.body?.amount ?? 0);
+  if (!Number.isFinite(amount) || amount <= 0) return res.status(400).json({ error: 'amount must be a positive number' });
+  wallet.balance += Math.round(amount * 100);
+  const tx = transactions.get(req.params.userId) ?? [];
+  tx.unshift({
+    id: randomUUID(),
+    type: 'charge',
+    amountCents: Math.round(amount * 100),
+    createdAt: nowIso(),
+    description: 'Wallet top up',
+  });
+  transactions.set(req.params.userId, tx);
+  res.json(wallet);
+});
 
 app.get('/api/membership/:userId', (req, res) => res.json(memberships.get(req.params.userId) ?? null));
 app.get('/api/membership/member-count', (_req, res) => {
@@ -347,6 +389,91 @@ app.post('/api/tickets/scan', (req, res) => {
   res.json({ valid: true, message: 'Ticket scanned successfully', ticket });
 });
 
+const perks = [
+  {
+    id: 'p1',
+    title: '20% Off Partner Cafes',
+    description: 'Save on selected Sydney partner cafes.',
+    perkType: 'discount_percent',
+    discountPercent: 20,
+    discountFixedCents: null,
+    providerType: 'business',
+    providerId: 'b1',
+    providerName: 'RamanArc Studios',
+    category: 'dining',
+    isMembershipRequired: false,
+    requiredMembershipTier: 'free',
+    usageLimit: 500,
+    usedCount: 34,
+    perUserLimit: 2,
+    status: 'active',
+    startDate: nowIso(),
+    endDate: null,
+  },
+  {
+    id: 'p2',
+    title: 'VIP Event Priority Entry',
+    description: 'Skip the queue at selected community events.',
+    perkType: 'vip_upgrade',
+    discountPercent: null,
+    discountFixedCents: null,
+    providerType: 'event',
+    providerId: 'e1',
+    providerName: 'CulturePass Events',
+    category: 'events',
+    isMembershipRequired: true,
+    requiredMembershipTier: 'plus',
+    usageLimit: null,
+    usedCount: 10,
+    perUserLimit: 1,
+    status: 'active',
+    startDate: nowIso(),
+    endDate: null,
+  },
+];
+
+const redemptions = new Map<string, Array<{ id: string; perkId: string; userId: string; redeemedAt: string }>>();
+
+app.get('/api/perks', (_req, res) => res.json(perks));
+app.get('/api/perks/:id', (req, res) => {
+  const perk = perks.find((item) => item.id === req.params.id);
+  if (!perk) return res.status(404).json({ error: 'Perk not found' });
+  res.json(perk);
+});
+app.post('/api/perks', moderationCheck, (req, res) => {
+  const perk = { id: randomUUID(), ...req.body };
+  perks.unshift(perk as any);
+  res.status(201).json(perk);
+});
+app.post('/api/perks/:id/redeem', (req, res) => {
+  const perk = perks.find((item) => item.id === req.params.id);
+  if (!perk) return res.status(404).json({ error: 'Perk not found' });
+  const userId = String(req.body?.userId ?? '');
+  if (!userId) return res.status(400).json({ error: 'userId is required' });
+
+  const userRedemptions = redemptions.get(userId) ?? [];
+  const alreadyUsed = userRedemptions.filter((item) => item.perkId === req.params.id).length;
+  if (perk.perUserLimit && alreadyUsed >= perk.perUserLimit) {
+    return res.status(400).json({ error: 'Per-user redemption limit reached' });
+  }
+
+  if (perk.isMembershipRequired) {
+    const membership = memberships.get(userId);
+    if (!membership || membership.tier === 'free') {
+      return res.status(403).json({ error: 'Membership tier required for this perk' });
+    }
+  }
+
+  const redemption = { id: randomUUID(), perkId: req.params.id, userId, redeemedAt: nowIso() };
+  userRedemptions.unshift(redemption);
+  redemptions.set(userId, userRedemptions);
+  perk.usedCount = Number(perk.usedCount ?? 0) + 1;
+  res.status(201).json(redemption);
+});
+app.get('/api/redemptions', (req, res) => {
+  const userId = String(req.query.userId ?? users[0].id);
+  res.json(redemptions.get(userId) ?? []);
+});
 app.get('/api/perks', (_req, res) => res.json([
   { id: 'p1', title: '20% Off Partner Cafes', requiredTier: 'free', pointsCost: 100 },
   { id: 'p2', title: 'VIP Event Priority Entry', requiredTier: 'plus', pointsCost: 350 },
@@ -358,6 +485,36 @@ app.get('/api/redemptions', (_req, res) => res.json([]));
 app.get('/api/notifications/:userId', (req, res) => res.json(notifications.get(req.params.userId) ?? []));
 app.get('/api/notifications/:userId/unread-count', (req, res) => {
   const list = notifications.get(req.params.userId) ?? [];
+  res.json({ count: list.filter((n) => !n.isRead).length });
+});
+app.put('/api/notifications/:id/read', (req, res) => {
+  for (const [userId, list] of notifications.entries()) {
+    const item = list.find((n) => n.id === req.params.id);
+    if (item) {
+      item.isRead = true;
+      notifications.set(userId, list);
+      return res.json({ ok: true, item });
+    }
+  }
+  return res.status(404).json({ error: 'Notification not found' });
+});
+app.put('/api/notifications/:userId/read-all', (req, res) => {
+  const list = notifications.get(req.params.userId) ?? [];
+  list.forEach((item) => {
+    item.isRead = true;
+  });
+  notifications.set(req.params.userId, list);
+  res.json({ ok: true, updated: list.length });
+});
+app.delete('/api/notifications/:id', (req, res) => {
+  for (const [userId, list] of notifications.entries()) {
+    const next = list.filter((item) => item.id !== req.params.id);
+    if (next.length !== list.length) {
+      notifications.set(userId, next);
+      return res.json({ ok: true });
+    }
+  }
+  return res.status(404).json({ error: 'Notification not found' });
   res.json({ count: list.filter((n) => !n.read).length });
 });
 app.post('/api/notifications/:userId/:id/read', (req, res) => {
@@ -422,6 +579,11 @@ app.get('/api/search/suggest', (req, res) => {
   res.json({ suggestions });
 });
 
+app.post('/api/stripe/create-checkout-session', (req, res) => {
+  const ticket = req.body?.ticketData ?? {};
+  const draftId = randomUUID();
+  res.json({ checkoutUrl: 'https://checkout.stripe.com/mock-session', ticketId: draftId, ticket });
+});
 app.post('/api/stripe/create-checkout-session', (_req, res) => res.json({ url: 'https://checkout.stripe.com/mock-session' }));
 app.post('/api/stripe/refund', (req, res) => res.json({ ok: true, ticketId: req.body?.ticketId }));
 
