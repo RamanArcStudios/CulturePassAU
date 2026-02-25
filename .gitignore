@@ -8,6 +8,8 @@ node_modules/
 dist/
 web-build/
 expo-env.d.ts
+static-build/
+server_dist/
 
 # Native
 ios/

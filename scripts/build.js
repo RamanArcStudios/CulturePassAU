@@ -243,3 +243,77 @@ async function downloadBundlesAndManifests(timestamp) {
     android: results[3].value,
   };
 }
+
+function rewriteBundleUrl(manifest, domain, timestamp, platform) {
+  const bundlePath = `/${timestamp}/_expo/static/js/${platform}/bundle.js`;
+  const absoluteUrl = `https://${domain}${bundlePath}`;
+
+  // Expo Updates manifest format
+  if (manifest.launchAsset && manifest.launchAsset.url) {
+    manifest.launchAsset.url = absoluteUrl;
+  }
+
+  // Classic Expo manifest format
+  if (manifest.bundleUrl) {
+    manifest.bundleUrl = absoluteUrl;
+  }
+
+  return manifest;
+}
+
+function writeManifests(manifests, timestamp, domain) {
+  for (const platform of ["ios", "android"]) {
+    const manifest = manifests[platform];
+    if (!manifest) continue;
+
+    const rewritten = rewriteBundleUrl(
+      JSON.parse(JSON.stringify(manifest)),
+      domain,
+      timestamp,
+      platform,
+    );
+
+    const outputPath = path.join("static-build", platform, "manifest.json");
+    fs.writeFileSync(outputPath, JSON.stringify(rewritten, null, 2));
+    console.log(`Wrote ${platform} manifest to ${outputPath}`);
+  }
+}
+
+async function main() {
+  setupSignalHandlers();
+
+  const domain = getDeploymentDomain();
+  const timestamp = Date.now().toString();
+
+  prepareDirectories(timestamp);
+  clearMetroCache();
+  await startMetro(domain);
+
+  const manifests = await downloadBundlesAndManifests(timestamp);
+  writeManifests(manifests, timestamp, domain);
+
+  // Write build metadata so the server knows the current build
+  const metadata = {
+    timestamp,
+    domain,
+    builtAt: new Date().toISOString(),
+  };
+  fs.writeFileSync(
+    path.join("static-build", "metadata.json"),
+    JSON.stringify(metadata, null, 2),
+  );
+
+  console.log("Static build complete!");
+
+  if (metroProcess) {
+    metroProcess.kill("SIGTERM");
+  }
+}
+
+main().catch((err) => {
+  console.error("Build failed:", err);
+  if (metroProcess) {
+    metroProcess.kill("SIGTERM");
+  }
+  process.exit(1);
+});
