@@ -22,6 +22,9 @@ interface UserData {
   city: string | null;
   country: string | null;
   location: string | null;
+  heritage?: string | null;
+  languages?: string[] | null;
+  dietary?: string | null;
   avatarUrl?: string | null;
   website: string | null;
   socialLinks: {
@@ -63,6 +66,9 @@ export default function EditProfileScreen() {
     bio: '',
     city: '',
     country: '',
+    heritage: '',
+    languages: '',
+    dietary: '',
     website: '',
     instagram: '',
     twitter: '',
@@ -81,6 +87,9 @@ export default function EditProfileScreen() {
         bio: user.bio || '',
         city: user.city || '',
         country: user.country || '',
+        heritage: user.heritage || '',
+        languages: user.languages?.join(', ') || '',
+        dietary: user.dietary || '',
         website: user.website || '',
         instagram: user.socialLinks?.instagram || '',
         twitter: user.socialLinks?.twitter || '',
@@ -194,6 +203,11 @@ export default function EditProfileScreen() {
       }
     }
 
+    // Process languages into an array
+    const languagesArray = form.languages
+      ? form.languages.split(',').map(lang => lang.trim()).filter(Boolean)
+      : null;
+
     updateMutation.mutate({
       displayName: form.displayName.trim(),
       email: form.email.trim() || null,
@@ -202,6 +216,9 @@ export default function EditProfileScreen() {
       city: form.city.trim() || null,
       country: form.country.trim() || null,
       location: form.city && form.country ? `${form.city.trim()}, ${form.country.trim()}` : null,
+      heritage: form.heritage.trim() || null,
+      languages: languagesArray,
+      dietary: form.dietary.trim() || null,
       avatarUrl,
       website: form.website.trim() || null,
       socialLinks: {
@@ -283,6 +300,23 @@ export default function EditProfileScreen() {
             <Text style={styles.charCount}>{form.bio.length}/280</Text>
           </Animated.View>
 
+          <Animated.View entering={FadeInDown.delay(250).duration(400)} style={styles.formSection}>
+            <Text style={styles.sectionLabel}>Cultural Identity</Text>
+
+            <Text style={styles.fieldLabel}>Heritage & Roots</Text>
+            <TextInput style={styles.input} value={form.heritage} onChangeText={v => setForm(p => ({ ...p, heritage: v }))}
+              placeholder="e.g. Kerala, India" placeholderTextColor={Colors.textTertiary} />
+
+            <Text style={styles.fieldLabel}>Languages Spoken</Text>
+            <TextInput style={styles.input} value={form.languages} onChangeText={v => setForm(p => ({ ...p, languages: v }))}
+              placeholder="e.g. English, Malayalam" placeholderTextColor={Colors.textTertiary} />
+            <Text style={styles.hintText}>Separate multiple languages with commas</Text>
+
+            <Text style={styles.fieldLabel}>Dietary Preferences</Text>
+            <TextInput style={styles.input} value={form.dietary} onChangeText={v => setForm(p => ({ ...p, dietary: v }))}
+              placeholder="e.g. Halal, Vegetarian, None" placeholderTextColor={Colors.textTertiary} />
+          </Animated.View>
+
           <Animated.View entering={FadeInDown.delay(300).duration(400)} style={styles.formSection}>
             <Text style={styles.sectionLabel}>Location</Text>
 
@@ -362,6 +396,7 @@ const styles = StyleSheet.create({
   input: { backgroundColor: Colors.card, borderRadius: 12, padding: 14, fontSize: 15, fontFamily: 'Poppins_400Regular', color: Colors.text, borderWidth: 1, borderColor: Colors.cardBorder },
   bioInput: { minHeight: 100, paddingTop: 14 },
   charCount: { fontSize: 11, fontFamily: 'Poppins_400Regular', color: Colors.textTertiary, textAlign: 'right', marginTop: 4 },
+  hintText: { fontSize: 11, fontFamily: 'Poppins_400Regular', color: Colors.textTertiary, marginTop: 4 },
   socialRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 10 },
   socialIcon: { width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
 });

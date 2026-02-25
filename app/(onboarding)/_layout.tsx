@@ -1,7 +1,7 @@
 import { Stack } from "expo-router";
 import { useOnboarding } from "@/contexts/OnboardingContext";
 import { Redirect } from "expo-router";
-import { ActivityIndicator, View } from "react-native";
+import { ActivityIndicator, View, StyleSheet } from "react-native";
 import Colors from "@/constants/colors";
 
 export default function OnboardingLayout() {
@@ -9,7 +9,7 @@ export default function OnboardingLayout() {
 
   if (isLoading) {
     return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: Colors.background }}>
+      <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={Colors.primary} />
       </View>
     );
@@ -20,7 +20,14 @@ export default function OnboardingLayout() {
   }
 
   return (
-    <Stack screenOptions={{ headerShown: false, animation: 'slide_from_right' }}>
+    <Stack 
+      screenOptions={{ 
+        headerShown: false, 
+        animation: 'slide_from_right',
+        gestureEnabled: true,
+        gestureDirection: 'horizontal',
+      }}
+    >
       <Stack.Screen name="index" />
       <Stack.Screen name="signup" />
       <Stack.Screen name="login" />
@@ -31,3 +38,12 @@ export default function OnboardingLayout() {
     </Stack>
   );
 }
+
+const styles = StyleSheet.create({
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: Colors.background,
+  },
+});

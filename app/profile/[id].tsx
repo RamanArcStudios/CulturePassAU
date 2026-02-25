@@ -11,6 +11,7 @@ import type { Profile, Review } from '@/shared/schema';
 import { getApiUrl } from '@/lib/query-client';
 import { fetch } from 'expo/fetch';
 import { confirmAndReport } from '@/lib/reporting';
+import { LinearGradient } from 'expo-linear-gradient';
 
 const ENTITY_COLORS: Record<string, string> = {
   community: '#E85D3A',
@@ -127,6 +128,7 @@ export default function ProfileDetailScreen() {
       profileTags.some((t: string) => tag.includes(t.toLowerCase()) || (ev.category || '').toLowerCase().includes(t.toLowerCase())) ||
       (profileLocation && venue.includes(profileLocation));
   });
+  
   const upcomingEvents = matchedEvents.length > 0
     ? matchedEvents.slice(0, 4)
     : allEventsData.filter(ev => ev.isFeatured || ev.priceCents === 0).slice(0, 4);
@@ -142,36 +144,43 @@ export default function ProfileDetailScreen() {
     stats.push({ label: 'Followers', value: 0 }, { label: 'Members', value: 0 });
   }
 
+  const isCommunity = profile.entityType === 'community';
+
   return (
     <View style={styles.container}>
       <View style={[styles.hero, { backgroundColor: entityColor, paddingTop: topInset }]}>
-        <View style={styles.heroOverlay}>
+        <LinearGradient
+          colors={['rgba(0,0,0,0.1)', 'rgba(0,0,0,0.6)']}
+          style={styles.heroOverlay}
+        >
           <View style={styles.heroTopRow}>
             <Pressable style={styles.backButton} onPress={() => router.back()}>
               <Ionicons name="arrow-back" size={22} color="#FFF" />
             </Pressable>
-            <Pressable
-              style={styles.shareButton}
-              onPress={() => confirmAndReport({ targetType: 'profile', targetId: String(profile.id), label: 'this profile' })}
-            >
-              <Ionicons name="flag-outline" size={20} color="#FFF" />
-            </Pressable>
-            <Pressable
-              style={styles.shareButton}
-              onPress={async () => {
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                try {
-                  const shareUrl = `https://culturepass.app/profile/${id}`;
-                  await Share.share({
-                    title: `${profile.name} on CulturePass`,
-                    message: `Check out ${profile.name} on CulturePass!${profile.category ? ` ${profile.category}.` : ''}${profile.location ? ` ${profile.location}.` : ''} Join and connect with this ${profile.entityType}!\n\n${shareUrl}`,
-                    url: shareUrl,
-                  });
-                } catch {}
-              }}
-            >
-              <Ionicons name="share-outline" size={20} color="#FFF" />
-            </Pressable>
+            <View style={{ flexDirection: 'row', gap: 10 }}>
+              <Pressable
+                style={styles.shareButton}
+                onPress={() => confirmAndReport({ targetType: 'profile', targetId: String(profile.id), label: 'this profile' })}
+              >
+                <Ionicons name="flag-outline" size={20} color="#FFF" />
+              </Pressable>
+              <Pressable
+                style={styles.shareButton}
+                onPress={async () => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  try {
+                    const shareUrl = `https://culturepass.app/profile/${id}`;
+                    await Share.share({
+                      title: `${profile.name} on CulturePass`,
+                      message: `Check out ${profile.name} on CulturePass!${profile.category ? ` ${profile.category}.` : ''}${profile.location ? ` ${profile.location}.` : ''} Join and connect with this ${profile.entityType}!\n\n${shareUrl}`,
+                      url: shareUrl,
+                    });
+                  } catch {}
+                }}
+              >
+                <Ionicons name="share-outline" size={20} color="#FFF" />
+              </Pressable>
+            </View>
           </View>
           <View style={styles.heroBottom}>
             <View style={styles.heroIconWrap}>
@@ -216,7 +225,7 @@ export default function ProfileDetailScreen() {
               </View>
             )}
           </View>
-        </View>
+        </LinearGradient>
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 120 }}>
@@ -262,7 +271,7 @@ export default function ProfileDetailScreen() {
               {profile.address && (
                 <Pressable style={styles.contactRow} onPress={() => {
                   if (hasCoordinates) {
-                    Linking.openURL(`https://www.google.com/maps?q=${profile.latitude},${profile.longitude}`);
+                    Linking.openURL(`https://maps.google.com/?q=${profile.latitude},${profile.longitude}`);
                   }
                 }}>
                   <Ionicons name="location-outline" size={18} color={Colors.textSecondary} />
@@ -380,7 +389,7 @@ export default function ProfileDetailScreen() {
             <Text style={styles.sectionTitle}>Location</Text>
             <Pressable
               style={styles.mapCard}
-              onPress={() => Linking.openURL(`https://www.google.com/maps?q=${profile.latitude},${profile.longitude}`)}
+              onPress={() => Linking.openURL(`https://maps.google.com/?q=${profile.latitude},${profile.longitude}`)}
             >
               <View style={[styles.mapIconWrap, { backgroundColor: entityColor + '15' }]}>
                 <Ionicons name="map" size={28} color={entityColor} />
@@ -456,7 +465,7 @@ export default function ProfileDetailScreen() {
         >
           <Ionicons name={isFollowing ? 'checkmark-circle' : 'add-circle'} size={20} color={isFollowing ? entityColor : '#FFF'} />
           <Text style={[styles.followText, isFollowing && { color: entityColor }]}>
-            {isFollowing ? 'Following' : 'Follow'}
+            {isFollowing ? (isCommunity ? 'Joined' : 'Following') : (isCommunity ? 'Join Community' : 'Follow')}
           </Text>
         </Pressable>
       </View>
@@ -471,7 +480,6 @@ const styles = StyleSheet.create({
   hero: { height: 260 },
   heroOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.25)',
     padding: 16,
     justifyContent: 'space-between',
   },
@@ -568,6 +576,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderWidth: 1,
     borderColor: Colors.cardBorder,
+    ...Colors.shadows.small,
   },
   statNum: {
     fontSize: 20,
@@ -615,6 +624,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Colors.cardBorder,
     overflow: 'hidden',
+    ...Colors.shadows.small,
   },
   contactRow: {
     flexDirection: 'row',
@@ -642,6 +652,7 @@ const styles = StyleSheet.create({
     padding: 16,
     borderWidth: 1,
     borderColor: Colors.cardBorder,
+    ...Colors.shadows.small,
   },
   hoursText: {
     flex: 1,
@@ -673,6 +684,7 @@ const styles = StyleSheet.create({
     padding: 16,
     borderWidth: 1,
     borderColor: Colors.cardBorder,
+    ...Colors.shadows.small,
   },
   mapIconWrap: {
     width: 50,
@@ -701,6 +713,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Colors.cardBorder,
     gap: 8,
+    ...Colors.shadows.small,
   },
   reviewHeader: {
     flexDirection: 'row',
@@ -738,6 +751,7 @@ const styles = StyleSheet.create({
     padding: 16,
     borderWidth: 1,
     borderColor: Colors.cardBorder,
+    ...Colors.shadows.small,
   },
   membersInfo: {
     flexDirection: 'row',
@@ -771,6 +785,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Colors.cardBorder,
     overflow: 'hidden',
+    ...Colors.shadows.small,
   },
   eventImagePlaceholder: {
     height: 100,

@@ -5,7 +5,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useQuery } from '@tanstack/react-query';
 import Colors from '@/constants/colors';
 import { getApiUrl } from '@/lib/query-client';
-import { fetch } from 'expo/fetch';
 import { useState, useMemo } from 'react';
 import * as Haptics from 'expo-haptics';
 import Animated, { FadeInUp } from 'react-native-reanimated';
@@ -49,7 +48,11 @@ function WebCityList({ cityGroups, selectedCity, onSelectCity, onEventPress }: {
 
   return (
     <View style={{ flex: 1 }}>
-      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16, gap: 10, paddingBottom: selectedCity ? 220 : 40 }}>
+      <ScrollView 
+        style={{ flex: 1 }} 
+        contentContainerStyle={{ padding: 16, gap: 10, paddingBottom: selectedCity ? 220 : 40 }}
+        showsVerticalScrollIndicator={false}
+      >
         <View style={webStyles.mapInfo}>
           <View style={webStyles.mapIconWrap}>
             <Ionicons name="map" size={28} color={Colors.primary} />
@@ -62,11 +65,17 @@ function WebCityList({ cityGroups, selectedCity, onSelectCity, onEventPress }: {
         {Object.entries(cityGroups).map(([city, group]: [string, any]) => (
           <Pressable
             key={city}
-            style={[webStyles.cityRow, selectedCity === city && webStyles.cityRowActive, Platform.OS === 'web' && { cursor: 'pointer' as any }]}
+            style={[
+              webStyles.cityRow, 
+              selectedCity === city && webStyles.cityRowActive,
+            ]}
             onPress={() => {
-              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              if (Platform.OS !== 'web') {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              }
               onSelectCity(selectedCity === city ? null : city);
             }}
+            android_ripple={{ color: Colors.primary + '20' }}
           >
             <View style={webStyles.cityLeft}>
               <View style={[webStyles.cityDot, selectedCity === city && webStyles.cityDotActive]}>
@@ -89,21 +98,34 @@ function WebCityList({ cityGroups, selectedCity, onSelectCity, onEventPress }: {
               <Text style={webStyles.panelCity}>{selectedCity}</Text>
               <Text style={webStyles.panelCount}>{selectedEvents.length} events</Text>
             </View>
-            <Pressable onPress={() => onSelectCity(null)} hitSlop={10} style={Platform.OS === 'web' ? { cursor: 'pointer' as any } : undefined}>
+            <Pressable 
+              onPress={() => onSelectCity(null)} 
+              hitSlop={10}
+              android_ripple={{ color: Colors.primary + '20', radius: 20 }}
+            >
               <Ionicons name="close-circle" size={26} color="#636366" />
             </Pressable>
           </View>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16, gap: 12 }}>
+          <ScrollView 
+            horizontal 
+            showsHorizontalScrollIndicator={false} 
+            contentContainerStyle={{ paddingHorizontal: 16, gap: 12 }}
+          >
             {selectedEvents.map((event: any) => (
               <Pressable
                 key={event.id}
-                style={[styles.eventCard, Platform.OS === 'web' && { cursor: 'pointer' as any }]}
+                style={styles.eventCard}
                 onPress={() => onEventPress(event.id)}
+                android_ripple={{ color: Colors.primary + '20' }}
               >
                 {event.imageUrl ? (
-                  <Image source={{ uri: event.imageUrl }} style={styles.eventImage} resizeMode="cover" />
+                  <Image 
+                    source={{ uri: event.imageUrl }} 
+                    style={styles.eventImage} 
+                    resizeMode="cover" 
+                  />
                 ) : (
-                  <View style={[styles.eventImage, { backgroundColor: Colors.primary + '20', alignItems: 'center', justifyContent: 'center' }]}>
+                  <View style={[styles.eventImage, styles.eventImagePlaceholder]}>
                     <Ionicons name="calendar" size={24} color={Colors.primary} />
                   </View>
                 )}
@@ -132,12 +154,12 @@ export default function EventsMapScreen() {
   const bottomInset = Platform.OS === 'web' ? 34 : insets.bottom;
   const [selectedCity, setSelectedCity] = useState<string | null>(null);
 
-  const { data: events = [], isLoading } = useQuery<any[]>({
+  const { data: events = [], isLoading, error, refetch } = useQuery<any[]>({
     queryKey: ['/api/events'],
     queryFn: async () => {
       const base = getApiUrl();
-      const res = await fetch(`${base}api/events`);
-      if (!res.ok) throw new Error(`${res.status}`);
+      const res = await fetch(`${base}/api/events`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
       return res.json();
     },
   });
@@ -159,29 +181,61 @@ export default function EventsMapScreen() {
   const selectedEvents = selectedCity ? (cityGroups[selectedCity]?.events || []) : [];
 
   const handleMarkerPress = (city: string) => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    if (Platform.OS !== 'web') {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    }
     setSelectedCity(city);
   };
 
   const handleEventPress = (eventId: string) => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    if (Platform.OS !== 'web') {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    }
     router.push({ pathname: '/event/[id]', params: { id: eventId } });
+  };
+
+  const handleBack = () => {
+    if (router.canGoBack()) {
+      router.back();
+    } else {
+      router.replace('/');
+    }
   };
 
   return (
     <View style={[styles.container, { paddingTop: topInset }]}>
       <View style={styles.header}>
-        <Pressable onPress={() => { if (router.canGoBack()) router.back(); else router.replace('/'); }} style={styles.backBtn} hitSlop={10}>
+        <Pressable 
+          onPress={handleBack} 
+          style={styles.backBtn} 
+          hitSlop={10}
+          android_ripple={{ color: Colors.primary + '20', radius: 20 }}
+        >
           <Ionicons name="chevron-back" size={24} color={Colors.text} />
         </Pressable>
         <Text style={styles.headerTitle}>Events Map</Text>
-        <View style={{ width: 40 }} />
+        <Pressable 
+          onPress={() => refetch()} 
+          style={styles.refreshBtn}
+          hitSlop={10}
+        >
+          <Ionicons name="refresh-outline" size={20} color={Colors.text} />
+        </Pressable>
       </View>
 
       {isLoading ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={Colors.primary} />
           <Text style={styles.loadingText}>Loading events...</Text>
+        </View>
+      ) : error ? (
+        <View style={styles.errorContainer}>
+          <Ionicons name="wifi-off-outline" size={48} color={Colors.textTertiary} />
+          <Text style={styles.errorTitle}>Connection Error</Text>
+          <Text style={styles.errorText}>Unable to load events</Text>
+          <Pressable style={styles.retryBtn} onPress={() => refetch()}>
+            <Text style={styles.retryBtnText}>Try Again</Text>
+          </Pressable>
         </View>
       ) : Platform.OS === 'web' ? (
         <WebCityList
@@ -282,6 +336,17 @@ const webStyles = StyleSheet.create({
     borderTopColor: 'rgba(255,255,255,0.06)',
     paddingTop: 16,
     paddingBottom: 50,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: -4 },
+        shadowOpacity: 0.1,
+        shadowRadius: 8,
+      },
+      android: {
+        elevation: 8,
+      },
+    }),
   },
   panelHeader: {
     flexDirection: 'row',
@@ -322,6 +387,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  refreshBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: Colors.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   headerTitle: {
     fontSize: 18,
     fontFamily: 'Poppins_600SemiBold',
@@ -338,6 +411,37 @@ const styles = StyleSheet.create({
     fontFamily: 'Poppins_400Regular',
     color: '#636366',
   },
+  errorContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 12,
+    paddingHorizontal: 40,
+  },
+  errorTitle: {
+    fontSize: 18,
+    fontFamily: 'Poppins_700Bold',
+    color: Colors.text,
+    textAlign: 'center',
+  },
+  errorText: {
+    fontSize: 14,
+    fontFamily: 'Poppins_400Regular',
+    color: '#636366',
+    textAlign: 'center',
+  },
+  retryBtn: {
+    backgroundColor: Colors.primary,
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 12,
+    marginTop: 8,
+  },
+  retryBtnText: {
+    fontSize: 15,
+    fontFamily: 'Poppins_600SemiBold',
+    color: '#FFF',
+  },
   eventCard: {
     width: 220,
     backgroundColor: Colors.surface,
@@ -349,6 +453,11 @@ const styles = StyleSheet.create({
   eventImage: {
     width: '100%',
     height: 110,
+  },
+  eventImagePlaceholder: {
+    backgroundColor: Colors.primary + '20',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   eventInfo: {
     padding: 12,

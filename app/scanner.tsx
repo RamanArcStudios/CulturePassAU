@@ -21,7 +21,6 @@ import { getApiUrl } from '@/lib/query-client';
 import { useContacts } from '@/contexts/ContactsContext';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { CameraView, useCameraPermissions } from 'expo-camera';
-import { fetch } from 'expo/fetch';
 
 type ScanMode = 'tickets' | 'culturepass';
 
@@ -132,11 +131,11 @@ export default function ScannerScreen() {
   const lookupCpid = useCallback(async (cpid: string): Promise<CulturePassContact | null> => {
     try {
       const base = getApiUrl();
-      const res = await fetch(`${base}api/cpid/lookup/${encodeURIComponent(cpid)}`);
+      const res = await fetch(`${base}/api/cpid/lookup/${encodeURIComponent(cpid)}`);
       if (!res.ok) return null;
       const data = await res.json();
       if (data.entityType === 'user' && data.targetId) {
-        const userRes = await fetch(`${base}api/users/${data.targetId}`);
+        const userRes = await fetch(`${base}/api/users/${data.targetId}`);
         if (userRes.ok) {
           const u = await userRes.json();
           return {
@@ -179,7 +178,9 @@ export default function ScannerScreen() {
       }
 
       setIsLookingUp(false);
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      if (Platform.OS !== 'web') {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      }
     }
   }, [lookupCpid]);
 
@@ -197,7 +198,7 @@ export default function ScannerScreen() {
     Keyboard.dismiss();
     try {
       const base = getApiUrl();
-      const res = await fetch(`${base}api/tickets/scan`, {
+      const res = await fetch(`${base}/api/tickets/scan`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ticketCode: code, scannedBy: 'staff' }),
@@ -207,19 +208,25 @@ export default function ScannerScreen() {
         const result: ScanResult = { valid: true, message: data.message || 'Ticket scanned successfully', ticket: data.ticket };
         setScanResult(result);
         setScanHistory(prev => [result, ...prev]);
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        if (Platform.OS !== 'web') {
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        }
         setTicketCode('');
       } else {
         const result: ScanResult = { valid: false, message: data.error || data.message || 'Invalid ticket code', ticket: data.ticket };
         setScanResult(result);
         setScanHistory(prev => [result, ...prev]);
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+        if (Platform.OS !== 'web') {
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+        }
       }
     } catch (e: any) {
       const result: ScanResult = { valid: false, message: e.message || 'Network error - could not scan ticket' };
       setScanResult(result);
       setScanHistory(prev => [result, ...prev]);
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      if (Platform.OS !== 'web') {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      }
     } finally {
       setIsScanning(false);
     }
@@ -246,10 +253,14 @@ export default function ScannerScreen() {
       } else {
         setCpContact(contact);
       }
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      if (Platform.OS !== 'web') {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      }
       setCpInput('');
     } else {
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      if (Platform.OS !== 'web') {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      }
       Alert.alert('Invalid Data', 'Could not parse the input. Enter a CulturePass ID (CP-123456), JSON, or vCard data.');
     }
     setIsLookingUp(false);
@@ -257,7 +268,9 @@ export default function ScannerScreen() {
 
   const handleSaveContact = useCallback(() => {
     if (!cpContact) return;
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    if (Platform.OS !== 'web') {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    }
     addContact({
       cpid: cpContact.cpid,
       name: cpContact.name,
@@ -277,7 +290,9 @@ export default function ScannerScreen() {
 
   const handleViewProfile = useCallback(() => {
     if (!cpContact) return;
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    if (Platform.OS !== 'web') {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    }
     if (!contactAlreadySaved) {
       handleSaveContact();
     }
@@ -311,16 +326,28 @@ export default function ScannerScreen() {
     setCameraActive(true);
   }, [permission, requestPermission]);
 
+  const handleModeChange = useCallback((newMode: ScanMode) => {
+    setMode(newMode);
+    if (Platform.OS !== 'web') {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    }
+  }, []);
+
   return (
     <View style={[styles.container, { paddingTop: topInset }]}>
       <View style={styles.header}>
-        <Pressable onPress={() => goBackOrReplace('/(tabs)')} style={styles.backBtn}>
+        <Pressable 
+          onPress={() => goBackOrReplace('/(tabs)')} 
+          style={styles.backBtn}
+          android_ripple={{ color: Colors.primary + '20', radius: 19 }}
+        >
           <Ionicons name="chevron-back" size={22} color={Colors.text} />
         </Pressable>
         <Text style={styles.headerTitle}>Scanner</Text>
         <Pressable
           onPress={() => router.push('/contacts' as any)}
           style={styles.contactsBtn}
+          android_ripple={{ color: Colors.primary + '30', radius: 19 }}
         >
           <Ionicons name="people-outline" size={20} color={Colors.primary} />
         </Pressable>
@@ -329,14 +356,16 @@ export default function ScannerScreen() {
       <View style={styles.toggleContainer}>
         <Pressable
           style={[styles.toggleTab, mode === 'culturepass' && styles.toggleTabActive]}
-          onPress={() => { setMode('culturepass'); Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); }}
+          onPress={() => handleModeChange('culturepass')}
+          android_ripple={{ color: Colors.primary + '20' }}
         >
           <Ionicons name="card-outline" size={16} color={mode === 'culturepass' ? '#FFF' : Colors.textSecondary} />
           <Text style={[styles.toggleText, mode === 'culturepass' && styles.toggleTextActive]}>CulturePass</Text>
         </Pressable>
         <Pressable
           style={[styles.toggleTab, mode === 'tickets' && styles.toggleTabActive]}
-          onPress={() => { setMode('tickets'); Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); }}
+          onPress={() => handleModeChange('tickets')}
+          android_ripple={{ color: Colors.primary + '20' }}
         >
           <Ionicons name="ticket-outline" size={16} color={mode === 'tickets' ? '#FFF' : Colors.textSecondary} />
           <Text style={[styles.toggleText, mode === 'tickets' && styles.toggleTextActive]}>Tickets</Text>
@@ -383,7 +412,11 @@ export default function ScannerScreen() {
           <>
             {!cameraActive && !cpContact && (
               <Animated.View entering={FadeInDown.delay(100).duration(400)} style={styles.scanSection}>
-                <Pressable style={styles.cameraStartBtn} onPress={startCamera}>
+                <Pressable 
+                  style={styles.cameraStartBtn} 
+                  onPress={startCamera}
+                  android_ripple={{ color: Colors.primary + '20' }}
+                >
                   <View style={styles.cameraIconCircle}>
                     <Ionicons name="camera" size={32} color="#FFF" />
                   </View>
@@ -415,6 +448,7 @@ export default function ScannerScreen() {
                     style={[styles.scanBtn, { backgroundColor: Colors.primary }]}
                     onPress={handleCpManualScan}
                     disabled={isLookingUp}
+                    android_ripple={{ color: '#FFF', radius: 26 }}
                   >
                     <Ionicons name="search" size={22} color="#FFF" />
                   </Pressable>
@@ -472,13 +506,18 @@ export default function ScannerScreen() {
                 )}
 
                 <View style={styles.cpActions}>
-                  <Pressable style={styles.cpActionBtn} onPress={handleViewProfile}>
+                  <Pressable 
+                    style={styles.cpActionBtn} 
+                    onPress={handleViewProfile}
+                    android_ripple={{ color: Colors.primary + '20' }}
+                  >
                     <Ionicons name="person-outline" size={18} color={Colors.primary} />
                     <Text style={[styles.cpActionText, { color: Colors.primary }]}>View Profile</Text>
                   </Pressable>
                   <Pressable
                     style={[styles.cpActionBtn, contactAlreadySaved && styles.cpActionBtnSaved]}
                     onPress={handleSaveContact}
+                    android_ripple={{ color: contactAlreadySaved ? Colors.success + '20' : Colors.accent + '20' }}
                   >
                     <Ionicons
                       name={contactAlreadySaved ? 'checkmark-circle' : 'bookmark-outline'}
@@ -547,6 +586,7 @@ export default function ScannerScreen() {
                   style={[styles.scanBtn, isScanning && styles.scanBtnDisabled]}
                   onPress={handleTicketScan}
                   disabled={isScanning}
+                  android_ripple={{ color: '#FFF', radius: 26 }}
                 >
                   <Ionicons name={isScanning ? 'hourglass' : 'checkmark-circle'} size={22} color="#FFF" />
                 </Pressable>
@@ -722,7 +762,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(255,255,255,0.9)',
+    backgroundColor: Colors.background + 'F0',
     zIndex: 100,
     alignItems: 'center',
     justifyContent: 'center',

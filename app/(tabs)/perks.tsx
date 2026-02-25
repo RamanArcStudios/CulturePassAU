@@ -34,7 +34,13 @@ interface Perk {
 }
 
 function useDemoUserId() {
-  const { data } = useQuery<{ id: string }[]>({ queryKey: ['/api/users'] });
+  const { data } = useQuery<{ id: string }[]>({ 
+    queryKey: ['/api/users'],
+    queryFn: async () => {
+      const res = await apiRequest('GET', '/api/users');
+      return res.json();
+    }
+  });
   return data?.[0]?.id;
 }
 
@@ -70,10 +76,21 @@ export default function PerksTabScreen() {
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [refreshing, setRefreshing] = useState(false);
 
-  const { data: perks = [], isLoading, refetch } = useQuery<Perk[]>({ queryKey: ['/api/perks'] });
+  const { data: perks = [], isLoading, refetch } = useQuery<Perk[]>({ 
+    queryKey: ['/api/perks'],
+    queryFn: async () => {
+      const res = await apiRequest('GET', '/api/perks');
+      return res.json();
+    }
+  });
+
   const { data: membership } = useQuery<{ tier: string }>({
     queryKey: ['/api/membership', userId],
     enabled: !!userId,
+    queryFn: async () => {
+      const res = await apiRequest('GET', `/api/membership/${userId}`);
+      return res.json();
+    }
   });
 
   const onRefresh = useCallback(async () => {
@@ -333,7 +350,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 24,
     alignItems: 'center',
-    ...Colors.shadow.small,
+    ...Colors.shadows.small,
   },
   heroIconWrap: {
     width: 56,
@@ -390,7 +407,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 20,
     marginBottom: 16,
-    ...Colors.shadow.small,
+    ...Colors.shadows.small,
   },
   perkTop: { flexDirection: 'row', alignItems: 'flex-start', gap: 14, marginBottom: 12 },
   perkBadge: { width: 48, height: 48, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },

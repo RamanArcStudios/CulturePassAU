@@ -192,7 +192,7 @@ export default function PublicProfileScreen() {
   const bottomInset = Platform.OS === 'web' ? 34 : insets.bottom;
 
   const { data: usersData, isLoading } = useQuery<User[]>({ queryKey: ['/api/users'] });
-  const user   = usersData?.[0];
+  const user   = usersData?.[0] as any; // Cast as any for our custom fields
   const userId = user?.id;
 
   const { data: membership } = useQuery<Membership>({
@@ -210,7 +210,9 @@ export default function PublicProfileScreen() {
   const initials     = useMemo(() => getInitials(displayName), [displayName]);
   const locationText = useMemo(() => [user?.city, user?.country].filter(Boolean).join(', '), [user?.city, user?.country]);
   const memberSince  = useMemo(() => formatMemberDate(user?.createdAt), [user?.createdAt]);
+  
   const hasDetails   = !!(locationText || user?.website || user?.phone);
+  const hasCulturalIdentity = !!(user?.heritage || (user?.languages && user?.languages.length > 0) || user?.dietary);
 
   const handleShare = useCallback(async () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -371,8 +373,49 @@ export default function PublicProfileScreen() {
           </Animated.View>
         )}
 
-        {hasDetails && (
+        {hasCulturalIdentity && (
           <Animated.View entering={FadeInDown.delay(320).duration(400)} style={styles.section}>
+            <SectionHeader title="Cultural Identity" />
+            <View style={styles.card}>
+              {user.heritage ? (
+                <DetailRow
+                  icon="earth-outline" iconBg={CP.ember + '14'} iconColor={CP.ember}
+                  label="Heritage & Roots" value={user.heritage}
+                />
+              ) : null}
+              {user.heritage && (user.languages?.length > 0 || user.dietary) && <View style={styles.detailDivider} />}
+              
+              {user.languages && user.languages.length > 0 ? (
+                <View style={styles.detailRow}>
+                  <View style={[styles.detailIconWrap, { backgroundColor: CP.info + '14' }]}>
+                    <Ionicons name="chatbubbles-outline" size={18} color={CP.info} />
+                  </View>
+                  <View style={styles.detailText}>
+                    <Text style={styles.detailLabel}>Languages Spoken</Text>
+                    <View style={styles.langChipsContainer}>
+                      {user.languages.map((lang: string, i: number) => (
+                        <View key={i} style={styles.langChip}>
+                          <Text style={styles.langChipText}>{lang}</Text>
+                        </View>
+                      ))}
+                    </View>
+                  </View>
+                </View>
+              ) : null}
+              {user.languages?.length > 0 && user.dietary && <View style={styles.detailDivider} />}
+              
+              {user.dietary ? (
+                <DetailRow
+                  icon="restaurant-outline" iconBg={CP.teal + '14'} iconColor={CP.teal}
+                  label="Dietary Preferences" value={user.dietary}
+                />
+              ) : null}
+            </View>
+          </Animated.View>
+        )}
+
+        {hasDetails && (
+          <Animated.View entering={FadeInDown.delay(360).duration(400)} style={styles.section}>
             <SectionHeader title="Details" />
             <View style={styles.card}>
               {locationText ? (
@@ -405,7 +448,7 @@ export default function PublicProfileScreen() {
         )}
 
         {user.culturePassId && (
-          <Animated.View entering={FadeInDown.delay(360).duration(400)} style={styles.section}>
+          <Animated.View entering={FadeInDown.delay(400).duration(400)} style={styles.section}>
             <SectionHeader title="Digital Identity" />
 
             <LinearGradient
@@ -675,6 +718,21 @@ const styles = StyleSheet.create({
   detailLabel:   { fontFamily: 'Poppins_400Regular', fontSize: 11, color: CP.muted, letterSpacing: 0.4, marginBottom: 2 },
   detailValue:   { fontFamily: 'Poppins_600SemiBold', fontSize: 15, color: CP.text },
   detailDivider: { height: 1, backgroundColor: CP.bg, marginVertical: 16, marginLeft: 60 },
+  
+  langChipsContainer: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 4 },
+  langChip: {
+    backgroundColor: CP.info + '14',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: CP.info + '30',
+  },
+  langChipText: {
+    fontFamily: 'Poppins_500Medium',
+    fontSize: 12,
+    color: CP.info,
+  },
 
   cpidCard: {
     borderRadius: 24, padding: 24, overflow: 'hidden',
