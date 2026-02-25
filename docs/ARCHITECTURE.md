@@ -19,6 +19,13 @@ CulturePass runs from a single Expo + React Native codebase:
 
 ## 3) Key Refactors Added
 
+### Unified design system
+Design tokens are organized into focused modules:
+- `constants/colors.ts` — light/dark themes, glassmorphism presets, gradient tuples
+- `constants/typography.ts` — Poppins font family with iOS-style type scale
+- `constants/spacing.ts` — 4-point spacing grid, border radii, layout constants
+- `constants/animations.ts` — duration tokens, spring configs, reduced-motion flag
+
 ### Typed shared contract
 A new `shared/schema.ts` centralizes core app domain interfaces (`User`, `Profile`, `Ticket`, etc.) so route screens use one source of truth for data models.
 
@@ -42,7 +49,7 @@ This supports local development, Replit-like domains, and cloud hosting setups.
 Default query behavior was updated to production-friendly caching:
 - `staleTime: 60s`
 - `gcTime: 5m`
-- retry once for transient errors
+- Smart retry: skips retry for 4xx client errors, retries up to twice for server/network errors
 
 This reduces over-fetching and improves perceived performance without stale data persisting forever.
 

@@ -22,6 +22,9 @@
         "NSLocationWhenInUseUsageDescription": "CulturePass uses your location to show events and communities near you.",
         "NSCameraUsageDescription": "CulturePass uses the camera to update your profile photo.",
         "NSPhotoLibraryUsageDescription": "CulturePass accesses your photo library to update your profile photo."
+      },
+      "config": {
+        "usesNonExemptEncryption": false
       }
     },
     "android": {
@@ -32,7 +35,13 @@
         "foregroundImage": "./assets/images/android-icon-foreground.png",
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
-      }
+      },
+      "permissions": [
+        "CAMERA",
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION",
+        "READ_EXTERNAL_STORAGE"
+      ]
     },
     "web": {
       "favicon": "./assets/images/favicon.png",
@@ -41,7 +50,8 @@
       "description": "Discover cultural events, join diaspora communities, find local businesses, and celebrate diversity. CulturePass connects you with cultural experiences across Australia, New Zealand, UAE, UK & Canada.",
       "lang": "en",
       "themeColor": "#007AFF",
-      "backgroundColor": "#F2F2F7"
+      "backgroundColor": "#F2F2F7",
+      "bundler": "metro"
     },
     "plugins": [
       [
