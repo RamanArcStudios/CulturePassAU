@@ -1,7 +1,16 @@
-import { Text, Pressable, StyleSheet, ScrollView, Platform, View } from 'react-native';
+import React from 'react';
+import {
+  View,
+  Text,
+  Pressable,
+  StyleSheet,
+  ScrollView,
+  Platform,
+  useColorScheme,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import Colors from '@/constants/colors';
 import * as Haptics from 'expo-haptics';
+import Colors from '@/constants/colors';
 
 export interface FilterItem {
   id: string;
@@ -16,9 +25,17 @@ interface FilterChipProps {
   isActive: boolean;
   onPress: () => void;
   size?: 'small' | 'medium';
+  testID?: string;
 }
 
-export function FilterChip({ item, isActive, onPress, size = 'medium' }: FilterChipProps) {
+export function FilterChip({ 
+  item, 
+  isActive, 
+  onPress, 
+  size = 'medium',
+  testID = 'filter-chip',
+}: FilterChipProps) {
+  const colorScheme = useColorScheme();
   const accentColor = item.color || Colors.primary;
   const isSmall = size === 'small';
 
@@ -31,57 +48,75 @@ export function FilterChip({ item, isActive, onPress, size = 'medium' }: FilterC
 
   return (
     <Pressable
+      testID={testID}
       onPress={handlePress}
       style={({ pressed }) => [
         styles.chip,
         isSmall && styles.chipSmall,
-        isActive
-          ? { backgroundColor: accentColor, borderColor: accentColor }
-          : { backgroundColor: Colors.surface, borderColor: Colors.borderLight },
-        pressed && !isActive && styles.chipPressed,
-        pressed && { opacity: 0.8, transform: [{ scale: 0.98 }] },
-        isActive && styles.chipActiveShadow,
-        Platform.OS === 'web' && { cursor: 'pointer' as any },
+        isActive 
+          ? [styles.chipActive, { 
+              backgroundColor: accentColor,
+              borderColor: accentColor + 'CC',
+              shadowColor: accentColor,
+            }]
+          : [styles.chipInactive, { 
+              backgroundColor: Colors.surfaceSecondary[colorScheme || 'light'],
+              borderColor: Colors.borderLight[colorScheme || 'light'],
+            }],
+        pressed && styles.chipPressed,
+        Platform.OS === 'web' && styles.webCursor,
+        Colors.shadows[isActive ? 'small' : 'none'],
       ]}
+      android_ripple={{ 
+        color: isActive ? 'rgba(255,255,255,0.3)' : Colors.surfaceSecondary + '66',
+        radius: isSmall ? 20 : 28,
+        borderless: false,
+      }}
+      accessibilityRole="button"
+      accessibilityState={{ selected: isActive }}
+      accessibilityLabel={`${item.label}${item.count ? ` (${item.count})` : ''}`}
+      accessibilityHint="Tap to filter by category"
     >
-      {item.icon ? (
+      {item.icon && (
         <Ionicons
           name={item.icon as any}
-          size={isSmall ? 14 : 16}
-          color={isActive ? '#FFF' : accentColor}
+          size={isSmall ? 16 : 18}
+          color={isActive ? Colors.textInverse : accentColor}
           style={styles.icon}
         />
-      ) : null}
+      )}
+      
       <Text
         style={[
           styles.label,
           isSmall && styles.labelSmall,
-          isActive ? styles.labelActive : { color: Colors.textSecondary },
-          item.color && isActive && { color: '#FFF' },
+          {
+            color: isActive ? Colors.textInverse : Colors.textSecondary[colorScheme || 'light'],
+            fontFamily: isActive ? 'Poppins_600SemiBold' : 'Poppins_500Medium',
+          },
         ]}
         numberOfLines={1}
       >
         {item.label}
       </Text>
-      {item.count != null && item.count > 0 ? (
-        <View
-          style={[
-            styles.badge,
-            isActive
-              ? { backgroundColor: 'rgba(255,255,255,0.25)' }
-              : { backgroundColor: (accentColor || Colors.primary) + '18' },
-          ]}
-        >
-          <Text
-            style={[
-              styles.badgeText,
-              { color: isActive ? '#FFF' : accentColor },
-            ]}
-          >
-            {item.count}
+      
+      {item.count != null && item.count > 0 && (
+        <View style={[
+          styles.badge,
+          {
+            backgroundColor: isActive 
+              ? 'rgba(255,255,255,0.25)' 
+              : accentColor + (Platform.OS === 'web' ? '1A' : '18'),
+          },
+        ]}>
+          <Text style={[
+            styles.badgeText,
+            { color: isActive ? Colors.textInverse : accentColor },
+          ]}>
+            {item.count > 999 ? `${(item.count / 1000).toFixed(1)}k` : item.count}
           </Text>
         </View>
-      ) : null}
+      )}
     </Pressable>
   );
 }
@@ -91,24 +126,42 @@ interface FilterChipRowProps {
   selectedId: string;
   onSelect: (id: string) => void;
   size?: 'small' | 'medium';
+  testID?: string;
 }
 
-export function FilterChipRow({ items, selectedId, onSelect, size = 'medium' }: FilterChipRowProps) {
+export function FilterChipRow({ 
+  items, 
+  selectedId, 
+  onSelect, 
+  size = 'medium',
+  testID = 'filter-row',
+}: FilterChipRowProps) {
   return (
-    <View style={styles.rowContainer}>
+    <View style={styles.rowContainer} testID={testID}>
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.row}
-        style={{ flexGrow: 0 }}
+        contentContainerStyle={[
+          styles.scrollContent,
+          Platform.select({ 
+            web: { paddingHorizontal: 24 },
+            default: { paddingHorizontal: 20 },
+          }),
+        ]}
+        style={styles.scrollView}
+        keyboardShouldPersistTaps="handled"
+        nestedScrollEnabled
+        decelerationRate={Platform.OS === 'ios' ? 'normal' : 'fast'}
+        accessibilityRole="tablist"
       >
-        {items.map(item => (
+        {items.map((item) => (
           <FilterChip
             key={item.id}
             item={item}
             isActive={selectedId === item.id}
             onPress={() => onSelect(item.id)}
             size={size}
+            testID={`chip-${item.id}`}
           />
         ))}
       </ScrollView>
@@ -118,60 +171,75 @@ export function FilterChipRow({ items, selectedId, onSelect, size = 'medium' }: 
 
 const styles = StyleSheet.create({
   rowContainer: {
-    marginBottom: 24,
+    marginHorizontal: -4,
+    marginBottom: 28,
+    overflow: 'visible',
   },
-  row: {
-    paddingHorizontal: 20,
-    gap: 8,
-    paddingVertical: 4,
+  scrollView: {
+    flexGrow: 0,
   },
+  scrollContent: {
+    gap: 12,
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  
+  // Chip Styles
   chip: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 24,
+    paddingHorizontal: 20,
+    paddingVertical: 14,
+    borderRadius: 28,
     borderWidth: 1.5,
+    minHeight: 44,
+    maxWidth: 160,
   },
   chipSmall: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    minHeight: 40,
+    maxWidth: 140,
   },
-  icon: {
-    marginRight: 6,
+  chipInactive: {
+    borderColor: Colors.borderLight,
+  },
+  chipActive: {
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 6,
   },
   chipPressed: {
-    backgroundColor: Colors.backgroundSecondary,
+    transform: [{ scale: 0.96 }],
   },
-  chipActiveShadow: {
-    shadowColor: '#000',
-    shadowOpacity: 0.12,
-    shadowRadius: 4,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 3,
+  webCursor: {
+    cursor: 'pointer' as const,
+  },
+  
+  icon: {
+    marginRight: 8,
   },
   label: {
-    fontSize: 14,
-    fontFamily: 'Poppins_500Medium',
-    marginBottom: Platform.OS === 'ios' ? -2 : 0,
+    fontSize: 15,
+    flex: 1,
+    includeFontPadding: false,
   },
   labelSmall: {
-    fontSize: 12,
+    fontSize: 13,
   },
-  labelActive: {
-    color: '#FFF',
-    fontFamily: 'Poppins_600SemiBold',
-  },
+  
   badge: {
-    marginLeft: 6,
-    paddingHorizontal: 7,
-    paddingVertical: 1,
-    borderRadius: 10,
-    minWidth: 22,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 14,
+    minWidth: 28,
     alignItems: 'center',
+    justifyContent: 'center',
   },
   badgeText: {
-    fontSize: 11,
+    fontSize: 12,
     fontFamily: 'Poppins_700Bold',
+    includeFontPadding: false,
   },
 });

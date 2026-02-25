@@ -92,7 +92,6 @@ interface DiscoverFeed {
   };
 }
 
-
 function SectionHeader({ title, subtitle, onSeeAll }: { title: string; subtitle?: string; onSeeAll?: () => void }) {
   return (
     <View style={styles.sectionHeader}>
@@ -310,7 +309,7 @@ export default function HomeScreen() {
         <Animated.View entering={isWeb ? undefined : FadeInDown.delay(100).duration(500)} style={styles.heroSection}>
           <Text style={styles.heroSubtitle}>{timeGreeting}, {firstName}</Text>
           <Text style={styles.heroTitle}>
-            What&apos;s happening in{'\n'}your culture this week?
+            Welcome to CulturePass!
           </Text>
         </Animated.View>
 
@@ -590,7 +589,7 @@ export default function HomeScreen() {
             </View>
             <View style={{ flex: 1 }}>
               <Text style={styles.exploreCtaTitle}>Explore All Events</Text>
-              <Text style={styles.exploreCtaSub}>Discover what&apos;s happening near you</Text>
+              <Text style={styles.exploreCtaSub}>Discover what's happening near you</Text>
             </View>
             <Ionicons name="chevron-forward" size={18} color="#636366" />
           </Pressable>

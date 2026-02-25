@@ -20,7 +20,9 @@
     "test:integration": "tsx scripts/tests/integration-api-routes.ts",
     "test:e2e:smoke": "tsx scripts/tests/e2e-critical-smoke.ts",
     "qa:all": "npm run test:package-json && npm run test:unit && npm run test:integration && npm run test:e2e:smoke",
-    "test:package-json": "tsx scripts/tests/validate-package-json.ts"
+    "test:package-json": "tsx scripts/tests/validate-package-json.ts",
+    "android": "expo run:android",
+    "ios": "expo run:ios"
   },
   "dependencies": {
     "@expo-google-fonts/poppins": "^0.4.1",
@@ -89,7 +91,7 @@
     "@types/express": "^5.0.0",
     "@types/react": "~19.1.10",
     "babel-plugin-react-compiler": "^19.0.0-beta-e993439-20250117",
-    "drizzle-kit": "^0.31.9",
+    "drizzle-kit": "^0.18.1",
     "eslint": "^9.31.0",
     "eslint-config-expo": "~10.0.0",
     "patch-package": "^8.0.0",

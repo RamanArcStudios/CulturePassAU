@@ -6,27 +6,28 @@ import {
   ScrollView,
   Platform,
   Share,
-  Image,
   Modal,
   Alert,
   ActivityIndicator,
   Linking,
 } from 'react-native';
-import { router, useLocalSearchParams } from 'expo-router';
-import { goBackOrReplace } from '@/lib/navigation';
+import { router, useLocalSearchParams, useNavigation } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useSaved } from '@/contexts/SavedContext';
 import Colors, { shadows } from '@/constants/colors';
 import * as Haptics from 'expo-haptics';
-import Animated, { FadeInDown } from 'react-native-reanimated';
+import Animated, { FadeInDown, FadeIn } from 'react-native-reanimated';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Image } from 'expo-image';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { apiRequest, queryClient, getApiUrl } from '@/lib/query-client';
 import { fetch } from 'expo/fetch';
 import * as WebBrowser from 'expo-web-browser';
 import { confirmAndReport } from '@/lib/reporting';
+
+const isWeb = Platform.OS === 'web';
 
 type SampleEvent = any;
 
@@ -55,42 +56,47 @@ function formatDateShort(dateStr: string): string {
 export default function EventDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const insets = useSafeAreaInsets();
-  const topInset = Platform.OS === 'web' ? 67 : insets.top;
-  const bottomInset = Platform.OS === 'web' ? 34 : insets.bottom;
-  const { data: event, isLoading } = useQuery({
+  const navigation = useNavigation();
+  const topInset = isWeb ? 67 : insets.top;
+  const bottomInset = isWeb ? 34 : insets.bottom;
+
+  const { data: event, isLoading, error } = useQuery({
     queryKey: ['/api/events', id],
     queryFn: async () => {
       const base = getApiUrl();
-      const res = await fetch(`${base}api/events/${id}`);
-      if (!res.ok) throw new Error(`${res.status}`);
+      const res = await fetch(`${base}/api/events/${id}`);
+      if (!res.ok) throw new Error(`Failed to fetch event: ${res.status}`);
       return res.json();
     },
     enabled: !!id,
   });
 
+  const handleBack = useCallback(() => {
+    if (!isWeb) {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    }
+    navigation.canGoBack() ? router.back() : router.replace('/(tabs)');
+  }, [navigation]);
+
   if (isLoading) {
     return (
-      <View
-        style={[
-          styles.container,
-          { paddingTop: topInset, justifyContent: 'center', alignItems: 'center' },
-        ]}
-      >
+      <View style={styles.loading}>
         <ActivityIndicator size="large" color={Colors.primary} />
+        <Text style={styles.loadingText}>Loading event...</Text>
       </View>
     );
   }
 
   if (!event) {
     return (
-      <View
-        style={[
-          styles.container,
-          { paddingTop: topInset, justifyContent: 'center', alignItems: 'center' },
-        ]}
-      >
-        <Text style={styles.errorText}>Event not found</Text>
-        <Pressable onPress={() => goBackOrReplace('/(tabs)')}>
+      <View style={styles.notFound}>
+        <Ionicons name="calendar-outline" size={48} color={Colors.textTertiary} />
+        <Text style={styles.errorText}>{error ? 'Failed to load event' : 'Event not found'}</Text>
+        <Pressable
+          onPress={handleBack}
+          android_ripple={{ color: Colors.primary + '20' }}
+          style={styles.backButton}
+        >
           <Text style={styles.backLink}>Go Back</Text>
         </Pressable>
       </View>
@@ -107,6 +113,7 @@ interface EventDetailProps {
 }
 
 function EventDetail({ event, topInset, bottomInset }: EventDetailProps) {
+  const navigation = useNavigation();
   const { isEventSaved, toggleSaveEvent } = useSaved();
   const saved = isEventSaved(event.id);
 
@@ -119,7 +126,8 @@ function EventDetail({ event, topInset, bottomInset }: EventDetailProps) {
   const usersQuery = useQuery<any[]>({ queryKey: ['/api/users'] });
   const demoUserId = usersQuery.data?.[0]?.id;
 
-  const { data: membership } = useQuery<{ tier: string; cashbackMultiplier?: number }>({
+  const { data: membership } = useQuery<{ tier: string; cashbackMultiplier?: number }>(
+{
     queryKey: [`/api/membership/${demoUserId}`],
     enabled: !!demoUserId,
   });
@@ -129,7 +137,9 @@ function EventDetail({ event, topInset, bottomInset }: EventDetailProps) {
 
   const purchaseMutation = useMutation({
     mutationFn: async (body: Record<string, unknown>) => {
-      const res = await apiRequest('POST', '/api/stripe/create-checkout-session', { ticketData: body });
+      const res = await apiRequest('POST', '/api/stripe/create-checkout-session', {
+        ticketData: body,
+      });
       return await res.json();
     },
     onSuccess: async (data: any) => {
@@ -150,7 +160,9 @@ function EventDetail({ event, topInset, bottomInset }: EventDetailProps) {
             const ticket = await ticketRes.json();
 
             if (ticket.paymentStatus === 'paid' || ticket.status === 'confirmed') {
-              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+              if (!isWeb) {
+                Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+              }
               Alert.alert('Ticket Purchased!', 'Your payment was successful.', [
                 {
                   text: 'View Ticket',
@@ -175,39 +187,42 @@ function EventDetail({ event, topInset, bottomInset }: EventDetailProps) {
   const selectedTier = event.tiers[selectedTierIndex];
   const maxQty = buyMode === 'family' ? 1 : Math.min(20, selectedTier?.available ?? 1);
   const familySize = 4;
-  const familyDiscount = 0.10;
-  const groupDiscount = quantity >= 10 ? 0.15 : quantity >= 5 ? 0.10 : 0;
+  const familyDiscount = 0.1;
+  const groupDiscount = quantity >= 10 ? 0.15 : quantity >= 5 ? 0.1 : 0;
   const basePrice = selectedTier?.priceCents ?? 0;
 
-  const rawTotal = buyMode === 'family'
-    ? basePrice * familySize
-    : basePrice * quantity;
-  const discountRate = buyMode === 'family'
-    ? familyDiscount
-    : buyMode === 'group' ? groupDiscount : 0;
+  const rawTotal = buyMode === 'family' ? basePrice * familySize : basePrice * quantity;
+  const discountRate = buyMode === 'family' ? familyDiscount : buyMode === 'group' ? groupDiscount : 0;
   const discountAmount = rawTotal * discountRate;
   const totalPrice = rawTotal - discountAmount;
   const effectiveQty = buyMode === 'family' ? familySize : quantity;
   const cashbackAmount = isPlus ? (totalPrice / 100) * 0.02 : 0;
 
-  const purchaseFreeTicket = useCallback(async (body: Record<string, unknown>) => {
-    try {
-      const res = await apiRequest('POST', '/api/tickets', body);
-      const data = await res.json();
-      queryClient.invalidateQueries({ queryKey: ['/api/tickets'] });
-      setTicketModalVisible(false);
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      Alert.alert('Ticket Confirmed!', 'Your free ticket has been reserved.', [
-        {
-          text: 'View Ticket',
-          onPress: () => router.push(`/tickets/${data.id}` as any),
-        },
-        { text: 'OK' },
-      ]);
-    } catch {
-      Alert.alert('Error', 'Failed to reserve ticket. Please try again.');
-    }
-  }, []);
+  const purchaseFreeTicket = useCallback(
+    async (body: Record<string, unknown>) => {
+      try {
+        const res = await apiRequest('POST', '/api/tickets', body);
+        const data = await res.json();
+        queryClient.invalidateQueries({ queryKey: ['/api/tickets'] });
+        setTicketModalVisible(false);
+
+        if (!isWeb) {
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        }
+
+        Alert.alert('Ticket Confirmed!', 'Your free ticket has been reserved.', [
+          {
+            text: 'View Ticket',
+            onPress: () => router.push(`/tickets/${data.id}` as any),
+          },
+          { text: 'OK' },
+        ]);
+      } catch {
+        Alert.alert('Error', 'Failed to reserve ticket. Please try again.');
+      }
+    },
+    []
+  );
 
   const handlePurchase = useCallback(() => {
     const users = usersQuery.data;
@@ -217,7 +232,12 @@ function EventDetail({ event, topInset, bottomInset }: EventDetailProps) {
     }
     const userId = users[0].id;
 
-    const ticketLabel = buyMode === 'family' ? `${selectedTier.name} (Family Pack)` : buyMode === 'group' ? `${selectedTier.name} (Group)` : selectedTier.name;
+    const ticketLabel =
+      buyMode === 'family'
+        ? `${selectedTier.name} (Family Pack)`
+        : buyMode === 'group'
+        ? `${selectedTier.name} (Group)`
+        : selectedTier.name;
 
     if (totalPrice <= 0) {
       purchaseFreeTicket({
@@ -249,14 +269,27 @@ function EventDetail({ event, topInset, bottomInset }: EventDetailProps) {
       currency: 'AUD',
       imageColor: (event as any).imageColor ?? Colors.primary,
     });
-  }, [usersQuery.data, event, selectedTier, quantity, totalPrice, effectiveQty, buyMode, purchaseMutation, purchaseFreeTicket]);
+  }, [
+    usersQuery.data,
+    event,
+    selectedTier,
+    quantity,
+    totalPrice,
+    effectiveQty,
+    buyMode,
+    purchaseMutation,
+    purchaseFreeTicket,
+  ]);
 
   const openTicketModal = useCallback((tierIdx?: number) => {
     setSelectedTierIndex(tierIdx ?? 0);
     setQuantity(1);
     setBuyMode('single');
     setTicketModalVisible(true);
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+
+    if (!isWeb) {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    }
   }, []);
 
   useEffect(() => {
@@ -286,18 +319,15 @@ function EventDetail({ event, topInset, bottomInset }: EventDetailProps) {
   }, [event.date, event.time, now]);
 
   const capacityPercent = useMemo(
-    () =>
-      event.capacity > 0
-        ? Math.min(100, Math.round((event.attending / event.capacity) * 100))
-        : 0,
-    [event.attending, event.capacity],
+    () => (event.capacity > 0 ? Math.min(100, Math.round((event.attending / event.capacity) * 100)) : 0),
+    [event.attending, event.capacity]
   );
 
   const { data: allEventsForRelated = [] } = useQuery({
     queryKey: ['/api/events'],
     queryFn: async () => {
       const base = getApiUrl();
-      const res = await fetch(`${base}api/events`);
+      const res = await fetch(`${base}/api/events`);
       if (!res.ok) throw new Error(`${res.status}`);
       return res.json();
     },
@@ -308,86 +338,169 @@ function EventDetail({ event, topInset, bottomInset }: EventDetailProps) {
       allEventsForRelated
         .filter(
           (e: any) =>
-            e.id !== event.id &&
-            (e.category === event.category || e.communityTag === event.communityTag),
+            e.id !== event.id && (e.category === event.category || e.communityTag === event.communityTag)
         )
         .slice(0, 3),
-    [event.id, event.category, event.communityTag, allEventsForRelated],
+    [event.id, event.category, event.communityTag, allEventsForRelated]
   );
 
   const avatarCount = 5;
   const remainingCount = Math.max(0, event.attending - avatarCount);
 
+  const handleBack = useCallback(() => {
+    if (!isWeb) {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    }
+    navigation.canGoBack() ? router.back() : router.replace('/(tabs)');
+  }, [navigation]);
+
   const handleShare = useCallback(async () => {
+    if (!isWeb) {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    }
+
     try {
       const shareUrl = `https://culturepass.app/event/${event.id}`;
-      await Share.share({
-        title: `${event.title} on CulturePass`,
-        message: `Check out ${event.title} on CulturePass! ${event.venue} - ${formatDate(event.date)}\n\n${shareUrl}`,
-        url: shareUrl,
-      });
-    } catch {
+      const message = `Check out ${event.title} on CulturePass! ${event.venue} - ${formatDate(event.date)}\n\n${shareUrl}`;
+
+      if (isWeb) {
+        if (navigator?.share) {
+          await navigator.share({
+            title: `${event.title} on CulturePass`,
+            text: message,
+            url: shareUrl,
+          });
+        } else if (navigator?.clipboard) {
+          await navigator.clipboard.writeText(shareUrl);
+          Alert.alert('Link Copied', 'Event link copied to clipboard');
+        }
+      } else {
+        await Share.share({
+          title: `${event.title} on CulturePass`,
+          message,
+          url: shareUrl,
+        });
+      }
+
+      if (!isWeb) {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      }
+    } catch (error: any) {
+      if (error?.message && !error.message.includes('cancel')) {
+        console.error('Share error:', error);
+      }
     }
-  }, [event.id, event.title, event.venue, event.date]);
+  }, [event]);
+
+  const handleReport = useCallback(() => {
+    if (!isWeb) {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    }
+    confirmAndReport({ targetType: 'event', targetId: String(event.id), label: 'this event' });
+  }, [event]);
 
   const handleSave = useCallback(() => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    if (!isWeb) {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    }
     toggleSaveEvent(event.id);
-  }, [event.id, toggleSaveEvent]);
+
+    if (!saved && !isWeb) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    }
+  }, [event.id, toggleSaveEvent, saved]);
 
   const handleGetTickets = useCallback(() => {
     openTicketModal();
   }, [openTicketModal]);
 
+  const handleLocationPress = useCallback(() => {
+    if (!isWeb) {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    }
+    const query = [event.venue, event.city, event.country].filter(Boolean).join(', ');
+    Linking.openURL(`https://maps.google.com/?q=${encodeURIComponent(query)}`).catch((err) => {
+      console.error('Failed to open maps:', err);
+      Alert.alert('Error', 'Unable to open maps');
+    });
+  }, [event]);
+
+  const handleRelatedPress = useCallback((eventId: string) => {
+    if (!isWeb) {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    }
+    router.push(`/event/${eventId}`);
+  }, []);
+
+  const handleUpgradePress = useCallback(() => {
+    setTicketModalVisible(false);
+    if (!isWeb) {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    }
+    router.push('/membership/upgrade');
+  }, []);
+
   return (
     <View style={styles.container}>
-      <View
-        style={[
-          styles.heroSection,
-          { height: 320 + topInset },
-        ]}
-      >
-        <Image source={{ uri: event.imageUrl }} style={{ position: 'absolute', width: '100%', height: '100%' }} />
+      <View style={[styles.heroSection, { height: 320 + topInset }]}>
+        <Image source={{ uri: event.imageUrl }} style={StyleSheet.absoluteFill} contentFit="cover" transition={300} />
         <LinearGradient
           colors={['rgba(0,0,0,0.15)', 'rgba(0,0,0,0.35)', 'rgba(0,0,0,0.75)']}
           locations={[0, 0.4, 1]}
           style={[styles.heroOverlay, { paddingTop: topInset }]}
         >
           <View style={styles.heroNav}>
-            <Pressable style={styles.navButton} onPress={() => goBackOrReplace('/(tabs)')}>
+            <Pressable
+              style={styles.navButton}
+              onPress={handleBack}
+              android_ripple={{ color: 'rgba(255,255,255,0.3)', radius: 21 }}
+              accessibilityRole="button"
+              accessibilityLabel="Go back"
+            >
               <Ionicons name="arrow-back" size={22} color="#FFF" />
             </Pressable>
             <View style={styles.heroActions}>
-              <Pressable style={styles.navButton} onPress={handleShare}>
+              <Pressable
+                style={styles.navButton}
+                onPress={handleShare}
+                android_ripple={{ color: 'rgba(255,255,255,0.3)', radius: 21 }}
+                accessibilityRole="button"
+                accessibilityLabel="Share event"
+              >
                 <Ionicons name="share-outline" size={22} color="#FFF" />
               </Pressable>
               <Pressable
                 style={styles.navButton}
-                onPress={() => confirmAndReport({ targetType: 'event', targetId: String(event.id), label: 'this event' })}
+                onPress={handleReport}
+                android_ripple={{ color: 'rgba(255,255,255,0.3)', radius: 21 }}
+                accessibilityRole="button"
+                accessibilityLabel="Report event"
               >
                 <Ionicons name="flag-outline" size={20} color="#FFF" />
               </Pressable>
-              <Pressable style={styles.navButton} onPress={handleSave}>
-                <Ionicons
-                  name={saved ? 'bookmark' : 'bookmark-outline'}
-                  size={22}
-                  color="#FFF"
-                />
+              <Pressable
+                style={styles.navButton}
+                onPress={handleSave}
+                android_ripple={{ color: 'rgba(255,255,255,0.3)', radius: 21 }}
+                accessibilityRole="button"
+                accessibilityLabel={saved ? 'Remove from saved' : 'Save event'}
+              >
+                <Ionicons name={saved ? 'bookmark' : 'bookmark-outline'} size={22} color="#FFF" />
               </Pressable>
             </View>
           </View>
 
-          <View style={styles.heroContent}>
+          <Animated.View entering={isWeb ? undefined : FadeIn.duration(600)} style={styles.heroContent}>
             <View style={styles.heroBadges}>
               <View style={styles.heroBadge}>
                 <Text style={styles.heroBadgeText}>{event.communityTag}</Text>
               </View>
-              {event.councilTag ? (
+              {event.councilTag && (
                 <View style={[styles.heroBadge, { backgroundColor: 'rgba(255,255,255,0.3)' }]}>
                   <Ionicons name="shield-checkmark" size={12} color="#FFF" />
                   <Text style={styles.heroBadgeText}>{event.councilTag}</Text>
                 </View>
-              ) : null}
+              )}
               {event.indigenousTags?.map((tag: string) => (
                 <View key={tag} style={[styles.heroBadge, { backgroundColor: 'rgba(139,69,19,0.7)' }]}>
                   <Ionicons name="earth" size={11} color="#FFF" />
@@ -397,16 +510,16 @@ function EventDetail({ event, topInset, bottomInset }: EventDetailProps) {
             </View>
             <Text style={styles.heroTitle}>{event.title}</Text>
             <Text style={styles.heroOrganizer}>by {event.organizer}</Text>
-          </View>
+          </Animated.View>
         </LinearGradient>
       </View>
 
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 130 }}
-      >
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
         {countdown && (
-          <Animated.View entering={FadeInDown.delay(50).duration(400)} style={styles.countdownContainer}>
+          <Animated.View
+            entering={isWeb ? undefined : FadeInDown.delay(50).duration(400)}
+            style={styles.countdownContainer}
+          >
             {countdown.ended ? (
               <View style={styles.countdownEndedBox}>
                 <Ionicons name="time-outline" size={18} color={Colors.textSecondary} />
@@ -433,7 +546,10 @@ function EventDetail({ event, topInset, bottomInset }: EventDetailProps) {
           </Animated.View>
         )}
 
-        <Animated.View entering={FadeInDown.delay(100).duration(500)} style={styles.infoCards}>
+        <Animated.View
+          entering={isWeb ? undefined : FadeInDown.delay(100).duration(500)}
+          style={styles.infoCards}
+        >
           <View style={styles.infoCard}>
             <View style={[styles.infoIconBg, { backgroundColor: Colors.primary + '12' }]}>
               <Ionicons name="calendar" size={20} color={Colors.primary} />
@@ -446,11 +562,10 @@ function EventDetail({ event, topInset, bottomInset }: EventDetailProps) {
           </View>
           <Pressable
             style={styles.infoCard}
-            onPress={() => {
-              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-              const query = [event.venue, event.city, event.country].filter(Boolean).join(', ');
-              Linking.openURL(`https://maps.google.com/?q=${encodeURIComponent(query)}`);
-            }}
+            onPress={handleLocationPress}
+            android_ripple={{ color: Colors.secondary + '10' }}
+            accessibilityRole="button"
+            accessibilityLabel={`Open location: ${event.venue}`}
           >
             <View style={[styles.infoIconBg, { backgroundColor: Colors.secondary + '12' }]}>
               <Ionicons name="location" size={20} color={Colors.secondary} />
@@ -467,20 +582,20 @@ function EventDetail({ event, topInset, bottomInset }: EventDetailProps) {
         </Animated.View>
 
         {isPlus && (
-          <View style={styles.earlyAccessBadge}>
+          <Animated.View entering={isWeb ? undefined : FadeInDown.delay(150).duration(400)} style={styles.earlyAccessBadge}>
             <Ionicons name="flash" size={14} color="#2E86C1" />
             <Text style={styles.earlyAccessText}>48h Early Access</Text>
             <View style={styles.earlyAccessDot} />
             <Ionicons name="star" size={12} color="#2E86C1" />
             <Text style={styles.earlyAccessText}>CulturePass+ Member</Text>
-          </View>
+          </Animated.View>
         )}
 
         <View style={styles.sectionDivider}>
           <View style={styles.accentBar} />
         </View>
 
-        <Animated.View entering={FadeInDown.delay(200).duration(500)} style={styles.section}>
+        <Animated.View entering={isWeb ? undefined : FadeInDown.delay(200).duration(500)} style={styles.section}>
           <View style={styles.capacityRow}>
             <Text style={styles.sectionTitle}>Capacity</Text>
             <Text style={styles.capacityLabel}>{capacityPercent}% filled</Text>
@@ -491,17 +606,14 @@ function EventDetail({ event, topInset, bottomInset }: EventDetailProps) {
                 styles.capacityFill,
                 {
                   width: `${capacityPercent}%`,
-                  backgroundColor:
-                    capacityPercent > 80 ? Colors.warning : Colors.secondary,
+                  backgroundColor: capacityPercent > 80 ? Colors.warning : Colors.secondary,
                 },
               ]}
             />
           </View>
           <View style={styles.capacityDetails}>
             <Text style={styles.capacityText}>{event.attending} attending</Text>
-            <Text style={styles.capacityText}>
-              {Math.max(0, event.capacity - event.attending)} spots left
-            </Text>
+            <Text style={styles.capacityText}>{Math.max(0, event.capacity - event.attending)} spots left</Text>
           </View>
         </Animated.View>
 
@@ -509,7 +621,7 @@ function EventDetail({ event, topInset, bottomInset }: EventDetailProps) {
           <View style={styles.accentBar} />
         </View>
 
-        <Animated.View entering={FadeInDown.delay(300).duration(500)} style={styles.section}>
+        <Animated.View entering={isWeb ? undefined : FadeInDown.delay(300).duration(500)} style={styles.section}>
           <Text style={styles.sectionTitle}>About</Text>
           <Text style={styles.description}>{event.description}</Text>
         </Animated.View>
@@ -520,7 +632,7 @@ function EventDetail({ event, topInset, bottomInset }: EventDetailProps) {
 
         {event.indigenousTags && event.indigenousTags.length > 0 && (
           <>
-            <Animated.View entering={FadeInDown.delay(350).duration(500)} style={styles.section}>
+            <Animated.View entering={isWeb ? undefined : FadeInDown.delay(350).duration(500)} style={styles.section}>
               <View style={styles.educationCard}>
                 <View style={styles.educationHeader}>
                   <View style={styles.educationIconBg}>
@@ -529,13 +641,15 @@ function EventDetail({ event, topInset, bottomInset }: EventDetailProps) {
                   <Text style={styles.educationTitle}>Cultural Information</Text>
                 </View>
                 <Text style={styles.educationBody}>
-                  This is an event led by Aboriginal and Torres Strait Islander peoples. Please be mindful of cultural protocols and respect the traditions shared during this event.
+                  This is an event led by Aboriginal and Torres Strait Islander peoples. Please be mindful of
+                  cultural protocols and respect the traditions shared during this event.
                 </Text>
                 {event.indigenousTags.includes('NAIDOC Week') && (
                   <View style={styles.educationHighlight}>
                     <Ionicons name="information-circle" size={16} color="#1A5276" />
                     <Text style={styles.educationHighlightText}>
-                      NAIDOC Week celebrates the history, culture, and achievements of Aboriginal and Torres Strait Islander peoples.
+                      NAIDOC Week celebrates the history, culture, and achievements of Aboriginal and Torres Strait
+                      Islander peoples.
                     </Text>
                   </View>
                 )}
@@ -543,7 +657,8 @@ function EventDetail({ event, topInset, bottomInset }: EventDetailProps) {
                   <View style={styles.educationHighlight}>
                     <Ionicons name="information-circle" size={16} color="#1A5276" />
                     <Text style={styles.educationHighlightText}>
-                      National Reconciliation Week commemorates two significant milestones in the reconciliation journey.
+                      National Reconciliation Week commemorates two significant milestones in the reconciliation
+                      journey.
                     </Text>
                   </View>
                 )}
@@ -551,7 +666,8 @@ function EventDetail({ event, topInset, bottomInset }: EventDetailProps) {
                   <View style={styles.educationHighlight}>
                     <Ionicons name="information-circle" size={16} color="#1A5276" />
                     <Text style={styles.educationHighlightText}>
-                      This event includes cultural ceremonies. Photography may be restricted during certain performances. Please follow the guidance of event organisers.
+                      This event includes cultural ceremonies. Photography may be restricted during certain
+                      performances. Please follow the guidance of event organisers.
                     </Text>
                   </View>
                 )}
@@ -563,10 +679,17 @@ function EventDetail({ event, topInset, bottomInset }: EventDetailProps) {
           </>
         )}
 
-        <Animated.View entering={FadeInDown.delay(400).duration(500)} style={styles.section}>
+        <Animated.View entering={isWeb ? undefined : FadeInDown.delay(400).duration(500)} style={styles.section}>
           <Text style={styles.sectionTitle}>Tickets</Text>
           {event.tiers.map((tier: any, idx: number) => (
-            <Pressable key={`${tier.name}-${idx}`} style={styles.tierCard} onPress={() => openTicketModal(idx)}>
+            <Pressable
+              key={`${tier.name}-${idx}`}
+              style={styles.tierCard}
+              onPress={() => openTicketModal(idx)}
+              android_ripple={{ color: Colors.primary + '10' }}
+              accessibilityRole="button"
+              accessibilityLabel={`Select ${tier.name} ticket, ${tier.priceCents === 0 ? 'Free' : `$${(tier.priceCents / 100).toFixed(2)}`}`}
+            >
               <View style={styles.tierInfo}>
                 <Text style={styles.tierName}>{tier.name}</Text>
                 <Text style={styles.tierAvail}>{tier.available} available</Text>
@@ -585,11 +708,13 @@ function EventDetail({ event, topInset, bottomInset }: EventDetailProps) {
           <View style={styles.accentBar} />
         </View>
 
-        <Animated.View entering={FadeInDown.delay(500).duration(500)} style={styles.section}>
+        <Animated.View entering={isWeb ? undefined : FadeInDown.delay(500).duration(500)} style={styles.section}>
           <Text style={styles.sectionTitle}>Event Details</Text>
           <View style={styles.detailRow}>
             <Ionicons name="finger-print-outline" size={16} color={Colors.secondary} />
-            <Text style={[styles.detailText, { color: Colors.secondary, fontFamily: 'Poppins_600SemiBold' }]}>CPID: {event.cpid}</Text>
+            <Text style={[styles.detailText, { color: Colors.secondary, fontFamily: 'Poppins_600SemiBold' }]}>
+              CPID: {event.cpid}
+            </Text>
           </View>
           <View style={styles.detailRow}>
             <Ionicons name="pricetag-outline" size={16} color={Colors.textSecondary} />
@@ -600,14 +725,8 @@ function EventDetail({ event, topInset, bottomInset }: EventDetailProps) {
             <Text style={styles.detailText}>Community: {event.communityTag}</Text>
           </View>
           <View style={styles.detailRow}>
-            <Ionicons
-              name="information-circle-outline"
-              size={16}
-              color={Colors.textSecondary}
-            />
-            <Text style={styles.detailText}>
-              Refund policy applies. Contact organizer for details.
-            </Text>
+            <Ionicons name="information-circle-outline" size={16} color={Colors.textSecondary} />
+            <Text style={styles.detailText}>Refund policy applies. Contact organizer for details.</Text>
           </View>
         </Animated.View>
 
@@ -615,8 +734,8 @@ function EventDetail({ event, topInset, bottomInset }: EventDetailProps) {
           <View style={styles.accentBar} />
         </View>
 
-        <Animated.View entering={FadeInDown.delay(550).duration(500)} style={styles.section}>
-          <Text style={styles.sectionTitle}>Who&apos;s Going</Text>
+        <Animated.View entering={isWeb ? undefined : FadeInDown.delay(550).duration(500)} style={styles.section}>
+          <Text style={styles.sectionTitle}>Who's Going</Text>
           <View style={styles.whosGoingRow}>
             <View style={styles.avatarStack}>
               {Array.from({ length: avatarCount }).map((_, i) => (
@@ -625,7 +744,15 @@ function EventDetail({ event, topInset, bottomInset }: EventDetailProps) {
                   style={[
                     styles.avatarCircle,
                     { marginLeft: i === 0 ? 0 : -12, zIndex: avatarCount - i },
-                    { backgroundColor: [Colors.primary, Colors.secondary, Colors.accent, Colors.primaryLight, Colors.secondaryLight][i % 5] },
+                    {
+                      backgroundColor: [
+                        Colors.primary,
+                        Colors.secondary,
+                        Colors.accent,
+                        Colors.primaryLight,
+                        Colors.secondaryLight,
+                      ][i % 5],
+                    },
                   ]}
                 >
                   <Ionicons name="person" size={14} color="#FFF" />
@@ -634,9 +761,7 @@ function EventDetail({ event, topInset, bottomInset }: EventDetailProps) {
             </View>
             <View style={styles.whosGoingInfo}>
               <Text style={styles.whosGoingCount}>{event.attending} attending</Text>
-              {remainingCount > 0 && (
-                <Text style={styles.whosGoingOthers}>+{remainingCount} others</Text>
-              )}
+              {remainingCount > 0 && <Text style={styles.whosGoingOthers}>+{remainingCount} others</Text>}
             </View>
           </View>
         </Animated.View>
@@ -646,19 +771,26 @@ function EventDetail({ event, topInset, bottomInset }: EventDetailProps) {
             <View style={styles.sectionDivider}>
               <View style={styles.accentBar} />
             </View>
-            <Animated.View entering={FadeInDown.delay(600).duration(500)} style={styles.section}>
+            <Animated.View entering={isWeb ? undefined : FadeInDown.delay(600).duration(500)} style={styles.section}>
               <Text style={styles.sectionTitle}>You Might Also Like</Text>
               {relatedEvents.map((re: any) => (
                 <Pressable
                   key={re.id}
                   style={styles.relatedCard}
-                  onPress={() => router.push(`/event/${re.id}`)}
+                  onPress={() => handleRelatedPress(re.id)}
+                  android_ripple={{ color: Colors.primary + '10' }}
+                  accessibilityRole="button"
+                  accessibilityLabel={`View event: ${re.title}`}
                 >
-                  <Image source={{ uri: re.imageUrl }} style={styles.relatedSwatch} />
+                  <Image source={{ uri: re.imageUrl }} style={styles.relatedSwatch} contentFit="cover" transition={300} />
                   <View style={styles.relatedInfo}>
-                    <Text style={styles.relatedTitle} numberOfLines={1}>{re.title}</Text>
+                    <Text style={styles.relatedTitle} numberOfLines={1}>
+                      {re.title}
+                    </Text>
                     <Text style={styles.relatedMeta}>{formatDateShort(re.date)}</Text>
-                    <Text style={styles.relatedMeta} numberOfLines={1}>{re.venue}</Text>
+                    <Text style={styles.relatedMeta} numberOfLines={1}>
+                      {re.venue}
+                    </Text>
                   </View>
                   <Ionicons name="chevron-forward" size={18} color={Colors.textTertiary} />
                 </Pressable>
@@ -674,11 +806,11 @@ function EventDetail({ event, topInset, bottomInset }: EventDetailProps) {
           <Text style={styles.priceBig}>{event.priceLabel}</Text>
         </View>
         <Pressable
-          style={({ pressed }) => [
-            styles.buyButton,
-            pressed && { opacity: 0.9, transform: [{ scale: 0.97 }] },
-          ]}
+          style={({ pressed }) => [styles.buyButton, pressed && styles.buttonPressed]}
           onPress={handleGetTickets}
+          android_ripple={{ color: '#FFF3' }}
+          accessibilityRole="button"
+          accessibilityLabel="Get tickets"
         >
           <Ionicons name="ticket" size={20} color="#FFF" />
           <Text style={styles.buyText}>Get Tickets</Text>
@@ -696,7 +828,11 @@ function EventDetail({ event, topInset, bottomInset }: EventDetailProps) {
             <View style={modalStyles.handle} />
             <View style={modalStyles.header}>
               <Text style={modalStyles.headerTitle}>Select Tickets</Text>
-              <Pressable onPress={() => setTicketModalVisible(false)}>
+              <Pressable
+                onPress={() => setTicketModalVisible(false)}
+                accessibilityRole="button"
+                accessibilityLabel="Close"
+              >
                 <Ionicons name="close-circle" size={28} color={Colors.textTertiary} />
               </Pressable>
             </View>
@@ -708,7 +844,7 @@ function EventDetail({ event, topInset, bottomInset }: EventDetailProps) {
                   { key: 'single' as const, icon: 'person' as const, label: 'Single' },
                   { key: 'family' as const, icon: 'people' as const, label: 'Family Pack' },
                   { key: 'group' as const, icon: 'people-circle' as const, label: 'Group' },
-                ] as const).map(mode => {
+                ] as const).map((mode) => {
                   const active = buyMode === mode.key;
                   return (
                     <Pressable
@@ -717,11 +853,24 @@ function EventDetail({ event, topInset, bottomInset }: EventDetailProps) {
                       onPress={() => {
                         setBuyMode(mode.key);
                         setQuantity(mode.key === 'family' ? 1 : 1);
-                        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                        if (!isWeb) {
+                          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                        }
                       }}
+                      android_ripple={{ color: Colors.primary + '20' }}
+                      accessibilityRole="button"
+                      accessibilityLabel={`Book as ${mode.label}`}
+                      accessibilityState={{ selected: active }}
                     >
                       <Ionicons name={mode.icon} size={20} color={active ? Colors.primary : Colors.textSecondary} />
-                      <Text style={[modalStyles.buyModeText, active && { color: Colors.primary, fontFamily: 'Poppins_600SemiBold' }]}>{mode.label}</Text>
+                      <Text
+                        style={[
+                          modalStyles.buyModeText,
+                          active && { color: Colors.primary, fontFamily: 'Poppins_600SemiBold' },
+                        ]}
+                      >
+                        {mode.label}
+                      </Text>
                     </Pressable>
                   );
                 })}
@@ -748,22 +897,27 @@ function EventDetail({ event, topInset, bottomInset }: EventDetailProps) {
                 return (
                   <Pressable
                     key={`modal-tier-${idx}`}
-                    style={[
-                      modalStyles.tierOption,
-                      isSelected && modalStyles.tierOptionSelected,
-                    ]}
+                    style={[modalStyles.tierOption, isSelected && modalStyles.tierOptionSelected]}
                     onPress={() => {
                       setSelectedTierIndex(idx);
                       setQuantity(1);
-                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                      if (!isWeb) {
+                        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                      }
                     }}
+                    android_ripple={{ color: Colors.primary + '10' }}
+                    accessibilityRole="radio"
+                    accessibilityState={{ checked: isSelected }}
+                    accessibilityLabel={`${tier.name}, ${tier.priceCents === 0 ? 'Free' : `$${(tier.priceCents / 100).toFixed(2)}`}, ${tier.available} available`}
                   >
                     <View style={modalStyles.tierOptionLeft}>
                       <View style={[modalStyles.radioOuter, isSelected && modalStyles.radioOuterSelected]}>
                         {isSelected && <View style={modalStyles.radioInner} />}
                       </View>
                       <View>
-                        <Text style={[modalStyles.tierOptionName, isSelected && { color: Colors.primary }]}>{tier.name}</Text>
+                        <Text style={[modalStyles.tierOptionName, isSelected && { color: Colors.primary }]}>
+                          {tier.name}
+                        </Text>
                         <Text style={modalStyles.tierOptionAvail}>{tier.available} available</Text>
                       </View>
                     </View>
@@ -784,24 +938,44 @@ function EventDetail({ event, topInset, bottomInset }: EventDetailProps) {
                       style={[modalStyles.quantityBtn, quantity <= 1 && modalStyles.quantityBtnDisabled]}
                       onPress={() => {
                         if (quantity > 1) {
-                          setQuantity(q => q - 1);
-                          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                          setQuantity((q) => q - 1);
+                          if (!isWeb) {
+                            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                          }
                         }
                       }}
+                      android_ripple={{ color: Colors.primary + '20', radius: 18 }}
+                      accessibilityRole="button"
+                      accessibilityLabel="Decrease quantity"
+                      disabled={quantity <= 1}
                     >
-                      <Ionicons name="remove" size={20} color={quantity <= 1 ? Colors.textTertiary : Colors.primary} />
+                      <Ionicons
+                        name="remove"
+                        size={20}
+                        color={quantity <= 1 ? Colors.textTertiary : Colors.primary}
+                      />
                     </Pressable>
                     <Text style={modalStyles.quantityText}>{quantity}</Text>
                     <Pressable
                       style={[modalStyles.quantityBtn, quantity >= maxQty && modalStyles.quantityBtnDisabled]}
                       onPress={() => {
                         if (quantity < maxQty) {
-                          setQuantity(q => q + 1);
-                          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                          setQuantity((q) => q + 1);
+                          if (!isWeb) {
+                            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                          }
                         }
                       }}
+                      android_ripple={{ color: Colors.primary + '20', radius: 18 }}
+                      accessibilityRole="button"
+                      accessibilityLabel="Increase quantity"
+                      disabled={quantity >= maxQty}
                     >
-                      <Ionicons name="add" size={20} color={quantity >= maxQty ? Colors.textTertiary : Colors.primary} />
+                      <Ionicons
+                        name="add"
+                        size={20}
+                        color={quantity >= maxQty ? Colors.textTertiary : Colors.primary}
+                      />
                     </Pressable>
                   </View>
                 </>
@@ -819,7 +993,9 @@ function EventDetail({ event, topInset, bottomInset }: EventDetailProps) {
                     <Text style={[modalStyles.priceRowLabel, { color: '#27AE60' }]}>
                       {buyMode === 'family' ? 'Family' : 'Group'} Discount ({Math.round(discountRate * 100)}%)
                     </Text>
-                    <Text style={[modalStyles.priceRowValue, { color: '#27AE60' }]}>-${(discountAmount / 100).toFixed(2)}</Text>
+                    <Text style={[modalStyles.priceRowValue, { color: '#27AE60' }]}>
+                      -${(discountAmount / 100).toFixed(2)}
+                    </Text>
                   </View>
                 )}
                 <View style={modalStyles.totalDivider} />
@@ -835,13 +1011,19 @@ function EventDetail({ event, topInset, bottomInset }: EventDetailProps) {
                 <View style={modalStyles.cashbackNote}>
                   <Ionicons name="star" size={14} color="#2E86C1" />
                   <Text style={modalStyles.cashbackNoteText}>
-                    You&apos;ll earn ${cashbackAmount.toFixed(2)} cashback with CulturePass+
+                    You'll earn ${cashbackAmount.toFixed(2)} cashback with CulturePass+
                   </Text>
                 </View>
               )}
 
               {!isPlus && totalPrice > 0 && (
-                <Pressable style={modalStyles.upgradeNote} onPress={() => { setTicketModalVisible(false); router.push('/membership/upgrade'); }}>
+                <Pressable
+                  style={modalStyles.upgradeNote}
+                  onPress={handleUpgradePress}
+                  android_ripple={{ color: '#2E86C1' + '20' }}
+                  accessibilityRole="button"
+                  accessibilityLabel="Upgrade to CulturePass+ to earn cashback"
+                >
                   <Ionicons name="star-outline" size={14} color="#2E86C1" />
                   <Text style={modalStyles.upgradeNoteText}>
                     CulturePass+ members earn 2% cashback on tickets
@@ -853,23 +1035,28 @@ function EventDetail({ event, topInset, bottomInset }: EventDetailProps) {
               <Pressable
                 style={({ pressed }) => [
                   modalStyles.purchaseBtn,
-                  pressed && { opacity: 0.9, transform: [{ scale: 0.98 }] },
-                  (purchaseMutation.isPending || paymentLoading) && { opacity: 0.6 },
+                  pressed && modalStyles.buttonPressed,
+                  (purchaseMutation.isPending || paymentLoading) && modalStyles.purchaseBtnDisabled,
                 ]}
                 onPress={handlePurchase}
                 disabled={purchaseMutation.isPending || paymentLoading}
+                android_ripple={{ color: '#FFF3' }}
+                accessibilityRole="button"
+                accessibilityLabel={
+                  totalPrice > 0
+                    ? `Pay $${(totalPrice / 100).toFixed(2)}`
+                    : `Get ${effectiveQty === 1 ? 'free ticket' : `${effectiveQty} free tickets`}`
+                }
               >
                 {purchaseMutation.isPending || paymentLoading ? (
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                  <View style={modalStyles.loadingRow}>
                     <ActivityIndicator size="small" color="#FFF" />
                     <Text style={modalStyles.purchaseBtnText}>Processing...</Text>
                   </View>
                 ) : totalPrice > 0 ? (
                   <>
                     <Ionicons name="card" size={20} color="#FFF" />
-                    <Text style={modalStyles.purchaseBtnText}>
-                      Pay A${(totalPrice / 100).toFixed(2)}
-                    </Text>
+                    <Text style={modalStyles.purchaseBtnText}>Pay A${(totalPrice / 100).toFixed(2)}</Text>
                   </>
                 ) : (
                   <>
@@ -892,29 +1079,65 @@ function EventDetail({ event, topInset, bottomInset }: EventDetailProps) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
+
+  loading: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 12,
+    backgroundColor: Colors.background,
+  },
+
+  loadingText: {
+    fontSize: 14,
+    fontFamily: 'Poppins_400Regular',
+    color: Colors.textSecondary,
+  },
+
+  notFound: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 12,
+    backgroundColor: Colors.background,
+    padding: 24,
+  },
+
   errorText: {
     fontSize: 16,
     fontFamily: 'Poppins_500Medium',
     color: Colors.textSecondary,
+    textAlign: 'center',
   },
+
+  backButton: {
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 12,
+    marginTop: 8,
+  },
+
   backLink: {
     fontSize: 15,
     fontFamily: 'Poppins_600SemiBold',
     color: Colors.primary,
-    marginTop: 12,
   },
+
   heroSection: {},
+
   heroOverlay: {
     flex: 1,
     justifyContent: 'space-between',
     padding: 16,
     paddingBottom: 20,
   },
+
   heroNav: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
+
   navButton: {
     width: 42,
     height: 42,
@@ -922,10 +1145,25 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.35)',
     alignItems: 'center',
     justifyContent: 'center',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.25,
+        shadowRadius: 4,
+      },
+      android: {
+        elevation: 4,
+      },
+    }),
   },
+
   heroActions: { flexDirection: 'row', gap: 8 },
+
   heroContent: { gap: 8 },
-  heroBadges: { flexDirection: 'row', gap: 8 },
+
+  heroBadges: { flexDirection: 'row', gap: 8, flexWrap: 'wrap' },
+
   heroBadge: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -935,29 +1173,42 @@ const styles = StyleSheet.create({
     paddingVertical: 5,
     borderRadius: 20,
   },
+
   heroBadgeText: { fontSize: 12, fontFamily: 'Poppins_600SemiBold', color: '#FFF' },
+
   heroTitle: {
     fontSize: 26,
     fontFamily: 'Poppins_700Bold',
     color: '#FFF',
     lineHeight: 32,
+    textShadowColor: 'rgba(0,0,0,0.5)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 4,
   },
+
   heroOrganizer: {
     fontSize: 14,
     fontFamily: 'Poppins_400Regular',
     color: 'rgba(255,255,255,0.85)',
   },
+
+  scrollContent: {
+    paddingBottom: 130,
+  },
+
   countdownContainer: {
     paddingHorizontal: 20,
     paddingTop: 20,
     paddingBottom: 4,
   },
+
   countdownRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 10,
   },
+
   countdownBox: {
     backgroundColor: Colors.surface,
     borderRadius: 16,
@@ -967,11 +1218,13 @@ const styles = StyleSheet.create({
     minWidth: 72,
     ...shadows.small,
   },
+
   countdownNumber: {
     fontSize: 24,
     fontFamily: 'Poppins_700Bold',
     color: Colors.primary,
   },
+
   countdownLabel: {
     fontSize: 11,
     fontFamily: 'Poppins_500Medium',
@@ -980,11 +1233,13 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
     marginTop: 2,
   },
+
   countdownSeparator: {
     fontSize: 22,
     fontFamily: 'Poppins_700Bold',
     color: Colors.textTertiary,
   },
+
   countdownEndedBox: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -995,12 +1250,15 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     paddingHorizontal: 20,
   },
+
   countdownEndedText: {
     fontSize: 14,
     fontFamily: 'Poppins_600SemiBold',
     color: Colors.textSecondary,
   },
+
   infoCards: { paddingHorizontal: 20, paddingTop: 20, gap: 12 },
+
   infoCard: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1010,6 +1268,7 @@ const styles = StyleSheet.create({
     gap: 14,
     ...shadows.small,
   },
+
   infoIconBg: {
     width: 46,
     height: 46,
@@ -1017,6 +1276,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+
   infoLabel: {
     fontSize: 11,
     fontFamily: 'Poppins_500Medium',
@@ -1024,36 +1284,50 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
+
   infoValue: { fontSize: 15, fontFamily: 'Poppins_600SemiBold', color: Colors.text },
-  infoSub: { fontSize: 12, fontFamily: 'Poppins_400Regular', color: Colors.textSecondary, marginTop: 1 },
+
+  infoSub: {
+    fontSize: 12,
+    fontFamily: 'Poppins_400Regular',
+    color: Colors.textSecondary,
+    marginTop: 1,
+  },
+
   sectionDivider: {
     paddingHorizontal: 20,
     marginTop: 28,
     alignItems: 'center',
   },
+
   accentBar: {
     width: 40,
     height: 3,
     borderRadius: 2,
     backgroundColor: Colors.primary + '25',
   },
+
   section: { paddingHorizontal: 20, marginTop: 20 },
+
   sectionTitle: {
     fontSize: 18,
     fontFamily: 'Poppins_700Bold',
     color: Colors.text,
     marginBottom: 12,
   },
+
   capacityRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
+
   capacityLabel: {
     fontSize: 13,
     fontFamily: 'Poppins_600SemiBold',
     color: Colors.textSecondary,
   },
+
   capacityBar: {
     height: 8,
     backgroundColor: Colors.backgroundSecondary,
@@ -1061,19 +1335,24 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     marginBottom: 8,
   },
+
   capacityFill: { height: '100%', borderRadius: 4 },
+
   capacityDetails: { flexDirection: 'row', justifyContent: 'space-between' },
+
   capacityText: {
     fontSize: 12,
     fontFamily: 'Poppins_400Regular',
     color: Colors.textSecondary,
   },
+
   description: {
     fontSize: 14,
     fontFamily: 'Poppins_400Regular',
     color: Colors.textSecondary,
     lineHeight: 22,
   },
+
   tierCard: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1084,16 +1363,22 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     ...shadows.small,
   },
+
   tierInfo: { gap: 2 },
+
   tierName: { fontSize: 15, fontFamily: 'Poppins_600SemiBold', color: Colors.text },
+
   tierAvail: { fontSize: 12, fontFamily: 'Poppins_400Regular', color: Colors.textSecondary },
+
   tierPrice: { fontSize: 18, fontFamily: 'Poppins_700Bold', color: Colors.primary },
+
   detailRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: 10,
     marginBottom: 12,
   },
+
   detailText: {
     fontSize: 14,
     fontFamily: 'Poppins_400Regular',
@@ -1101,15 +1386,18 @@ const styles = StyleSheet.create({
     flex: 1,
     lineHeight: 20,
   },
+
   whosGoingRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 14,
   },
+
   avatarStack: {
     flexDirection: 'row',
     alignItems: 'center',
   },
+
   avatarCircle: {
     width: 36,
     height: 36,
@@ -1119,19 +1407,23 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: Colors.surface,
   },
+
   whosGoingInfo: {
     gap: 2,
   },
+
   whosGoingCount: {
     fontSize: 15,
     fontFamily: 'Poppins_600SemiBold',
     color: Colors.text,
   },
+
   whosGoingOthers: {
     fontSize: 12,
     fontFamily: 'Poppins_400Regular',
     color: Colors.textSecondary,
   },
+
   relatedCard: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1142,25 +1434,30 @@ const styles = StyleSheet.create({
     gap: 12,
     ...shadows.small,
   },
+
   relatedSwatch: {
     width: 52,
     height: 52,
     borderRadius: 14,
   },
+
   relatedInfo: {
     flex: 1,
     gap: 2,
   },
+
   relatedTitle: {
     fontSize: 14,
     fontFamily: 'Poppins_600SemiBold',
     color: Colors.text,
   },
+
   relatedMeta: {
     fontSize: 12,
     fontFamily: 'Poppins_400Regular',
     color: Colors.textSecondary,
   },
+
   bottomBar: {
     position: 'absolute',
     bottom: 0,
@@ -1176,9 +1473,13 @@ const styles = StyleSheet.create({
     borderTopColor: Colors.border + '40',
     ...shadows.medium,
   },
+
   priceSection: {},
+
   priceFrom: { fontSize: 12, fontFamily: 'Poppins_400Regular', color: Colors.textSecondary },
+
   priceBig: { fontSize: 22, fontFamily: 'Poppins_700Bold', color: Colors.text },
+
   buyButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1193,7 +1494,14 @@ const styles = StyleSheet.create({
     shadowRadius: 12,
     elevation: 6,
   },
+
+  buttonPressed: {
+    opacity: 0.9,
+    transform: [{ scale: 0.97 }],
+  },
+
   buyText: { fontSize: 16, fontFamily: 'Poppins_600SemiBold', color: '#FFF' },
+
   earlyAccessBadge: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1208,8 +1516,11 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#D6EAF8',
   },
-  earlyAccessText: { fontSize: 12, fontWeight: '600', color: '#1A5276' },
+
+  earlyAccessText: { fontSize: 12, fontFamily: 'Poppins_600SemiBold', color: '#1A5276' },
+
   earlyAccessDot: { width: 3, height: 3, borderRadius: 1.5, backgroundColor: '#2E86C1', opacity: 0.4 },
+
   educationCard: {
     backgroundColor: 'rgba(255, 149, 0, 0.08)',
     borderRadius: 16,
@@ -1217,12 +1528,14 @@ const styles = StyleSheet.create({
     borderLeftWidth: 4,
     borderLeftColor: '#8B4513',
   },
+
   educationHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
     marginBottom: 12,
   },
+
   educationIconBg: {
     width: 32,
     height: 32,
@@ -1231,11 +1544,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+
   educationTitle: {
     fontSize: 16,
     fontFamily: 'Poppins_700Bold',
     color: '#3E2723',
   },
+
   educationBody: {
     fontSize: 13,
     fontFamily: 'Poppins_400Regular',
@@ -1243,6 +1558,7 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     marginBottom: 8,
   },
+
   educationHighlight: {
     flexDirection: 'row',
     alignItems: 'flex-start',
@@ -1252,6 +1568,7 @@ const styles = StyleSheet.create({
     padding: 12,
     marginTop: 8,
   },
+
   educationHighlightText: {
     flex: 1,
     fontSize: 12,
@@ -1267,12 +1584,14 @@ const modalStyles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.4)',
     justifyContent: 'flex-end',
   },
+
   sheet: {
     backgroundColor: Colors.surface,
     borderTopLeftRadius: 16,
     borderTopRightRadius: 16,
     maxHeight: '80%',
   },
+
   handle: {
     width: 36,
     height: 5,
@@ -1282,6 +1601,7 @@ const modalStyles = StyleSheet.create({
     marginTop: 10,
     marginBottom: 6,
   },
+
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1291,15 +1611,18 @@ const modalStyles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: Colors.borderLight,
   },
+
   headerTitle: {
     fontSize: 18,
     fontFamily: 'Poppins_700Bold',
     color: Colors.text,
   },
+
   content: {
     paddingHorizontal: 20,
     paddingTop: 16,
   },
+
   sectionLabel: {
     fontSize: 13,
     fontFamily: 'Poppins_600SemiBold',
@@ -1308,6 +1631,7 @@ const modalStyles = StyleSheet.create({
     letterSpacing: 0.5,
     marginBottom: 10,
   },
+
   tierOption: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1319,15 +1643,18 @@ const modalStyles = StyleSheet.create({
     borderWidth: 2,
     borderColor: 'transparent',
   },
+
   tierOptionSelected: {
     borderColor: Colors.primary,
     backgroundColor: Colors.primary + '08',
   },
+
   tierOptionLeft: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
   },
+
   radioOuter: {
     width: 22,
     height: 22,
@@ -1337,31 +1664,37 @@ const modalStyles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+
   radioOuterSelected: {
     borderColor: Colors.primary,
   },
+
   radioInner: {
     width: 12,
     height: 12,
     borderRadius: 6,
     backgroundColor: Colors.primary,
   },
+
   tierOptionName: {
     fontSize: 15,
     fontFamily: 'Poppins_600SemiBold',
     color: Colors.text,
   },
+
   tierOptionAvail: {
     fontSize: 12,
     fontFamily: 'Poppins_400Regular',
     color: Colors.textSecondary,
     marginTop: 1,
   },
+
   tierOptionPrice: {
     fontSize: 17,
     fontFamily: 'Poppins_700Bold',
     color: Colors.text,
   },
+
   quantityRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1369,6 +1702,7 @@ const modalStyles = StyleSheet.create({
     gap: 24,
     marginBottom: 24,
   },
+
   quantityBtn: {
     width: 36,
     height: 36,
@@ -1379,9 +1713,11 @@ const modalStyles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Colors.borderLight,
   },
+
   quantityBtnDisabled: {
     opacity: 0.4,
   },
+
   quantityText: {
     fontSize: 22,
     fontFamily: 'Poppins_700Bold',
@@ -1389,25 +1725,19 @@ const modalStyles = StyleSheet.create({
     minWidth: 40,
     textAlign: 'center',
   },
-  totalRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 16,
-    borderTopWidth: 1,
-    borderTopColor: Colors.borderLight,
-    marginBottom: 16,
-  },
+
   totalLabel: {
     fontSize: 16,
     fontFamily: 'Poppins_600SemiBold',
     color: Colors.textSecondary,
   },
+
   totalValue: {
     fontSize: 22,
     fontFamily: 'Poppins_700Bold',
     color: Colors.text,
   },
+
   purchaseBtn: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1417,12 +1747,25 @@ const modalStyles = StyleSheet.create({
     borderRadius: 12,
     paddingVertical: 16,
     width: '100%',
+    ...shadows.small,
   },
+
+  purchaseBtnDisabled: {
+    opacity: 0.6,
+  },
+
   purchaseBtnText: {
     fontSize: 16,
     fontFamily: 'Poppins_600SemiBold',
     color: '#FFF',
   },
+
+  loadingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+
   cashbackNote: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1432,12 +1775,14 @@ const modalStyles = StyleSheet.create({
     marginBottom: 12,
     gap: 6,
   },
+
   cashbackNoteText: {
     fontSize: 13,
+    fontFamily: 'Poppins_500Medium',
     color: '#1A5276',
-    fontWeight: '500',
     flex: 1,
   },
+
   upgradeNote: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1449,17 +1794,20 @@ const modalStyles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#D6EAF8',
   },
+
   upgradeNoteText: {
     fontSize: 12,
+    fontFamily: 'Poppins_500Medium',
     color: '#2E86C1',
-    fontWeight: '500',
     flex: 1,
   },
+
   buyModeRow: {
     flexDirection: 'row',
     gap: 8,
     marginBottom: 16,
   },
+
   buyModeBtn: {
     flex: 1,
     alignItems: 'center',
@@ -1471,15 +1819,18 @@ const modalStyles = StyleSheet.create({
     borderWidth: 2,
     borderColor: 'transparent',
   },
+
   buyModeBtnActive: {
     borderColor: Colors.primary,
     backgroundColor: Colors.primary + '08',
   },
+
   buyModeText: {
     fontSize: 12,
     fontFamily: 'Poppins_500Medium',
     color: Colors.textSecondary,
   },
+
   savingsBadge: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1492,11 +1843,13 @@ const modalStyles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#C8F0DB',
   },
+
   savingsText: {
     fontSize: 13,
     fontFamily: 'Poppins_600SemiBold',
     color: '#27AE60',
   },
+
   priceSummary: {
     backgroundColor: Colors.background,
     borderRadius: 12,
@@ -1504,22 +1857,26 @@ const modalStyles = StyleSheet.create({
     marginTop: 8,
     marginBottom: 16,
   },
+
   priceRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingVertical: 4,
   },
+
   priceRowLabel: {
     fontSize: 14,
     fontFamily: 'Poppins_400Regular',
     color: Colors.textSecondary,
   },
+
   priceRowValue: {
     fontSize: 14,
     fontFamily: 'Poppins_500Medium',
     color: Colors.text,
   },
+
   totalDivider: {
     height: 1,
     backgroundColor: Colors.borderLight,

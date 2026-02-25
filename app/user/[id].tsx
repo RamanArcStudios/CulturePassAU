@@ -20,7 +20,6 @@ import type { User, Membership } from '@shared/schema';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useCallback, useMemo } from 'react';
 import { getApiUrl } from '@/lib/query-client';
-import { fetch } from 'expo/fetch';
 
 const CP = {
   teal:       '#00D4AA',
@@ -82,11 +81,23 @@ export default function UserProfileScreen() {
 
   const { data: user, isLoading } = useQuery<User>({
     queryKey: ['/api/users', id as string],
+    queryFn: async () => {
+      const base = getApiUrl();
+      const res = await fetch(`${base}/api/users/${id}`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      return res.json();
+    },
     enabled: !!id,
   });
 
   const { data: membership } = useQuery<Membership>({
     queryKey: [`/api/membership/${id}`],
+    queryFn: async () => {
+      const base = getApiUrl();
+      const res = await fetch(`${base}/api/membership/${id}`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      return res.json();
+    },
     enabled: !!id,
   });
 
@@ -103,7 +114,9 @@ export default function UserProfileScreen() {
   const hasDetails   = !!(locationText || user?.website || user?.phone);
 
   const handleShare = useCallback(async () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    if (Platform.OS !== 'web') {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    }
     try {
       const shareUrl = `https://culturepass.app/u/${user?.username}`;
       await Share.share({
@@ -121,6 +134,22 @@ export default function UserProfileScreen() {
       router.replace('/');
     }
   }, []);
+
+  const handleSocialPress = useCallback((url: string) => {
+    if (Platform.OS !== 'web') {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    }
+    if (url) Linking.openURL(url);
+  }, []);
+
+  const handleWebsitePress = useCallback(() => {
+    if (user?.website) {
+      if (Platform.OS !== 'web') {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      }
+      Linking.openURL(user.website);
+    }
+  }, [user?.website]);
 
   if (isLoading) {
     return (
@@ -143,7 +172,11 @@ export default function UserProfileScreen() {
       <View style={[styles.container, styles.centered]}>
         <Ionicons name="person-outline" size={52} color={CP.muted} />
         <Text style={[styles.errorText, { marginTop: 14 }]}>Profile not found</Text>
-        <Pressable style={styles.goBackButton} onPress={handleBack}>
+        <Pressable 
+          style={styles.goBackButton} 
+          onPress={handleBack}
+          android_ripple={{ color: '#FFF', radius: 80 }}
+        >
           <Text style={styles.goBackButtonText}>Go Back</Text>
         </Pressable>
       </View>
@@ -166,10 +199,20 @@ export default function UserProfileScreen() {
           <View style={styles.arcInner} pointerEvents="none" />
 
           <View style={styles.heroNav}>
-            <Pressable style={styles.navBtn} onPress={handleBack} hitSlop={8}>
+            <Pressable 
+              style={styles.navBtn} 
+              onPress={handleBack} 
+              hitSlop={8}
+              android_ripple={{ color: '#FFF', radius: 20 }}
+            >
               <Ionicons name="chevron-back" size={22} color="#FFF" />
             </Pressable>
-            <Pressable style={styles.navBtn} onPress={handleShare} hitSlop={8}>
+            <Pressable 
+              style={styles.navBtn} 
+              onPress={handleShare} 
+              hitSlop={8}
+              android_ripple={{ color: '#FFF', radius: 20 }}
+            >
               <Ionicons name="share-outline" size={20} color="#FFF" />
             </Pressable>
           </View>
@@ -275,11 +318,8 @@ export default function UserProfileScreen() {
                 <Pressable
                   key={s.key}
                   style={styles.socialCard}
-                  onPress={() => {
-                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                    const url = socialLinks[s.key];
-                    if (url) Linking.openURL(url);
-                  }}
+                  onPress={() => handleSocialPress(socialLinks[s.key] || '')}
+                  android_ripple={{ color: s.color + '20' }}
                 >
                   <View style={[styles.socialStrip, { backgroundColor: s.color }]} />
                   <View style={[styles.socialIconWrap, { backgroundColor: s.color + '14' }]}>
@@ -314,7 +354,11 @@ export default function UserProfileScreen() {
               {user.website ? (
                 <>
                   {locationText && <View style={styles.detailDivider} />}
-                  <Pressable style={styles.detailRow} onPress={() => Linking.openURL(user.website!)}>
+                  <Pressable 
+                    style={styles.detailRow} 
+                    onPress={handleWebsitePress}
+                    android_ripple={{ color: CP.teal + '20' }}
+                  >
                     <View style={[styles.detailIconWrap, { backgroundColor: CP.teal + '14' }]}>
                       <Ionicons name="globe-outline" size={18} color={CP.teal} />
                     </View>
@@ -393,7 +437,7 @@ export default function UserProfileScreen() {
                   <Text style={styles.cpidMetaLabel}>Since</Text>
                   <Text style={styles.cpidMetaValue}>{memberSince || 'N/A'}</Text>
                 </View>
-                <View style={[styles.cpidMetaItem, { alignItems: 'flex-end' as const }]}>
+                <View style={[styles.cpidMetaItem, { alignItems: 'flex-end' }]}>
                   <Text style={styles.cpidMetaLabel}>Tier</Text>
                   <Text style={[styles.cpidMetaValue, { color: CP.teal }]}>{tierConf.label}</Text>
                 </View>
@@ -456,17 +500,32 @@ const styles = StyleSheet.create({
     position: 'absolute', top: -20,
     width: 160, height: 160, borderRadius: 80,
     backgroundColor: CP.teal + '0A',
-    shadowColor: CP.teal,
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.25, shadowRadius: 40,
+    ...Platform.select({
+      ios: {
+        shadowColor: CP.teal,
+        shadowOffset: { width: 0, height: 0 },
+        shadowOpacity: 0.25,
+        shadowRadius: 40,
+      },
+      android: {
+        elevation: 0,
+      },
+    }),
   },
   avatarGradientRing: {
     width: 104, height: 104, borderRadius: 52,
     padding: 3, marginBottom: 18,
-    shadowColor: CP.teal,
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.5, shadowRadius: 18,
-    elevation: 12,
+    ...Platform.select({
+      ios: {
+        shadowColor: CP.teal,
+        shadowOffset: { width: 0, height: 6 },
+        shadowOpacity: 0.5,
+        shadowRadius: 18,
+      },
+      android: {
+        elevation: 12,
+      },
+    }),
   },
   avatarInner: {
     flex: 1, borderRadius: 50,
@@ -486,9 +545,17 @@ const styles = StyleSheet.create({
     backgroundColor: CP.teal,
     borderWidth: 3, borderColor: CP.dark,
     alignItems: 'center', justifyContent: 'center',
-    shadowColor: CP.teal,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.7, shadowRadius: 5,
+    ...Platform.select({
+      ios: {
+        shadowColor: CP.teal,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.7,
+        shadowRadius: 5,
+      },
+      android: {
+        elevation: 6,
+      },
+    }),
   },
 
   heroName: {
@@ -559,9 +626,17 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: CP.surface,
     borderRadius: 20, padding: 20,
-    shadowColor: CP.dark,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.07, shadowRadius: 8, elevation: 3,
+    ...Platform.select({
+      ios: {
+        shadowColor: CP.dark,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.07,
+        shadowRadius: 8,
+      },
+      android: {
+        elevation: 3,
+      },
+    }),
   },
   bioText: {
     fontFamily: 'Poppins_400Regular',
@@ -573,8 +648,17 @@ const styles = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', gap: 14,
     backgroundColor: CP.surface, borderRadius: 16, padding: 16,
     overflow: 'hidden',
-    shadowColor: CP.dark,
-    shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 6, elevation: 2,
+    ...Platform.select({
+      ios: {
+        shadowColor: CP.dark,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.06,
+        shadowRadius: 6,
+      },
+      android: {
+        elevation: 2,
+      },
+    }),
   },
   socialStrip: {
     position: 'absolute', left: 0, top: 0, bottom: 0,
@@ -595,9 +679,17 @@ const styles = StyleSheet.create({
 
   cpidCard: {
     borderRadius: 24, padding: 24, overflow: 'hidden',
-    shadowColor: CP.purple,
-    shadowOffset: { width: 0, height: 14 },
-    shadowOpacity: 0.35, shadowRadius: 28, elevation: 14,
+    ...Platform.select({
+      ios: {
+        shadowColor: CP.purple,
+        shadowOffset: { width: 0, height: 14 },
+        shadowOpacity: 0.35,
+        shadowRadius: 28,
+      },
+      android: {
+        elevation: 14,
+      },
+    }),
   },
   cpidAccentEdge: {
     position: 'absolute', top: 0, left: 0, right: 0, height: 2.5,
@@ -628,7 +720,7 @@ const styles = StyleSheet.create({
   cpidMetaItem:  { flex: 1 },
   cpidMetaLabel: {
     fontFamily: 'Poppins_400Regular', fontSize: 9, color: CP.muted,
-    textTransform: 'uppercase' as const, letterSpacing: 1.2, marginBottom: 4,
+    textTransform: 'uppercase', letterSpacing: 1.2, marginBottom: 4,
   },
   cpidMetaValue: { fontFamily: 'Poppins_600SemiBold', fontSize: 13, color: '#FFF' },
 

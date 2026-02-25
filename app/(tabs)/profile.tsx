@@ -155,7 +155,7 @@ export default function ProfileScreen() {
   }, []);
 
   const { data: usersData } = useQuery<User[]>({ queryKey: ['/api/users'] });
-  const user = usersData?.[0];
+  const user = usersData?.[0] as any; // Cast as any to allow custom cultural fields
   const userId = user?.id;
 
   const { data: wallet } = useQuery<Wallet>({
@@ -548,6 +548,34 @@ export default function ProfileScreen() {
           </Animated.View>
         )}
 
+        <Animated.View entering={isWeb ? undefined : FadeInDown.delay(280).duration(400)} style={styles.section}>
+          <SectionTitle title="Cultural Identity" />
+          <View style={styles.menuCard}>
+            <MenuItem
+              icon="earth-outline"
+              label="Heritage & Roots"
+              value={user?.heritage || 'Kerala, India'}
+              color={Colors.primary}
+              onPress={() => router.push('/profile/edit')}
+            />
+            <MenuItem
+              icon="chatbubbles-outline"
+              label="Languages"
+              value={user?.languages?.join(', ') || 'English, Malayalam'}
+              color={Colors.secondary}
+              onPress={() => router.push('/profile/edit')}
+            />
+            <MenuItem
+              icon="restaurant-outline"
+              label="Dietary Preferences"
+              value={user?.dietary || 'Add preference'}
+              color={Colors.accent}
+              onPress={() => router.push('/profile/edit')}
+              showDivider={false}
+            />
+          </View>
+        </Animated.View>
+
         <Animated.View entering={isWeb ? undefined : FadeInDown.delay(300).duration(400)} style={styles.section}>
           <SectionTitle title="Location & Preferences" />
           <View style={styles.menuCard}>
@@ -671,6 +699,13 @@ export default function ProfileScreen() {
           <SectionTitle title="Settings" />
           <View style={styles.menuCard}>
             <MenuItem
+              icon="color-palette-outline"
+              label="App Appearance"
+              value="System"
+              color="#8E8E93"
+              onPress={() => router.push('/settings/appearance' as any)}
+            />
+            <MenuItem
               icon="shield-checkmark-outline"
               label="Privacy"
               color="#5856D6"
@@ -689,6 +724,12 @@ export default function ProfileScreen() {
         <Animated.View entering={isWeb ? undefined : FadeInDown.delay(550).duration(400)} style={styles.section}>
           <SectionTitle title="Help & Support" />
           <View style={styles.menuCard}>
+            <MenuItem
+              icon="gift-outline"
+              label="Invite Friends"
+              color="#FF2D55"
+              onPress={handleShare}
+            />
             <MenuItem
               icon="help-buoy-outline"
               label="Help Centre"
@@ -776,7 +817,7 @@ const styles = StyleSheet.create({
     width: 90,
     height: 90,
     borderRadius: 45,
-    ...Colors.shadow.medium,
+    ...Colors.shadows.medium,
   },
   avatarFallback: {
     width: 90,
@@ -785,7 +826,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
-    ...Colors.shadow.medium,
+    ...Colors.shadows.medium,
   },
   avatarInitials: {
     fontSize: 32,
@@ -803,7 +844,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: Colors.surface,
-    ...Colors.shadow.small,
+    ...Colors.shadows.small,
   },
   heroBody: {
     alignItems: 'center',
@@ -930,7 +971,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.surface,
     borderRadius: 12,
     paddingVertical: 16,
-    ...Colors.shadow.small,
+    ...Colors.shadows.small,
   },
   statCard: {
     flex: 1,
@@ -974,7 +1015,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.surface,
     borderRadius: 12,
     overflow: 'hidden',
-    ...Colors.shadow.small,
+    ...Colors.shadows.small,
   },
   menuItem: {
     flexDirection: 'row',
@@ -1017,7 +1058,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.surface,
     borderRadius: 12,
     paddingVertical: 14,
-    ...Colors.shadow.small,
+    ...Colors.shadows.small,
   },
   logoutText: { fontSize: 16, fontFamily: 'Poppins_600SemiBold', color: Colors.error },
   resetButton: {
@@ -1028,7 +1069,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.surface,
     borderRadius: 12,
     paddingVertical: 14,
-    ...Colors.shadow.small,
+    ...Colors.shadows.small,
   },
   resetText: { fontSize: 16, fontFamily: 'Poppins_600SemiBold', color: Colors.error },
   version: {
@@ -1047,7 +1088,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 14,
     borderRadius: 12,
-    ...Colors.shadow.small,
+    ...Colors.shadows.small,
   },
   upgradeIconWrap: {
     width: 36,
@@ -1083,7 +1124,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.surface,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: Colors.borderLight,
-    ...Colors.shadow.small,
+    ...Colors.shadows.small,
   },
   quickActionIcon: {
     width: 38,
@@ -1103,7 +1144,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 16,
     gap: 10,
-    ...Colors.shadow.small,
+    ...Colors.shadows.small,
   },
   activityTitle: {
     fontSize: 15,

@@ -13,7 +13,6 @@ const isWeb = Platform.OS === 'web';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-// Kept as a module-level constant — no need to recreate on every render
 const CHIP_COLORS = [
   '#E85D3A', '#1A7A6D', '#F2A93B', '#3498DB', '#9B59B6',
   '#E74C3C', '#2ECC71', '#1ABC9C', '#8E44AD', '#F39C12',
@@ -24,15 +23,17 @@ const CHIP_COLORS = [
 
 export default function CommunitiesScreen() {
   const insets = useSafeAreaInsets();
-  const topInset = Platform.OS === 'web' ? 67 : insets.top;
-  const bottomInset = Platform.OS === 'web' ? 34 : insets.bottom;
+  const topInset = isWeb ? 67 : insets.top;
+  const bottomInset = isWeb ? 34 : insets.bottom;
   const { state, setCommunities: setSelectedCommunities } = useOnboarding();
 
-  // Initialise from saved onboarding state
+  // Initialize from saved onboarding state
   const [selected, setSelected] = useState<string[]>(state.communities);
 
   const toggle = useCallback((community: string) => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    if (!isWeb) {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    }
     setSelected(prev =>
       prev.includes(community)
         ? prev.filter(c => c !== community)
@@ -42,15 +43,29 @@ export default function CommunitiesScreen() {
 
   const handleNext = useCallback(() => {
     if (selected.length === 0) return;
+    if (!isWeb) {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    }
     setSelectedCommunities(selected);
     router.push('/(onboarding)/interests');
   }, [selected, setSelectedCommunities]);
+
+  const handleBack = useCallback(() => {
+    if (!isWeb) {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    }
+    router.back();
+  }, []);
 
   return (
     <View style={[styles.container, { paddingTop: topInset }]}>
       {/* Header */}
       <View style={styles.header}>
-        <Pressable onPress={() => router.back()} hitSlop={12}>
+        <Pressable 
+          onPress={handleBack} 
+          hitSlop={12}
+          android_ripple={{ color: Colors.primary + '20', radius: 20 }}
+        >
           <Ionicons name="arrow-back" size={24} color={Colors.text} />
         </Pressable>
         <Text style={styles.step}>2 of 3</Text>
@@ -60,6 +75,7 @@ export default function CommunitiesScreen() {
         style={styles.content}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
+        contentContainerStyle={styles.scrollContent}
       >
         <Animated.View entering={isWeb ? undefined : FadeInDown.delay(100).duration(600)}>
           <Text style={styles.title}>Your Communities</Text>
@@ -68,11 +84,13 @@ export default function CommunitiesScreen() {
           </Text>
         </Animated.View>
 
-        <Animated.View entering={isWeb ? undefined : FadeInDown.delay(200).duration(600)} style={styles.chipContainer}>
+        <Animated.View 
+          entering={isWeb ? undefined : FadeInDown.delay(200).duration(600)} 
+          style={styles.chipContainer}
+        >
           {communities.map((community, idx) => {
             const isSelected = selected.includes(community);
             const color = CHIP_COLORS[idx % CHIP_COLORS.length];
-            // Fall back to 'people' if the community has no mapped icon
             const iconName = (communityIcons[community] as string | undefined) ?? 'people';
 
             return (
@@ -83,6 +101,10 @@ export default function CommunitiesScreen() {
                   isSelected && { backgroundColor: color, borderColor: color },
                 ]}
                 onPress={() => toggle(community)}
+                android_ripple={{ color: isSelected ? '#FFF3' : color + '20' }}
+                accessibilityRole="button"
+                accessibilityState={{ selected: isSelected }}
+                accessibilityLabel={`${community} community`}
               >
                 <Ionicons
                   name={iconName as any}
@@ -99,9 +121,6 @@ export default function CommunitiesScreen() {
             );
           })}
         </Animated.View>
-
-        {/* Spacer so last chip isn't hidden behind the footer */}
-        <View style={{ height: 120 }} />
       </ScrollView>
 
       {/* Footer */}
@@ -113,6 +132,7 @@ export default function CommunitiesScreen() {
           style={[styles.nextButton, selected.length === 0 && styles.buttonDisabled]}
           onPress={handleNext}
           disabled={selected.length === 0}
+          android_ripple={{ color: '#FFF3' }}
           accessibilityRole="button"
           accessibilityState={{ disabled: selected.length === 0 }}
           accessibilityLabel="Continue to interests"
@@ -128,7 +148,10 @@ export default function CommunitiesScreen() {
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
+  container: { 
+    flex: 1, 
+    backgroundColor: Colors.background 
+  },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -141,7 +164,13 @@ const styles = StyleSheet.create({
     fontFamily: 'Poppins_500Medium',
     color: Colors.textSecondary,
   },
-  content: { flex: 1, paddingHorizontal: 20 },
+  content: { 
+    flex: 1, 
+    paddingHorizontal: 20 
+  },
+  scrollContent: {
+    paddingBottom: 120,
+  },
   title: {
     fontSize: 28,
     fontFamily: 'Poppins_700Bold',
@@ -177,7 +206,6 @@ const styles = StyleSheet.create({
     fontFamily: 'Poppins_500Medium',
     color: Colors.text,
   },
-  // Extracted selected text style so it's not recreated as a new object per chip per render
   chipTextSelected: {
     color: '#FFF',
   },
@@ -186,6 +214,17 @@ const styles = StyleSheet.create({
     paddingTop: 12,
     backgroundColor: Colors.background,
     gap: 8,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: -2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 8,
+      },
+      android: {
+        elevation: 8,
+      },
+    }),
   },
   selectedCount: {
     fontSize: 13,
@@ -202,7 +241,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 8,
   },
-  buttonDisabled: { opacity: 0.4 },
+  buttonDisabled: { 
+    opacity: 0.4 
+  },
   nextButtonText: {
     color: '#FFF',
     fontSize: 17,

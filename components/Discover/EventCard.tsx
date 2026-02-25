@@ -1,8 +1,18 @@
-import { View, Text, Pressable, StyleSheet, Image, Platform } from 'react-native';
+import React from 'react';
+import {
+  View,
+  Text,
+  Pressable,
+  StyleSheet,
+  Platform,
+  useColorScheme,
+} from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Image } from 'expo-image';
 import Colors from '@/constants/colors';
 
 interface EventCardProps {
@@ -20,80 +30,131 @@ interface EventCardProps {
   };
   highlight?: boolean;
   index?: number;
+  testID?: string;
 }
 
 function formatDate(dateStr: string): string {
-  const parts = dateStr.split('-');
-  if (parts.length !== 3) return dateStr;
-  const day = parseInt(parts[2], 10);
-  const monthIndex = parseInt(parts[1], 10) - 1;
-  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-  return `${day} ${months[monthIndex] || ''}`;
+  try {
+    const date = new Date(dateStr);
+    if (isNaN(date.getTime())) return dateStr;
+    
+    const day = date.getDate();
+    const months = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 
+                   'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+    return `${day} ${months[date.getMonth()]}`;
+  } catch {
+    return dateStr;
+  }
 }
 
-function CardContent({ event, highlight }: Pick<EventCardProps, 'event' | 'highlight'>) {
-  return (
-    <>
-      {event.priceLabel && (
-        <View style={styles.priceBadge}>
-          <Text style={styles.priceBadgeText}>{event.priceLabel}</Text>
-        </View>
-      )}
-      <Text style={[styles.date, highlight && styles.dateHighlight]}>
-        {formatDate(event.date)}
-      </Text>
-      <Text style={[styles.title, highlight && styles.titleHighlight]} numberOfLines={2}>
-        {event.title}
-      </Text>
-      <View style={styles.metaRow}>
-        <Ionicons name="location" size={13} color="rgba(255,255,255,0.75)" />
-        <Text style={styles.location} numberOfLines={1}>
-          {event.venue || event.city}
-        </Text>
-        {event.attending != null && event.attending > 0 && (
-          <View style={styles.attendingBadge}>
-            <Ionicons name="people" size={11} color="rgba(255,255,255,0.75)" />
-            <Text style={styles.attendingText}>{event.attending}</Text>
-          </View>
-        )}
-      </View>
-      {event.communityTag ? (
-        <View style={styles.culturePill}>
-          <Text style={styles.culturePillText}>{event.communityTag}</Text>
-        </View>
-      ) : null}
-    </>
-  );
-}
+export default function EventCard({
+  event,
+  highlight = false,
+  index = 0,
+  testID = 'event-card',
+}: EventCardProps) {
+  const colorScheme = useColorScheme();
+  const isDark = colorScheme === 'dark';
 
-export default function EventCard({ event, highlight, index = 0 }: EventCardProps) {
+  const handlePress = () => {
+    if (Platform.OS !== 'web') {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    }
+    router.push(`/event/${event.id}`);
+  };
+
+  const location = event.venue || event.city || 'Sydney';
+  const attendingCount = event.attending ?? 0;
+
   return (
-    <Animated.View entering={FadeInDown.delay((index || 0) * 80 + 100).duration(500)}>
+    <Animated.View 
+      entering={FadeInDown.delay((index * 120) + 200).duration(700)}
+      testID={testID}
+    >
       <Pressable
+        testID={`${testID}-${event.id}`}
         style={({ pressed }) => [
           styles.card,
-          highlight && styles.highlight,
-          pressed && { opacity: 0.9, transform: [{ scale: 0.98 }] },
-          Platform.OS === 'web' && { cursor: 'pointer' as any },
+          highlight && styles.highlightCard,
+          {
+            shadowColor: Colors.shadow[colorScheme || 'light'],
+            borderColor: Colors.borderLight[colorScheme || 'light'],
+          },
+          pressed && styles.pressed,
+          Platform.OS === 'web' && styles.webCursor,
           Colors.shadows.medium,
         ]}
-        onPress={() => router.push({ pathname: '/event/[id]', params: { id: event.id } })}
-        accessibilityLabel={`${event.title}, ${formatDate(event.date)}`}
+        onPress={handlePress}
+        android_ripple={{ 
+          color: 'rgba(255,255,255,0.2)', 
+          radius: 32, 
+          borderless: false 
+        }}
+        accessibilityLabel={`${event.title}, ${formatDate(event.date)}, ${location}`}
+        accessibilityRole="button"
+        accessibilityHint="Tap to view event details"
       >
         <Image
           source={{ uri: event.imageUrl }}
-          style={StyleSheet.absoluteFillObject}
-          resizeMode="cover"
+          style={StyleSheet.absoluteFill}
+          contentFit="cover"
+          transition={400}
+          placeholder={{ blurhash: 'L6PZfSi_.AyE_3t7t7R**0o#DgR4' }}
         />
 
         <LinearGradient
-          colors={['transparent', 'rgba(0,0,0,0.15)', 'rgba(0,0,0,0.75)']}
-          locations={[0, 0.4, 1]}
-          style={StyleSheet.absoluteFillObject}
+          colors={[
+            'transparent', 
+            'rgba(0,0,0,0.2)', 
+            'rgba(0,0,0,0.6)', 
+            'rgba(0,0,0,0.9)'
+          ]}
+          locations={[0, 0.2, 0.6, 1]}
+          style={StyleSheet.absoluteFill}
         />
 
         <View style={styles.contentContainer}>
-          <CardContent event={event} highlight={highlight} />
+          {event.priceLabel && (
+            <View style={[
+              styles.priceBadge, 
+              { backgroundColor: Colors.primary + (isDark ? 'CC' : 'E6') }
+            ]}>
+              <Text style={styles.priceBadgeText}>{event.priceLabel}</Text>
+            </View>
+          )}
+          
+          <Text style={[
+            styles.date, 
+            highlight && styles.dateHighlight
+          ]}>
+            {formatDate(event.date)}
+          </Text>
+          
+          <Text style={[
+            styles.title, 
+            highlight && styles.titleHighlight
+          ]} numberOfLines={2}>
+            {event.title}
+          </Text>
+          
+          <View style={styles.metaRow}>
+            <Ionicons name="location-outline" size={14} color="rgba(255,255,255,0.85)" />
+            <Text style={styles.location} numberOfLines={1}>
+              {location}
+            </Text>
+            {attendingCount > 0 && (
+              <View style={styles.attendingBadge}>
+                <Ionicons name="people-outline" size={12} color="rgba(255,255,255,0.85)" />
+                <Text style={styles.attendingText}>{attendingCount}</Text>
+              </View>
+            )}
+          </View>
+          
+          {event.communityTag && (
+            <View style={styles.culturePill}>
+              <Text style={styles.culturePillText}>{event.communityTag}</Text>
+            </View>
+          )}
         </View>
       </Pressable>
     </Animated.View>
@@ -102,100 +163,114 @@ export default function EventCard({ event, highlight, index = 0 }: EventCardProp
 
 const styles = StyleSheet.create({
   card: {
-    width: 240,
-    height: 260,
-    borderRadius: 20,
+    width: 248,
+    height: 280,
+    borderRadius: 24,
     overflow: 'hidden',
-    backgroundColor: Colors.surfaceSecondary,
+    borderWidth: StyleSheet.hairlineWidth,
+    marginBottom: 20,
   },
-  highlight: {
+  highlightCard: {
     width: '100%',
-    height: 320,
-    borderWidth: 1.5,
-    borderColor: 'rgba(255, 215, 0, 0.5)',
+    height: 340,
+    borderWidth: 2,
+    borderColor: Colors.accent + '66',
+    shadowOpacity: 0.25,
+    shadowRadius: 16,
+  },
+  pressed: {
+    opacity: 0.88,
+    transform: [{ scale: 0.96 }],
+  },
+  webCursor: {
+    cursor: 'pointer' as const,
   },
   contentContainer: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
-    padding: 16,
-    paddingTop: 32,
+    padding: 20,
+    paddingTop: 40,
   },
   priceBadge: {
     alignSelf: 'flex-start',
-    backgroundColor: 'rgba(255,215,0,0.9)',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 8,
-    marginBottom: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+    marginBottom: 8,
   },
   priceBadgeText: {
-    fontSize: 11,
+    fontSize: 12,
     fontFamily: 'Poppins_700Bold',
-    color: '#1C1C1E',
+    color: Colors.textInverse,
   },
   date: {
-    fontSize: 11,
+    fontSize: 12,
     fontFamily: 'Poppins_600SemiBold',
-    color: '#FFD700',
-    marginBottom: 4,
+    color: Colors.accent,
+    marginBottom: 6,
     textTransform: 'uppercase',
-    letterSpacing: 0.8,
+    letterSpacing: 1,
+    includeFontPadding: false,
   },
   dateHighlight: {
-    fontSize: 12,
+    fontSize: 14,
+    color: '#FFD700',
   },
   title: {
-    fontSize: 15,
+    fontSize: 16,
     fontFamily: 'Poppins_700Bold',
     color: '#FFFFFF',
-    marginBottom: 8,
-    lineHeight: 21,
+    marginBottom: 12,
+    lineHeight: 22,
+    includeFontPadding: false,
   },
   titleHighlight: {
-    fontSize: 18,
-    lineHeight: 25,
+    fontSize: 20,
+    lineHeight: 26,
+    marginBottom: 16,
   },
   metaRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 5,
-    marginBottom: 10,
+    gap: 6,
+    marginBottom: 12,
   },
   location: {
-    fontSize: 12,
+    fontSize: 13,
     fontFamily: 'Poppins_500Medium',
-    color: 'rgba(255,255,255,0.8)',
+    color: 'rgba(255,255,255,0.9)',
     flex: 1,
+    includeFontPadding: false,
   },
   attendingBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 3,
+    gap: 4,
     backgroundColor: 'rgba(255,255,255,0.15)',
-    paddingHorizontal: 7,
-    paddingVertical: 3,
-    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 12,
   },
   attendingText: {
-    fontSize: 10,
+    fontSize: 12,
     fontFamily: 'Poppins_600SemiBold',
-    color: 'rgba(255,255,255,0.85)',
+    color: 'rgba(255,255,255,0.95)',
   },
   culturePill: {
     alignSelf: 'flex-start',
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 10,
-    borderWidth: StyleSheet.hairlineWidth,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    borderRadius: 14,
+    borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.25)',
   },
   culturePillText: {
-    fontSize: 11,
+    fontSize: 12,
     fontFamily: 'Poppins_600SemiBold',
     color: '#FFFFFF',
-    letterSpacing: 0.3,
+    letterSpacing: 0.5,
   },
 });

@@ -11,31 +11,67 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Colors from '@/constants/colors';
+import { LinearGradient } from 'expo-linear-gradient';
+import Animated, { FadeInDown } from 'react-native-reanimated';
+import * as Haptics from 'expo-haptics';
+import QRCode from 'react-native-qrcode-svg';
+import { useMemo, useState } from 'react';
 import { router } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
+
+import Colors from '@/constants/colors';
 import type { User, Membership } from '@shared/schema';
-import Animated, { FadeInDown, FadeIn } from 'react-native-reanimated';
-import QRCode from 'react-native-qrcode-svg';
-import * as Haptics from 'expo-haptics';
-import { useMemo, useState } from 'react';
-import { LinearGradient } from 'expo-linear-gradient';
+import { apiRequest } from '@/lib/query-client';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const CARD_WIDTH = SCREEN_WIDTH - 48;
 const QR_SIZE = Math.min(CARD_WIDTH - 80, 200);
 
+type TierKey = 'free' | 'plus' | 'premium' | 'pro' | 'vip';
+
 function capitalize(s: string): string {
+  if (!s) return '';
   return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
-const TIER_CONFIG: Record<string, { gradient: string[]; label: string; icon: string; accent: string }> = {
-  free: { gradient: ['#636366', '#48484A'], label: 'Standard', icon: 'shield-outline', accent: '#8E8E93' },
-  plus: { gradient: ['#3498DB', '#2471A3'], label: 'Plus', icon: 'star', accent: '#3498DB' },
-  premium: { gradient: ['#F4A623', '#D4871E'], label: 'Premium', icon: 'diamond', accent: '#F4A623' },
-  pro: { gradient: ['#3498DB', '#2471A3'], label: 'Pro', icon: 'star', accent: '#3498DB' },
-  vip: { gradient: ['#F4A623', '#D4871E'], label: 'VIP', icon: 'diamond', accent: '#F4A623' },
+const TIER_CONFIG: Record<
+  TierKey,
+  { gradient: string[]; label: string; icon: keyof typeof Ionicons.glyphMap; accent: string }
+> = {
+  free: {
+    gradient: ['#636366', '#48484A'],
+    label: 'Standard',
+    icon: 'shield-outline',
+    accent: '#8E8E93',
+  },
+  plus: {
+    gradient: ['#3498DB', '#2471A3'],
+    label: 'Plus',
+    icon: 'star',
+    accent: '#3498DB',
+  },
+  premium: {
+    gradient: ['#F4A623', '#D4871E'],
+    label: 'Premium',
+    icon: 'diamond',
+    accent: '#F4A623',
+  },
+  pro: {
+    gradient: ['#3498DB', '#2471A3'],
+    label: 'Pro',
+    icon: 'star',
+    accent: '#3498DB',
+  },
+  vip: {
+    gradient: ['#F4A623', '#D4871E'],
+    label: 'VIP',
+    icon: 'diamond',
+    accent: '#F4A623',
+  },
 };
+
+const CORNER_SIZE = 18;
+const CORNER_WIDTH = 3;
 
 export default function QRScreen() {
   const insets = useSafeAreaInsets();
@@ -43,46 +79,67 @@ export default function QRScreen() {
   const bottomInset = Platform.OS === 'web' ? 34 : insets.bottom;
   const [copied, setCopied] = useState(false);
 
-  const { data: usersData } = useQuery<User[]>({ queryKey: ['/api/users'] });
+  // Load current user
+  const { data: usersData } = useQuery<User[]>({
+    queryKey: ['api/users'],
+    queryFn: async () => {
+      const res = await apiRequest('GET', 'api/users');
+      return res.json();
+    },
+  });
+
   const user = usersData?.[0];
   const userId = user?.id;
 
+  // Load membership for tier badge
   const { data: membership } = useQuery<Membership>({
-    queryKey: [`/api/membership/${userId}`],
+    queryKey: ['api/membership', userId],
     enabled: !!userId,
+    queryFn: async () => {
+      const res = await apiRequest('GET', `api/membership/${userId}`);
+      return res.json();
+    },
   });
 
-  const tier = membership?.tier ?? 'free';
-  const tierConf = TIER_CONFIG[tier] ?? TIER_CONFIG.free;
-  const cpid = user?.culturePassId ?? 'CP-000000';
-  const displayName = user?.displayName ?? 'CulturePass User';
-  const username = user?.username ?? 'user';
+  const rawTier = (membership?.tier as TierKey) ?? 'free';
+  const tierConf = TIER_CONFIG[rawTier] ?? TIER_CONFIG.free;
 
-  const qrValue = useMemo(() => {
-    return JSON.stringify({
-      type: 'culturepass_id',
-      cpid,
-      name: displayName,
-      username,
-    });
-  }, [cpid, displayName, username]);
+  const cpid = user?.culturePassId ?? 'CP-000000';
+  const displayName = user?.displayName || 'CulturePass User';
+  const username = user?.username || 'user';
+
+  const qrValue = useMemo(
+    () =>
+      JSON.stringify({
+        type: 'culturepass_id',
+        cpid,
+        name: displayName,
+        username,
+      }),
+    [cpid, displayName, username],
+  );
 
   const memberSince = useMemo(() => {
     if (!user?.createdAt) return 'Member';
     const d = new Date(user.createdAt);
-    return `Since ${d.toLocaleDateString('en-AU', { month: 'short', year: 'numeric' })}`;
+    return `Since ${d.toLocaleDateString('en-AU', {
+      month: 'short',
+      year: 'numeric',
+    })}`;
   }, [user?.createdAt]);
 
   const profileUrl = `https://culturepass.app/u/${username}`;
 
   const handleShare = async () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     try {
       await Share.share({
         title: `${displayName} - CulturePass Digital ID`,
-        message: `My CulturePass Digital ID\n\nName: ${displayName}\nCPID: ${cpid}\nUsername: @${username}\nTier: ${capitalize(tier)}\n\n${profileUrl}\n\nScan my QR code on CulturePass to connect!`,
+        message: `My CulturePass Digital ID\n\nName: ${displayName}\nCPID: ${cpid}\nUsername: @${username}\nTier: ${capitalize(rawTier)}\n\n${profileUrl}\n\nScan my QR code on CulturePass to connect!`,
       });
-    } catch {}
+    } catch {
+      // ignore
+    }
   };
 
   const handleCopy = () => {
@@ -90,26 +147,42 @@ export default function QRScreen() {
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
     Alert.alert('Copied', `CulturePass ID ${cpid} copied to clipboard.`);
+    // If you want real clipboard support:
+    // Clipboard.setStringAsync(cpid);
   };
 
   return (
     <View style={[styles.container, { paddingTop: topInset }]}>
+      {/* Header */}
       <View style={styles.header}>
-        <Pressable style={styles.backBtn} onPress={() => router.back()}>
+        <Pressable
+          style={styles.backBtn}
+          onPress={() => router.back()}
+          android_ripple={{ color: Colors.borderLight }}
+        >
           <Ionicons name="chevron-back" size={22} color={Colors.text} />
         </Pressable>
         <Text style={styles.headerTitle}>CulturePass Digital ID</Text>
         <View style={styles.headerRight}>
-          <Pressable style={styles.headerAction} onPress={() => router.push('/scanner')}>
+          <Pressable
+            style={styles.headerAction}
+            onPress={() => router.push('/scanner')}
+            android_ripple={{ color: Colors.primary + '30', borderless: true }}
+          >
             <Ionicons name="scan-outline" size={20} color={Colors.primary} />
           </Pressable>
         </View>
       </View>
 
+      {/* Content */}
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={[styles.scrollContent, { paddingBottom: bottomInset + 40 }]}
+        contentContainerStyle={[
+          styles.scrollContent,
+          { paddingBottom: bottomInset + 40 },
+        ]}
       >
+        {/* Main card */}
         <Animated.View entering={FadeInDown.duration(500)} style={styles.cardOuter}>
           <View style={styles.card}>
             <LinearGradient
@@ -118,11 +191,13 @@ export default function QRScreen() {
               end={{ x: 1, y: 1 }}
               style={styles.cardTop}
             >
+              {/* Background pattern */}
               <View style={styles.cardPattern}>
                 <View style={styles.patternCircle1} />
                 <View style={styles.patternCircle2} />
               </View>
 
+              {/* Brand row */}
               <View style={styles.cardHeaderRow}>
                 <View style={styles.brandRow}>
                   <View style={styles.logoMark}>
@@ -133,39 +208,64 @@ export default function QRScreen() {
                     <Text style={styles.brandSub}>DIGITAL ID</Text>
                   </View>
                 </View>
-                <View style={[styles.tierBadge, { backgroundColor: tierConf.accent + '30' }]}>
-                  <Ionicons name={tierConf.icon as any} size={11} color={tierConf.accent} />
-                  <Text style={[styles.tierText, { color: tierConf.accent }]}>{tierConf.label}</Text>
+                <View
+                  style={[
+                    styles.tierBadge,
+                    { backgroundColor: tierConf.accent + '30' },
+                  ]}
+                >
+                  <Ionicons name={tierConf.icon} size={11} color={tierConf.accent} />
+                  <Text style={[styles.tierText, { color: tierConf.accent }]}>
+                    {tierConf.label}
+                  </Text>
                 </View>
               </View>
 
+              {/* User info */}
               <View style={styles.userSection}>
                 <View style={styles.avatarRing}>
                   <View style={styles.avatarInner}>
                     <Text style={styles.avatarInitials}>
-                      {(displayName || 'U').split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()}
+                      {displayName
+                        .split(' ')
+                        .map((w) => w[0])
+                        .join('')
+                        .slice(0, 2)
+                        .toUpperCase()}
                     </Text>
                   </View>
                 </View>
                 <View style={styles.userDetails}>
-                  <Text style={styles.userName} numberOfLines={1}>{displayName}</Text>
+                  <Text style={styles.userName} numberOfLines={1}>
+                    {displayName}
+                  </Text>
                   <Text style={styles.userHandle}>@{username}</Text>
                 </View>
               </View>
 
+              {/* Meta row */}
               <View style={styles.metaRow}>
                 <View style={styles.metaItem}>
-                  <Ionicons name="finger-print" size={12} color="rgba(255,255,255,0.6)" />
+                  <Ionicons
+                    name="finger-print"
+                    size={12}
+                    color="rgba(255,255,255,0.6)"
+                  />
                   <Text style={styles.metaText}>{cpid}</Text>
                 </View>
                 <View style={styles.metaDot} />
                 <View style={styles.metaItem}>
-                  <Ionicons name="calendar-outline" size={12} color="rgba(255,255,255,0.6)" />
+                  <Ionicons
+                    name="calendar-outline"
+                    size={12}
+                    color="rgba(255,255,255,0.6)"
+                  />
                   <Text style={styles.metaText}>{memberSince}</Text>
                 </View>
               </View>
             </LinearGradient>
 
+            {/* QR section */}
             <View style={styles.qrSection}>
               <View style={styles.qrContainer}>
                 <View style={styles.cornerTL} />
@@ -185,19 +285,33 @@ export default function QRScreen() {
               <Text style={styles.scanLabel}>Scan to verify identity</Text>
             </View>
 
+            {/* Bottom row */}
             <View style={styles.cardBottom}>
               <View style={styles.bottomDivider} />
               <View style={styles.bottomRow}>
                 <View style={styles.verifiedRow}>
-                  <Ionicons name="shield-checkmark" size={15} color={Colors.success} />
+                  <Ionicons
+                    name="shield-checkmark"
+                    size={15}
+                    color={Colors.success}
+                  />
                   <Text style={styles.verifiedText}>Verified Member</Text>
                 </View>
                 <View style={styles.chipRow}>
                   <View style={styles.nfcChip}>
-                    <Ionicons name="wifi" size={10} color="rgba(255,255,255,0.4)" style={{ transform: [{ rotate: '90deg' }] }} />
+                    <Ionicons
+                      name="wifi"
+                      size={10}
+                      color="rgba(255,255,255,0.4)"
+                      style={{ transform: [{ rotate: '90deg' }] }}
+                    />
                   </View>
                   <View style={styles.hologram}>
-                    <Ionicons name="finger-print" size={16} color={Colors.primary + '35'} />
+                    <Ionicons
+                      name="finger-print"
+                      size={16}
+                      color={Colors.primary + '35'}
+                    />
                   </View>
                 </View>
               </View>
@@ -205,11 +319,20 @@ export default function QRScreen() {
           </View>
         </Animated.View>
 
-        <Animated.View entering={FadeInDown.delay(150).duration(400)} style={styles.cpidSection}>
+        {/* CPID row */}
+        <Animated.View
+          entering={FadeInDown.delay(150).duration(400)}
+          style={styles.cpidSection}
+        >
           <Text style={styles.cpidLabel}>CULTUREPASS ID</Text>
           <Pressable onPress={handleCopy} style={styles.cpidRow}>
             <Text style={styles.cpidValue}>{cpid}</Text>
-            <View style={[styles.cpidCopyBtn, copied && styles.cpidCopyBtnActive]}>
+            <View
+              style={[
+                styles.cpidCopyBtn,
+                copied && styles.cpidCopyBtnActive,
+              ]}
+            >
               <Ionicons
                 name={copied ? 'checkmark' : 'copy-outline'}
                 size={16}
@@ -219,47 +342,91 @@ export default function QRScreen() {
           </Pressable>
         </Animated.View>
 
-        <Animated.View entering={FadeInDown.delay(250).duration(400)} style={styles.actionsGrid}>
+        {/* Actions */}
+        <Animated.View
+          entering={FadeInDown.delay(250).duration(400)}
+          style={styles.actionsGrid}
+        >
           <Pressable style={styles.actionCard} onPress={handleShare}>
-            <View style={[styles.actionIcon, { backgroundColor: Colors.primary + '15' }]}>
-              <Ionicons name="share-outline" size={22} color={Colors.primary} />
+            <View
+              style={[
+                styles.actionIcon,
+                { backgroundColor: Colors.primary + '15' },
+              ]}
+            >
+              <Ionicons
+                name="share-outline"
+                size={22}
+                color={Colors.primary}
+              />
             </View>
             <Text style={styles.actionTitle}>Share</Text>
             <Text style={styles.actionDesc}>Send your ID</Text>
           </Pressable>
 
           <Pressable style={styles.actionCard} onPress={handleCopy}>
-            <View style={[styles.actionIcon, { backgroundColor: Colors.secondary + '15' }]}>
-              <Ionicons name="copy-outline" size={22} color={Colors.secondary} />
+            <View
+              style={[
+                styles.actionIcon,
+                { backgroundColor: Colors.secondary + '15' },
+              ]}
+            >
+              <Ionicons
+                name="copy-outline"
+                size={22}
+                color={Colors.secondary}
+              />
             </View>
             <Text style={styles.actionTitle}>Copy</Text>
             <Text style={styles.actionDesc}>Copy CPID</Text>
           </Pressable>
 
-          <Pressable style={styles.actionCard} onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); router.push('/scanner'); }}>
-            <View style={[styles.actionIcon, { backgroundColor: Colors.accent + '15' }]}>
-              <Ionicons name="scan-outline" size={22} color={Colors.accent} />
+          <Pressable
+            style={styles.actionCard}
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              router.push('/scanner');
+            }}
+          >
+            <View
+              style={[
+                styles.actionIcon,
+                { backgroundColor: Colors.accent + '15' },
+              ]}
+            >
+              <Ionicons
+                name="scan-outline"
+                size={22}
+                color={Colors.accent}
+              />
             </View>
             <Text style={styles.actionTitle}>Scan</Text>
             <Text style={styles.actionDesc}>Scan others</Text>
           </Pressable>
         </Animated.View>
 
-        <Animated.View entering={FadeInDown.delay(350).duration(400)} style={styles.infoCard}>
+        {/* Info card */}
+        <Animated.View
+          entering={FadeInDown.delay(350).duration(400)}
+          style={styles.infoCard}
+        >
           <View style={styles.infoIconWrap}>
-            <Ionicons name="information-circle-outline" size={18} color={Colors.primary} />
+            <Ionicons
+              name="information-circle-outline"
+              size={18}
+              color={Colors.primary}
+            />
           </View>
           <Text style={styles.infoText}>
-            Your CulturePass Digital ID is a unique identifier that can be scanned at events, venues, and partner locations for quick check-in and verification.
+            Your CulturePass Digital ID is a unique identifier that can be
+            scanned at events, venues, and partner locations for quick check‑in
+            and verification.
           </Text>
         </Animated.View>
       </ScrollView>
     </View>
   );
 }
-
-const CORNER_SIZE = 18;
-const CORNER_WIDTH = 3;
 
 const styles = StyleSheet.create({
   container: {
@@ -280,7 +447,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.surface,
     alignItems: 'center',
     justifyContent: 'center',
-    ...Colors.shadow.small,
+    ...Colors.shadows.small,
   },
   headerTitle: {
     fontFamily: 'Poppins_700Bold',
@@ -304,8 +471,8 @@ const styles = StyleSheet.create({
     paddingTop: 4,
   },
   cardOuter: {
-    ...Colors.shadow.heavy,
     borderRadius: 24,
+    ...Colors.shadows.heavy,
   },
   card: {
     backgroundColor: Colors.surface,
@@ -588,7 +755,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 12,
     borderRadius: 16,
-    ...Colors.shadow.small,
+    ...Colors.shadows.small,
   },
   cpidValue: {
     fontFamily: 'Poppins_700Bold',
@@ -620,7 +787,7 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     paddingVertical: 18,
     paddingHorizontal: 8,
-    ...Colors.shadow.small,
+    ...Colors.shadows.small,
   },
   actionIcon: {
     width: 46,
@@ -650,7 +817,8 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 16,
     marginTop: 24,
-    ...Colors.shadow.small,
+    marginBottom: 24,
+    ...Colors.shadows.small,
   },
   infoIconWrap: {
     marginTop: 1,
