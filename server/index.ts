@@ -128,8 +128,6 @@ const upload = multer({
   limits: { fileSize: 8 * 1024 * 1024 },
 });
 
-const BAD_WORDS = ['hate', 'abuse', 'stupid', 'idiot'];
-
 const users: AppUser[] = [
   {
     id: 'u1',
@@ -304,19 +302,6 @@ app.get('/api/rollout/config', (req, res) => {
     },
   });
 });
-function textHasProfanity(value: unknown): boolean {
-  if (typeof value !== 'string') return false;
-  const v = value.toLowerCase();
-  return BAD_WORDS.some((bad) => v.includes(bad));
-}
-
-function moderationCheck(req: Request, res: Response, next: NextFunction) {
-  const payload = JSON.stringify(req.body ?? {}).toLowerCase();
-  if (BAD_WORDS.some((w) => payload.includes(w))) {
-    return res.status(400).json({ error: 'Content rejected by moderation checks' });
-  }
-  next();
-}
 
 function rankItem(item: { title?: string; name?: string; city?: string; category?: string; description?: string }, q: string, city?: string) {
   const query = q.toLowerCase();
