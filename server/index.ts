@@ -97,6 +97,30 @@ fs.mkdirSync(imageDir, { recursive: true });
 fs.mkdirSync(thumbDir, { recursive: true });
 app.use('/uploads', express.static(uploadsDir));
 
+// --- Expo manifest & static build serving ---
+const staticBuildDir = path.resolve(process.cwd(), 'static-build');
+
+// Health / status endpoint used by Replit preview (ensurePreviewReachable)
+app.get('/status', (_req, res) => res.json({ status: 'ok' }));
+
+// Serve Expo manifest for iOS / Android (Expo Go & dev client)
+app.get('/manifest', (req, res) => {
+  const platform = (req.headers['expo-platform'] as string) || 'ios';
+  const manifestPath = path.join(staticBuildDir, platform, 'manifest.json');
+
+  if (fs.existsSync(manifestPath)) {
+    const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf-8'));
+    res.json(manifest);
+  } else {
+    res.status(404).json({ error: `Manifest not found for platform: ${platform}` });
+  }
+});
+
+// Serve static build assets (bundles, etc.)
+if (fs.existsSync(staticBuildDir)) {
+  app.use(express.static(staticBuildDir));
+}
+
 const rateBucket = new Map<string, { count: number; resetAt: number }>();
 const searchCache = new InMemoryTtlCache(45_000);
 const upload = multer({
